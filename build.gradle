@@ -3,7 +3,6 @@ buildscript {
     ext {
         kotlinVersion = '2.3.20'
         springBootVersion = '4.0.5'
-        springKafkaVersion = '4.0.4'
         tokenSupportVersion = '6.0.5'
         jacksonModuleKotlinVersion = '2.21.2'
     }
@@ -57,7 +56,6 @@ dependencies {
     implementation("no.nav.security:token-client-spring:${tokenSupportVersion}")
     implementation("no.nav.security:token-validation-spring:${tokenSupportVersion}")
 
-    implementation("org.springframework.kafka:spring-kafka:${springKafkaVersion}")
 
     implementation("no.nav.eessi.pensjon:ep-metrics:3.0.21")
     implementation("no.nav.eessi.pensjon:ep-logging:3.0.28")
@@ -73,7 +71,6 @@ dependencies {
     //mock - test
     testImplementation("io.mockk:mockk:1.14.7")
 
-    testImplementation("org.springframework.kafka:spring-kafka-test:${springKafkaVersion}")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude module: 'junit'
         exclude module: "mockito-core"
