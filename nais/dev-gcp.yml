@@ -1,0 +1,122 @@
+kind: Application
+apiVersion: nais.io/v1alpha1
+metadata:
+  name: eessi-pensjon-dodsmelding-q2
+  namespace: eessipensjon
+  labels:
+    team: eessipensjon
+spec:
+  observability:
+    logging:
+      destinations:
+        - id: elastic
+        - id: loki
+    autoInstrumentation:
+      enabled: true
+      runtime: java
+  kafka:
+    pool: nav-dev
+  azure:
+    application:
+      enabled: true
+#  gcp:
+#    buckets:
+#      - name: eessi-pensjon-gjenny-dev
+#        lifecycleCondition:
+#          age: 365
+#          createdBefore: 2020-01-01
+#          numNewerVersions: 2
+#          withState: ANY
+#      - name: eessi-pensjon-p6000-dev
+#        uniformBucketLevelAccess: true
+  accessPolicy:
+    outbound:
+      rules:
+        - application: logging
+          namespace: nais-system
+        - application: eessi-pensjon-dodsmelding-q2
+          namespace: eessipensjon
+          cluster: dev-gcp
+      external:
+        - host: rina-ss1-q.adeo.no
+        - host: saf-q2.dev-fss-pub.nais.io
+        - host: pdl-api.dev-fss-pub.nais.io
+        - host: pensjon-pen-q2.dev-fss-pub.nais.io
+        - host: pensjon-psak-q2.dev-fss-pub.nais.io
+        - host: eux-rina-api-gcp-q2.intern.dev.nav.no
+    inbound:
+      rules:
+        - application: azure-token-generator
+          namespace: nais
+          cluster: dev-gcp
+        - application: pensjon-pen-q2
+          namespace: pensjon-q2
+          cluster: dev-fss
+        - application: pensjon-psak-q2
+          namespace: pensjon-q2
+          cluster: dev-fss
+        - application: pensjon-psak-q2
+          namespace: pensjon-q2
+          cluster: dev-gcp
+
+  webproxy: true
+  env:
+    - name: SPRING_PROFILES_ACTIVE
+      value: test
+
+    - name: PESYS_URL
+      value: https://pensjon-pen-q2.dev-fss-pub.nais.io/pen/api/eessi/v2
+
+    - name: EESSIPEN_EUX_RINA_URL
+      value: https://eux-rina-api-gcp-q2.intern.dev.nav.no/cpi
+    - name: EESSIPEN_EUX_RINA_URL_v2
+      value: https://eux-rina-api-gcp-q2.intern.dev.nav.no/v2
+
+    - name: RINA_HOST_URL
+      value: rina-ss1-q.adeo.no
+    - name: SAF_GRAPHQL_URL
+      value: https://saf-q2.dev-fss-pub.nais.io/graphql
+    - name: SAF_HENTDOKUMENT_URL
+      value: https://saf-q2.dev-fss-pub.nais.io/rest/hentdokument
+
+    - name: PDL_URL
+      value: https://pdl-api.dev-fss-pub.nais.io/graphql
+
+    - name: AZURE_APP_PDL_CLIENT_ID
+      value: dev-fss.pdl.pdl-api
+    - name: AZURE_APP_EUX_CLIENT_ID
+      value: dev-gcp.eessibasis.eux-rina-api-q2
+    - name: AZURE_APP_SAF_CLIENT_ID
+      value: dev-fss.teamdokumenthandtering.saf
+    - name: AZURE_APP_PEN_CLIENT_ID
+      value: dev-fss.pensjon-q2.pensjon-pen-q2
+
+    - name: ENV
+      value: q2
+  image: {{ image }}
+  ingresses:
+    - https://eessi-pensjon-dodsmelding-q2.intern.dev.nav.no
+  liveness:
+    path: /internal/isalive
+    port: 8080
+    initialDelay: 40
+    failureThreshold: 10
+  port: 8080
+  prometheus:
+    enabled: true
+    path: /actuator/prometheus
+  readiness:
+    path: /internal/isready
+    port: 8080
+    initialDelay: 40
+    failureThreshold: 10
+  replicas:
+    min: 2
+    max: 2
+    cpuThresholdPercentage: 50
+  resources:
+    limits:
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 700Mi

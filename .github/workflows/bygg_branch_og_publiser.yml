@@ -6,13 +6,12 @@
 #
 # ******************************************************************************************************************
 
-name: Bygg, deploy publiser for branch RINA CDM
+name: Bygg, publiser og deploy til Q2
 
 on:
   push:
     branches:
-      - feature/rina-cdm
-
+      - 'feature/*'
 jobs:
   bygg_deploy_dev_publiser_tag:
     name: 'Bygg, publiser, deploy DEV, tag og dispatch deploy til PROD'
@@ -50,11 +49,11 @@ jobs:
       - name: 'Deploy image'
         run: echo "IMAGE=${{ steps.docker-push.outputs.image }}"
 
-      - name: 'Deploy to DEV Q2 med Q1 RINA'
+      - name: 'Deploy to DEV Q2'
         uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: dev-gcp
-          RESOURCE: nais/dev-gcp-q1.yml
+          RESOURCE: nais/dev-gcp.yml
           IMAGE: ${{ steps.docker-push.outputs.image }}
 
       - name: 'Opprett git tag'
@@ -62,4 +61,4 @@ jobs:
           curl -v -s -X POST https://api.github.com/repos/${{ github.repository }}/git/refs -H "Authorization: token  ${{ secrets.GITHUB_TOKEN }}" -d '{ "ref": "refs/tags/${{ env.DATE }}---${{ env.COMMIT_HASH }}",  "sha": "${{ env.COMMIT_HASH }}" }'
 
       - name: 'Echo Image Name'
-        run: echo "### Image Name ${{ steps.docker-push.outputs.image }}" >> $GITHUB_STEP_SUMMARY
+        run: echo "### Image Hash $(echo ${{  steps.docker-push.outputs.image }} | cut -d':' -f2)" >> $GITHUB_STEP_SUMMARY

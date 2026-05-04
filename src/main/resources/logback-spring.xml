@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <springProfile name="prod">
+        <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%level %logger %msg %n</pattern>
+            </encoder>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeCallerData>true</includeCallerData>
+            </encoder>
+        </appender>
+
+        <appender name="secureLog" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+            <destination>team-logs.nais-system:5170</destination>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <customFields>{"google_cloud_project":"${GOOGLE_CLOUD_PROJECT}","nais_namespace_name":"${NAIS_NAMESPACE}","nais_pod_name":"${NAIS_POD_NAME}","nais_container_name":"${NAIS_APP_NAME}"}</customFields>
+                <includeContext>false</includeContext>
+            </encoder>
+        </appender>
+
+        <logger name="secureLog" level="DEBUG" additivity="false">
+            <appender-ref ref="secureLog"/>
+        </logger>
+
+        <logger name="io" level="ERROR"/>
+        <logger name="org" level="ERROR"/>
+        <logger name="com" level="ERROR"/>
+        <logger name="no.nav" level="INFO"/>
+        <logger name="no.nav.security" level="ERROR"/>
+        <logger name="no.nav.eessi" level="INFO"/>
+        <logger name="no.nav.eessi.pensjon.logging.RequestResponseLoggerInterceptor" level="OFF"/>
+        <logger name="no.nav.security.token.support.core.validation" level="ERROR"/>
+        <logger name="no.nav.eessi.pensjon.logging.AuditLogger" level="OFF"/>
+        <root level="info">
+            <appender-ref ref="stdout_json"/>
+        </root>
+    </springProfile>
+
+    <!--  For kjøring i kube/docker under miljø T,Q  -->
+    <springProfile name="test">
+        <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%level %logger %msg %n</pattern>
+            </encoder>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeCallerData>true</includeCallerData>
+            </encoder>
+        </appender>
+
+        <logger name="secureLog" level="DEBUG"  additivity="false">
+            <appender-ref ref="stdout_json"/>
+        </logger>
+
+        <root level="DEBUG">
+            <appender-ref ref="stdout_json"/>
+        </root>
+    </springProfile>
+</configuration>
