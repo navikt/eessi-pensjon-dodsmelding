@@ -5,9 +5,7 @@ import org.springframework.boot.runApplication
 
 @SpringBootApplication
 
-class EessiDodsmeldingApplication {
+class EessiDodsmeldingApplication
     fun main(args: Array<String>) {
         runApplication<EessiDodsmeldingApplication>(*args)
     }
-
-}
