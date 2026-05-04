@@ -12,7 +12,6 @@ on:
   push:
     branches:
       - master
-
 jobs:
   bygg_deploy_dev_publiser_tag:
     name: 'Bygg, publiser, deploy DEV, tag og dispatch deploy til PROD'
