@@ -1,0 +1,88 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "com.github.ben-manes:gradle-versions-plugin:0.53.0"
+        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.5.0.2730"
+        classpath "se.patrikerdes:gradle-use-latest-versions-plugin:0.2.19"
+        classpath "org.owasp:dependency-check-gradle:8.1.0"
+        classpath "com.adarshr:gradle-test-logger-plugin:4.0.0"
+    }
+}
+
+apply plugin: com.github.benmanes.gradle.versions.VersionsPlugin
+apply plugin: se.patrikerdes.UseLatestVersionsPlugin
+apply plugin: org.owasp.dependencycheck.gradle.DependencyCheckPlugin
+apply plugin: 'jacoco'
+apply plugin: org.sonarqube.gradle.SonarQubePlugin
+apply plugin: com.adarshr.gradle.testlogger.TestLoggerPlugin
+
+repositories {
+    mavenCentral()
+
+    maven {
+        url = uri("https://github-package-registry-mirror.gc.nav.no/cached/maven-release")
+    }
+}
+
+dependencies {
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom:${kotlinVersion}"))
+}
+
+assert JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_21): "Java 21 or newer is required"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+kotlin {
+    jvmToolchain(21)
+
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+        freeCompilerArgs.add("-Xannotation-default-target=param-property")
+
+    }
+}
+
+test {
+    useJUnitPlatform()
+    failFast = false
+    testlogger {
+        theme 'mocha'               // task level
+        showFullStackTraces true
+        slowThreshold 5000          //Tests that are too slow will have their duration logged.
+    }
+}
+
+/* https://github.com/ben-manes/gradle-versions-plugin */
+dependencyUpdates {
+    rejectVersionIf {
+        ['alpha', 'beta', 'b', 'rc', 'cr', 'm', 'preview', 'pr']
+                .any { qualifier -> it.candidate.version ==~ /(?i).*[.-]${qualifier}[.\d-]*/}
+    }
+    revision = 'release'
+}
+
+// https://docs.gradle.org/current/userguide/jacoco_plugin.html
+jacoco {
+    toolVersion = "0.8.10"
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+    }
+}
+
+tasks.sonarqube.dependsOn tasks["jacocoTestReport"]
+
+wrapper {
+    distributionType = Wrapper.DistributionType.ALL
+}
+
