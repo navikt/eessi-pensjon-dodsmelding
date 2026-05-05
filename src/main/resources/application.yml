@@ -13,27 +13,13 @@ METRICS_REQUESTFILTER_ENABLE: true
 
 management:
   endpoints:
+    metrics:
+      enabled: true
     web:
       exposure:
         include: info, health, metrics, prometheus
-  endpoint:
-    prometheus:
-      enabled: true
-  metrics:
     export:
       prometheus:
         enabled: true
-
-spring:
-  metrics:
-    web:
-      server:
-        auto-time-requests: true
-
-#Embedded tomcat
-server:
-  servlet:
-    session:
-      timeout: '120s'
-  error:
-    include-message: always
+    prometheus:
+      enabled: true
