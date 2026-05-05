@@ -34,6 +34,10 @@ spec:
       value: test
     - name: ENV
       value: q2
+
+    - name: EUX_RINA_API_V1_URL
+      value: https://eux-rina-api-q2.intern.dev.nav.no/cpi
+
   image: {{ image }}
   ingresses:
     - https://eessi-pensjon-dodsmelding-q2.intern.dev.nav.no
