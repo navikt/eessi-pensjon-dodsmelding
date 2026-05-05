@@ -37,15 +37,14 @@ spec:
   image: {{ image }}
   ingresses:
     - https://eessi-pensjon-dodsmelding-q2.intern.dev.nav.no
-  liveness:
-    path: /internal/isalive
-    port: 8080
-    initialDelay: 40
-    failureThreshold: 10
   port: 8080
   prometheus:
     enabled: true
     path: /actuator/prometheus
+  liveness:
+    path: /internal/isalive
+    port: 8080
+    initialDelay: 20
   readiness:
     path: /internal/isready
     port: 8080
