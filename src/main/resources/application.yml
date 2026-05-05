@@ -17,21 +17,6 @@ no.nav.security.jwt:
           client-id: ${AZURE_APP_CLIENT_ID}
           client-jwk: ${AZURE_APP_JWK}
           client-auth-method: private_key_jwt
-      dokarkiv-credentials:
-        <<: *auth
-        scope: api://${AZURE_APP_DOKARKIV_CLIENT_ID}/.default
-      pdl-credentials:
-        <<: *auth
-        scope: api://${AZURE_APP_PDL_CLIENT_ID}/.default
-      eux-credentials:
-        <<: *auth
-        scope: api://${AZURE_APP_EUX_CLIENT_ID}/.default
-      saf-credentials:
-        <<: *auth
-        scope: api://${AZURE_APP_SAF_CLIENT_ID}/.default
-      pensjon-credentials:
-        <<: *auth
-        scope: api://${AZURE_APP_PEN_CLIENT_ID}/.default
 
 METRICS_REQUESTFILTER_ENABLE: true
 
