@@ -41,8 +41,14 @@ class OAuth2RestTemplateConfiguration(
     @Value("\${PESYS_URL}")
     lateinit var pesysUrl: String
 
+    @Value("\${SAF_GRAPHQL_URL}")
+    lateinit var graphQlUrl: String
+
     @Bean
     fun pesysClientRestTemplate() = restTemplate(pesysUrl, oAuth2BearerTokenInterceptor(clientProperties("pensjon-credentials"), oAuth2AccessTokenService), EuxErrorHandler())
+
+    @Bean
+    fun safGraphQlOidcRestTemplate() = restTemplate(graphQlUrl, bearerTokenInterceptor(clientProperties("saf-credentials"), oAuth2AccessTokenService!!))
 
     /**
      * Create one RestTemplate per OAuth2 client entry to separate between different scopes per API
