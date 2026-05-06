@@ -5,6 +5,7 @@ buildscript {
         springBootVersion = '4.0.5'
         tokenSupportVersion = '6.0.5'
         jacksonModuleKotlinVersion = '2.21.2'
+        springKafkaVersion = '4.0.1'
     }
 }
 
@@ -59,6 +60,14 @@ dependencies {
     implementation("no.nav.security:token-validation-spring:${tokenSupportVersion}")
     implementation("no.nav.security:token-validation-jaxrs:${tokenSupportVersion}")
 
+    //kafka
+    implementation "org.springframework.kafka:spring-kafka:$springKafkaVersion"
+    implementation("io.confluent:kafka-avro-serializer:8.1.1"){
+        exclude module: 'org.apache.avro'
+    }
+
+    implementation('no.nav.pensjon:pensjon-pdl-avro-schema:2025.08.14-08.26-800400e1dc81')
+    implementation("org.apache.avro:avro:1.12.1")
 
     implementation("no.nav.eessi.pensjon:ep-metrics:3.0.23")
     implementation("no.nav.eessi.pensjon:ep-logging:3.0.31")
