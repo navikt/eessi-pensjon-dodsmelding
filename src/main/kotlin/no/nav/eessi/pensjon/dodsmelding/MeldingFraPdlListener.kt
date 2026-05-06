@@ -1,4 +1,4 @@
-package dodsmelding
+package no.nav.eessi.pensjon.dodsmelding
 
 import io.micrometer.core.instrument.Metrics
 import no.nav.eessi.pensjon.metrics.MetricsHelper

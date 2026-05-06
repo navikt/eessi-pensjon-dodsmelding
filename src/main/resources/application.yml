@@ -18,6 +18,9 @@ no.nav.security.jwt:
       saf-credentials:
         <<: *auth
         scope: api://${AZURE_APP_SAF_CLIENT_ID}/.default
+      pensjon-credentials:
+        <<: *auth
+        scope: api://${AZURE_APP_PEN_CLIENT_ID}/.default
 
 #Metrics
 METRICS_REQUESTFILTER_ENABLE: true

@@ -27,6 +27,15 @@ spec:
         - application: eessi-pensjon-dodsmelding-q2
           namespace: eessipensjon
           cluster: dev-gcp
+    external:
+      - host: pensjon-q2.pensjon-pen-q2
+      - host: pensjon-pen-q2.dev-fss-pub.nais.io
+      - host: pensjon-psak-q2.dev-fss-pub.nais.io
+    inbound:
+      rules:
+        - application: pensjon-psak-q2
+          namespace: pensjon-q2
+          cluster: dev-gcp
 
   webproxy: true
   env:
@@ -37,6 +46,9 @@ spec:
 
     - name: EUX_RINA_API_V1_URL
       value: https://eux-rina-api-q2.intern.dev.nav.no/cpi
+
+    - name: PESYS_URL
+      value: https://pensjon-pen-q2.dev-fss-pub.nais.io/pen/api/eessi/v2
 
   image: {{ image }}
   ingresses:

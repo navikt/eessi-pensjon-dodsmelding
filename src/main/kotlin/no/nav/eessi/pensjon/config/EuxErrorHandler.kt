@@ -1,0 +1,95 @@
+package no.nav.eessi.pensjon.config
+
+import no.nav.eessi.pensjon.eux.klient.*
+import org.slf4j.LoggerFactory
+import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus.*
+import org.springframework.http.client.ClientHttpResponse
+import org.springframework.util.StreamUtils
+import org.springframework.web.client.ResponseErrorHandler
+import org.springframework.web.server.ResponseStatusException
+import java.io.IOException
+import java.net.URI
+import java.nio.charset.Charset
+
+
+/**
+ * EuxErrorHandler er en utvidelse av DefaultResponseErrorHandler som håndterer
+ * HTTP-feil for EUX/RINA integrasjon.
+ *
+ * Den har som ansvar å:
+ *  - Sjekke om en HTTP-respons inneholder en feil (4xx/5xx statuskoder).
+ *  - Logge responsen, inkludert detaljert feilmelding og responsbody.
+ *  - Kaste spesifikke unntak (exceptions) basert på ulike HTTP-statuskoder, som f.eks.
+ *    500 (Internal Server Error), 404 (Not Found), 401 (Unauthorized) osv.
+ *  - Fange opp ukjente feil og logge disse for videre debugging.
+ */
+open class EuxErrorHandler : ResponseErrorHandler {
+
+    private val logger = LoggerFactory.getLogger(EuxErrorHandler::class.java)
+
+    @Throws(IOException::class)
+    override fun hasError(response: ClientHttpResponse): Boolean {
+        return response.statusCode.isError
+    }
+
+    @Throws(IOException::class)
+    override fun handleError(url: URI, method: HttpMethod, response: ClientHttpResponse) {
+        logResponse(response)
+
+        when (response.statusCode) {
+            BAD_REQUEST -> handleBadRequest(response)
+            NOT_FOUND -> throw IkkeFunnetException("Ikke funnet")
+            FORBIDDEN -> throw ForbiddenException("Forbidden, Ikke tilgang")
+            CONFLICT -> throw EuxConflictException("En konflikt oppstod under oppdatering av data")
+            UNAUTHORIZED -> throw RinaIkkeAutorisertBrukerException("Authorization token mangler eller er ugyldig")
+            GATEWAY_TIMEOUT -> throw GatewayTimeoutException("Gateway timeout")
+            INTERNAL_SERVER_ERROR -> throw EuxRinaServerException("Rina serverfeil, kan også skyldes ugyldig input")
+            else -> handleBadRequest(response)
+        }
+    }
+
+    @Throws(IOException::class)
+    private fun handleBadRequest(httpResponse: ClientHttpResponse) {
+        val responseBody = StreamUtils.copyToString(httpResponse.body, Charset.defaultCharset())
+        if (responseBody.contains("postalCode")) {
+            throw KanIkkeOppretteSedFeilmelding("Postnummer overskrider maks antall tegn (25) i PDL.")
+        }
+        throw GenericUnprocessableEntity("Bad request, en feil har oppstått: $responseBody")
+    }
+
+    @Throws(IOException::class)
+    private fun logResponse(response: ClientHttpResponse) {
+        val errorMsg = StreamUtils.copyToString(response.body, Charset.defaultCharset())
+        val callingClass = getCallingClasses()
+        val logMessage = """
+            Calling class: ${callingClass}
+            Status code  : ${response.statusCode}
+            Response body: $errorMsg""".trimIndent()
+
+        if (errorMsg.contains("Could not find RINA case with id")) {
+            logger.warn(logMessage)
+        } else {
+            logger.error(logMessage)
+        }
+    }
+
+    private fun getCallingClasses(): List<String> {
+        val stackTrace = Thread.currentThread().stackTrace
+
+        val excludedClasses = setOf(this::class.java.name, "ResponseErrorHandler", "RestTemplate", "MetricsHelper", "Metric")
+
+        return stackTrace.drop(2)
+            .take(15)
+            // filterer bort classer som ikke er relevant for logging
+            .filter { element ->
+                excludedClasses.none { excluded -> element.className.contains(excluded) } &&
+                        element.className.contains("eessi")  // Includes only results containing "eessi"
+            }
+            .map { element ->
+                "${element.className}.${element.methodName}"
+            }
+    }
+}
+
+open class KanIkkeOppretteSedFeilmelding(message: String?) : ResponseStatusException(BAD_REQUEST, message)

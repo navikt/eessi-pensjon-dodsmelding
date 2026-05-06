@@ -69,9 +69,16 @@ dependencies {
     implementation('no.nav.pensjon:pensjon-pdl-avro-schema:2025.08.14-08.26-800400e1dc81')
     implementation("org.apache.avro:avro:1.12.1")
 
+    implementation("no.nav.eessi.pensjon:ep-eux:3.0.61")
     implementation("no.nav.eessi.pensjon:ep-metrics:3.0.23")
     implementation("no.nav.eessi.pensjon:ep-logging:3.0.31")
-    implementation("no.nav.eessi.pensjon:ep-eux:3.0.61")
+    implementation("no.nav.eessi.pensjon:ep-routing:3.0.13")
+    implementation("no.nav.eessi.pensjon:ep-personoppslag:14.0.51") {
+        exclude module: 'ep-eux'
+        exclude module: 'ep-metrics'
+        exclude module: 'ep-logging'
+        exclude module: 'ep-eux'
+    }
 
     testImplementation("no.nav.security:token-validation-spring-test:${tokenSupportVersion}")
 
