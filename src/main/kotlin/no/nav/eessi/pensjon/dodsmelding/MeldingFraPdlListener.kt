@@ -13,7 +13,7 @@ import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Service
 import kotlin.collections.first
 
-@Service
+//@Service
 class MeldingFraPdlListener(
     private val dodsmeldingBehandler: DodsmeldingBehandler,
     @Autowired(required = false) private val metricsHelper: MetricsHelper = MetricsHelper.ForTest()
