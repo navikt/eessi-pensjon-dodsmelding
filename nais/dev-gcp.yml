@@ -27,10 +27,10 @@ spec:
         - application: eessi-pensjon-dodsmelding-q2
           namespace: eessipensjon
           cluster: dev-gcp
-    external:
-      - host: pensjon-q2.pensjon-pen-q2
-      - host: pensjon-pen-q2.dev-fss-pub.nais.io
-      - host: pensjon-psak-q2.dev-fss-pub.nais.io
+      external:
+        - host: pensjon-q2.pensjon-pen-q2
+        - host: pensjon-pen-q2.dev-fss-pub.nais.io
+        - host: pensjon-psak-q2.dev-fss-pub.nais.io
     inbound:
       rules:
         - application: pensjon-psak-q2
