@@ -1,15 +1,25 @@
 no.nav.security.jwt:
+
   client:
     registration:
-      eux-credentials:
+      auth: &auth
         token-endpoint-url: ${AZURE_OPENID_CONFIG_TOKEN_ENDPOINT}
         grant-type: client_credentials
-        scope: api://${AZURE_APP_EUX_CLIENT_ID}/.default
         authentication:
           client-id: ${AZURE_APP_CLIENT_ID}
           client-jwk: ${AZURE_APP_JWK}
           client-auth-method: private_key_jwt
+      eux-credentials:
+        <<: *auth
+        scope: api://${AZURE_APP_EUX_CLIENT_ID}/.default
+      pdl-credentials:
+        <<: *auth
+        scope: api://${AZURE_APP_PDL_CLIENT_ID}/.default
+      saf-credentials:
+        <<: *auth
+        scope: api://${AZURE_APP_SAF_CLIENT_ID}/.default
 
+#Metrics
 METRICS_REQUESTFILTER_ENABLE: true
 management:
   endpoints:
@@ -23,3 +33,28 @@ management:
         enabled: true
     prometheus:
       enabled: true
+
+
+#Kafka
+
+kafka:
+  consumer:
+    group-id: ${KAFKA_GROUP_ID}
+  pdlHendelse:
+    topic: ${KAFKA_PDLHENDELSE_TOPIC}
+    groupid: eessi-pensjon-pdl-leesah-group
+  security.protocol: SSL
+  brokers: ${KAFKA_BROKERS:localhost:9092}
+
+spring:
+  kafka:
+    properties:
+      schema:
+        registry:
+          url: ${KAFKA_SCHEMA_REGISTRY}
+      basic:
+        auth:
+          credentials:
+            source: USER_INFO
+          user:
+            info: ${KAFKA_SCHEMA_REGISTRY_USER}:${KAFKA_SCHEMA_REGISTRY_PASSWORD}
