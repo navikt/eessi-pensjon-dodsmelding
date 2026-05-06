@@ -53,6 +53,9 @@ spec:
     - name: SAF_GRAPHQL_URL
       value: https://saf-q2.dev-fss-pub.nais.io/graphql
 
+    - name: SAF_HENTDOKUMENT_URL
+      value: https://saf-q2.dev-fss-pub.nais.io/rest/hentdokument
+
   image: {{ image }}
   ingresses:
     - https://eessi-pensjon-dodsmelding-q2.intern.dev.nav.no
