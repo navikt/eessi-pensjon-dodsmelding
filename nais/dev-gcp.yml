@@ -56,6 +56,9 @@ spec:
     - name: SAF_HENTDOKUMENT_URL
       value: https://saf-q2.dev-fss-pub.nais.io/rest/hentdokument
 
+    - name: PDL_URL
+      value: https://pdl-api.dev-fss-pub.nais.io/graphql
+
   image: {{ image }}
   ingresses:
     - https://eessi-pensjon-dodsmelding-q2.intern.dev.nav.no
