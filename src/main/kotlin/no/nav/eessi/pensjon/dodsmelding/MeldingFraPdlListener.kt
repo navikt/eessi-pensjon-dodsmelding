@@ -1,6 +1,7 @@
 package no.nav.eessi.pensjon.dodsmelding
 
 import io.micrometer.core.instrument.Metrics
+import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.metrics.MetricsHelper
 import no.nav.person.pdl.leesah.Endringstype
 import no.nav.person.pdl.leesah.Personhendelse
@@ -10,12 +11,12 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.Acknowledgment
-import org.springframework.stereotype.Service
 import kotlin.collections.first
 
 //@Service
 class MeldingFraPdlListener(
     private val dodsmeldingBehandler: DodsmeldingBehandler,
+    private val lagringsService: LagringsService,
     @Autowired(required = false) private val metricsHelper: MetricsHelper = MetricsHelper.ForTest()
 ) {
     private val logger = LoggerFactory.getLogger(MeldingFraPdlListener::class.java)
@@ -46,6 +47,7 @@ class MeldingFraPdlListener(
                             logger.info("Behandler ${consumerRecords.size} meldinger, firstOffset=${consumerRecords.first().offset()}, lastOffset=${consumerRecords.last().offset()}")
                             logger.debug("DOEDSFALL_V1: ${personhendelse}")
                             secureLogger.info("DOEDSFALL_V1: ${personhendelse}")
+                            lagringsService.lagreFnrIS3(personhendelse.folkeregisteridentifikator.toString(), "FI")
                             messureOpplysningstype.addKjent(personhendelse)
                             when(personhendelse.endringstype) {
                                 Endringstype.OPPRETTET -> dodsmeldingBehandler.behandle(personhendelse).also { logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, behandler denne") }
