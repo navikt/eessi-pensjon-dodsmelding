@@ -44,7 +44,7 @@ class MeldingFraPdlListenerTest {
     @BeforeEach
     fun setup() {
         dodsmeldingBehandler = DodsmeldingBehandler(fagmodulKlient, safClient, personService, opprettH070, euxService, mockk())
-        listener = MeldingFraPdlListener(dodsmeldingBehandler)
+        listener = MeldingFraPdlListener(dodsmeldingBehandler, mockk())
         justRun { ack.acknowledge() }
 
         personhendelse = mockk<Personhendelse> {
