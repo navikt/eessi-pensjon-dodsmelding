@@ -14,8 +14,9 @@ import no.nav.person.pdl.leesah.Personhendelse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
 
-//@Component
+@Component
 class DodsmeldingBehandler(
 	private val pesysKlient: PesysKlient,
 	private val safClient: SafClient,

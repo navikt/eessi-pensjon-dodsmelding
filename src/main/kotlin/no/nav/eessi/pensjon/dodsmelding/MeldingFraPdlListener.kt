@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.Acknowledgment
+import org.springframework.stereotype.Service
 import kotlin.collections.first
 
 //@Service
@@ -47,7 +48,10 @@ class MeldingFraPdlListener(
                             logger.info("Behandler ${consumerRecords.size} meldinger, firstOffset=${consumerRecords.first().offset()}, lastOffset=${consumerRecords.last().offset()}")
                             logger.debug("DOEDSFALL_V1: ${personhendelse}")
                             secureLogger.info("DOEDSFALL_V1: ${personhendelse}")
-                            lagringsService.lagreFnrIS3(personhendelse.folkeregisteridentifikator.toString(), "FI")
+
+                            personhendelse.folkeregisteridentifikator?.let {
+                                lagringsService.lagreFnrIS3(personhendelse.folkeregisteridentifikator.identifikasjonsnummer, "FI")
+                            }
                             messureOpplysningstype.addKjent(personhendelse)
                             when(personhendelse.endringstype) {
                                 Endringstype.OPPRETTET -> dodsmeldingBehandler.behandle(personhendelse).also { logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, behandler denne") }

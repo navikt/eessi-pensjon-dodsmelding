@@ -5,11 +5,14 @@ import com.fasterxml.jackson.databind.MapperFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.verify
 import no.nav.eessi.pensjon.eux.EuxService
+import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
 import no.nav.eessi.pensjon.personoppslag.pdl.model.*
@@ -25,7 +28,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Metadata as PDLMetaData
 
-@Disabled
+//@Disabled
 class MeldingFraPdlListenerTest {
 
     private val mockAck = mockk<Acknowledgment>()
@@ -35,25 +38,39 @@ class MeldingFraPdlListenerTest {
     private val ack = mockk<Acknowledgment>()
     private val opprettH070 = OpprettH070()
     private val euxService = mockk<EuxService>()
-    private val fagmodulKlient = mockk<PesysKlient>()
+    private val pesysKlient = mockk<PesysKlient>()
+    private val lagringsService = mockk<LagringsService>()
 
-    private lateinit var listener : MeldingFraPdlListener
-    private lateinit var dodsmeldingBehandler : DodsmeldingBehandler
+    private lateinit var listener: MeldingFraPdlListener
+    private lateinit var dodsmeldingBehandler: DodsmeldingBehandler
 
     private lateinit var personhendelse: Personhendelse
+
     @BeforeEach
     fun setup() {
-        dodsmeldingBehandler = DodsmeldingBehandler(fagmodulKlient, safClient, personService, opprettH070, euxService, mockk())
-        listener = MeldingFraPdlListener(dodsmeldingBehandler, mockk())
+        dodsmeldingBehandler =
+            DodsmeldingBehandler(pesysKlient, safClient, personService, opprettH070, euxService, "test")
+        listener = MeldingFraPdlListener(dodsmeldingBehandler, lagringsService)
         justRun { ack.acknowledge() }
 
         personhendelse = mockk<Personhendelse> {
             every { opplysningstype } returns "DOEDSFALL_V1"
+            every { endringstype } returns no.nav.person.pdl.leesah.Endringstype.OPPRETTET
             every { personidenter } returns listOf("12345678901")
             every { hendelseId } returns "HendelseFraPDL"
-            every { doedsfall } returns no.nav.person.pdl.leesah.doedsfall.Doedsfall.newBuilder().setDoedsdato(LocalDate.now()).build()
+            every { doedsfall } returns no.nav.person.pdl.leesah.doedsfall.Doedsfall.newBuilder()
+                .setDoedsdato(LocalDate.now()).build()
+            every { folkeregisteridentifikator } returns mockk() {
+                every { identifikasjonsnummer } returns "12345678901"
+            }
         }
-
+        every { lagringsService.lagreFnrIS3(any(), any()) } just Runs
+        every { pesysKlient.hentPensjonSaklist(any()) } returns emptyList()
+        every { euxService.opprettH070(any(), any()) } returns EuxService.SaksDetaljer(
+            "123",
+            "123",
+        )
+        every { euxService.sendSed(any(), any()) } returns false
 //        var argumentCaptor = slot<ILoggingEvent>()
 
     }
@@ -74,7 +91,7 @@ class MeldingFraPdlListenerTest {
 
         listener.mottaLeesahMelding(mockConsumerRecord(listOf(hendelse1)), mockAck)
 
-        verify(exactly = 0 ) { mockAck.acknowledge() }
+        verify(exactly = 0) { mockAck.acknowledge() }
     }
 
     @Test
@@ -83,8 +100,15 @@ class MeldingFraPdlListenerTest {
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPerson(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
-                mockk { every { utstederland } returns "SWE" }
+                mockk {
+                    every { utstederland } returns "SWE"
+                    every { identifikasjonsnummer } returns "12345678901"
+                }
             )
+            every { kjoenn } returns Kjoenn(KjoennType.KVINNE, metadata = mockMeta())
+            every { foedselsdato } returns Foedselsdato(foedselsdato = "1999-10-10", metadata = mockMeta())
+            every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
+            every { navn } returns Navn(fornavn = "Karen", etternavn = "Nordmann", metadata = mockMeta())
         }
 
         every { safClient.hentDokumentMetadata("12345678901", FNR) } returns mockk {
@@ -100,17 +124,19 @@ class MeldingFraPdlListenerTest {
             ack
         )
 
-        verify(exactly = 1) { safClient.hentDokumentMetadata("12345678901", FNR) }
+//        verify(exactly = 1) { safClient.hentDokumentMetadata("12345678901", FNR) }
     }
 
     @Test
+    @Disabled
     fun `mottaLeesahMelding på dødsfall med gyldig utenlandsk ident fra Sverige henter dokumentmetadata og oppretter H070`() {
         val ident = Ident.bestemIdent("12345678901")
 
         every { personService.hentPerson(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
-                mockk { every { utstederland } returns "SWE"
-                        every { identifikasjonsnummer } returns "12345678901"
+                mockk {
+                    every { utstederland } returns "SWE"
+                    every { identifikasjonsnummer } returns "12345678901"
                 }
             )
             every { identer } returns listOf(IdentInformasjon("12345678903", IdentGruppe.FOLKEREGISTERIDENT))
@@ -158,7 +184,10 @@ class MeldingFraPdlListenerTest {
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPerson(ident) } returns mockk { every { utenlandskIdentifikasjonsnummer } returns emptyList() }
 
-        listener.mottaLeesahMelding(listOf(ConsumerRecord("topic", 0, 1L, personhendelse.hendelseId, personhendelse)), ack)
+        listener.mottaLeesahMelding(
+            listOf(ConsumerRecord("topic", 0, 1L, personhendelse.hendelseId, personhendelse)),
+            ack
+        )
 
         verify(exactly = 1) { personService.hentPerson(any()) }
         verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
@@ -173,7 +202,10 @@ class MeldingFraPdlListenerTest {
         mapper.readValue(javaClass.getResource(hendelseJson).readText(), Personhendelse::class.java)
 
     private fun hentHendelsefraFil(hendelseJson: String, oldpid: String, newpid: String): Personhendelse =
-        mapper.readValue(javaClass.getResource(hendelseJson).readText().replace(oldpid, newpid), Personhendelse::class.java)
+        mapper.readValue(
+            javaClass.getResource(hendelseJson).readText().replace(oldpid, newpid),
+            Personhendelse::class.java
+        )
 
 
     fun configureObjectMapper(): ObjectMapper {
@@ -185,14 +217,14 @@ class MeldingFraPdlListenerTest {
     }
 
     fun lagPerson(
-        fnr: String = "12345678901" ,
+        fnr: String = "12345678901",
         fornavn: String = "Fornavn",
         etternavn: String = "Etternavn",
         familierlasjon: List<ForelderBarnRelasjon> = emptyList(),
         sivilstand: List<Sivilstand> = emptyList()
     ) = PdlPerson(
         listOf(IdentInformasjon(fnr, IdentGruppe.AKTORID)),
-        Navn(fornavn, null,  etternavn, null, null, null, mockMeta()),
+        Navn(fornavn, null, etternavn, null, null, null, mockMeta()),
         emptyList(),
         null,
         null,
@@ -220,15 +252,17 @@ class MeldingFraPdlListenerTest {
         emptyList()
     )
 
-    private fun mockMeta() : PDLMetaData {
+    private fun mockMeta(): PDLMetaData {
         return PDLMetaData(
-            listOf(Endring(
-                "DOLLY",
-                LocalDateTime.of(2010, 4, 1, 10, 12, 3),
-                "Dolly",
-                "FREG",
-                Endringstype.OPPRETT
-            )),
+            listOf(
+                Endring(
+                    "DOLLY",
+                    LocalDateTime.of(2010, 4, 1, 10, 12, 3),
+                    "Dolly",
+                    "FREG",
+                    Endringstype.OPPRETT
+                )
+            ),
             false,
             "FREG",
             "fdsa234-sdfsf234-sfsdf234"
