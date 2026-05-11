@@ -32,7 +32,7 @@ class MeldingFraPdlListener(
         autoStartup = "\${pdl.kafka.autoStartup}",
         batch = "true",
         topics = ["pdl.leesah-v1"],
-        groupId = "eessi-pensjon-pdl-produsent",
+        groupId = "eessi-pensjon-dodsmelding",
         containerFactory = "kafkaAivenHendelseListenerAvroLatestContainerFactory",
     )
     fun mottaLeesahMelding(consumerRecords: List<ConsumerRecord<String, Personhendelse>>, ack: Acknowledgment) {
