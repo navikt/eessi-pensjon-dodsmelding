@@ -64,7 +64,7 @@ dependencies {
     implementation("no.nav.security:token-validation-jaxrs:${tokenSupportVersion}")
 
     //GCP
-    implementation("com.google.cloud:google-cloud-storage:2.64.0")
+    implementation("com.google.cloud:google-cloud-storage:2.68.0")
 
     //kafka
     implementation "org.springframework.kafka:spring-kafka:$springKafkaVersion"
