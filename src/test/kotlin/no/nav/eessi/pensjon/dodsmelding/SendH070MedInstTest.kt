@@ -35,7 +35,7 @@ class SendH070MedInstTest {
     @BeforeEach
     fun setup() {
         euxService = EuxService(euxKlient)
-        dodsmeldingBehandler = DodsmeldingBehandler(fagmodulKlient, safClient, personService, opprettH070, euxService, "q2")
+        dodsmeldingBehandler = DodsmeldingBehandler(fagmodulKlient, personService, opprettH070, euxService, "q2")
     }
 
     @Test

@@ -49,7 +49,7 @@ class MeldingFraPdlListenerTest {
     @BeforeEach
     fun setup() {
         dodsmeldingBehandler =
-            DodsmeldingBehandler(pesysKlient, safClient, personService, opprettH070, euxService, "test")
+            DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, "test")
         listener = MeldingFraPdlListener(dodsmeldingBehandler, lagringsService)
         justRun { ack.acknowledge() }
 

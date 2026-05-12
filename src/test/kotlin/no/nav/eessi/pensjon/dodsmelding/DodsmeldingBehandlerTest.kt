@@ -1,8 +1,6 @@
 package no.nav.eessi.pensjon.dodsmelding
 
-import io.mockk.Runs
 import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
@@ -41,7 +39,7 @@ class DodsmeldingBehandlerTest {
 
     @BeforeEach
     fun setup() {
-        dodsmeldingBehandler = DodsmeldingBehandler(pesysKlient, safClient, personService, opprettH070, euxService, "dev")
+        dodsmeldingBehandler = DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, "dev")
         every { pesysKlient.hentPensjonSaklist(any()) } returns emptyList()
 
         // ting som ikke er så viktig akkurat nå

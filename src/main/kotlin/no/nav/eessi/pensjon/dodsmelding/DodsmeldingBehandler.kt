@@ -7,7 +7,6 @@ import no.nav.eessi.pensjon.oppgaverouting.SakInformasjon
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
-import no.nav.eessi.pensjon.saf.SafClient
 import no.nav.eessi.pensjon.utils.toJson
 import no.nav.eessi.pensjon.utils.toJsonSkipEmpty
 import no.nav.person.pdl.leesah.Personhendelse
@@ -19,12 +18,11 @@ import org.springframework.stereotype.Component
 @Component
 class DodsmeldingBehandler(
 	private val pesysKlient: PesysKlient,
-	private val safClient: SafClient,
 	private val personService: PersonService,
 	private val opprettH070: OpprettH070,
 	private val euxService: EuxService,
 	@Value("\${ENV}") private val env: String
-	) {
+) {
 	val gyldigeUtstederland = listOf("SW", "SWE", "FI", "FIN",  "PO", "POL")
 
 	private val logger: Logger = LoggerFactory.getLogger(DodsmeldingBehandler::class.java)
