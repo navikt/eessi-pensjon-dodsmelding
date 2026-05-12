@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.client.RestTemplate
 import kotlin.collections.map
 
-//@Component
+@Component
 class PesysKlient(private val pesysClientRestTemplate: RestTemplate) {
 
     private val logger: Logger by lazy { LoggerFactory.getLogger(PesysKlient::class.java) }
