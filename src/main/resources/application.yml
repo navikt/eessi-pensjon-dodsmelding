@@ -3,7 +3,6 @@ no.nav.security.jwt:
     entraid:
       discovery-url: ${AZURE_APP_WELL_KNOWN_URL}
       accepted-audience: ${AZURE_APP_CLIENT_ID}
-
   client:
     registration:
       auth: &auth

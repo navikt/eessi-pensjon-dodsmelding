@@ -42,6 +42,8 @@ spec:
         uniformBucketLevelAccess: true
 
   webproxy: true
+  kafka:
+    pool: nav-dev
   env:
     - name: SPRING_PROFILES_ACTIVE
       value: test
