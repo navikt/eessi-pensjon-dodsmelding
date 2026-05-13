@@ -12,9 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Service
-import kotlin.collections.first
 
-//@Service
+@Service
 class MeldingFraPdlListener(
     private val dodsmeldingBehandler: DodsmeldingBehandler,
     private val lagringsService: LagringsService,
