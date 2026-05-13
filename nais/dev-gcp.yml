@@ -66,6 +66,12 @@ spec:
     - name: PDL_URL
       value: https://pdl-api.dev-fss-pub.nais.io/graphql
 
+    - name: KAFKA_PDLHENDELSE_TOPIC
+      value: pdl.leesah-v1
+    - name: KAFKA_GROUP_ID
+      value: eessi-pensjon-dodsmelding-q2
+
+
   image: {{ image }}
   ingresses:
     - https://eessi-pensjon-dodsmelding-q2.intern.dev.nav.no
