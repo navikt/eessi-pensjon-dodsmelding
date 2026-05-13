@@ -48,8 +48,8 @@ class MeldingFraPdlListener(
                             logger.debug("DOEDSFALL_V1: ${personhendelse}")
                             secureLogger.info("DOEDSFALL_V1: ${personhendelse}")
 
-                            personhendelse.folkeregisteridentifikator?.let {
-                                lagringsService.lagreFnrIS3(personhendelse.folkeregisteridentifikator.identifikasjonsnummer, "FI")
+                            personhendelse.personidenter.firstOrNull()?.let {
+                                lagringsService.lagreFnrIS3(it, "FI")
                             }
                             messureOpplysningstype.addKjent(personhendelse)
                             when(personhendelse.endringstype) {
