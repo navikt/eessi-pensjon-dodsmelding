@@ -48,7 +48,7 @@ kafka:
     group-id: ${KAFKA_GROUP_ID}
   pdlHendelse:
     topic: ${KAFKA_PDLHENDELSE_TOPIC}
-    groupid: eessi-pensjon-pdl-leesah-group
+    groupid: eessi-pensjon-dodsmelding
   security.protocol: SSL
   brokers: ${KAFKA_BROKERS:localhost:9092}
 
