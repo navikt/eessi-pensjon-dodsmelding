@@ -39,6 +39,9 @@ management:
 
 
 #Kafka
+pdl:
+  kafka:
+    autoStartup: true
 
 kafka:
   consumer:
