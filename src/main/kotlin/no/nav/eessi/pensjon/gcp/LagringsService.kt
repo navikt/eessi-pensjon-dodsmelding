@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.nio.ByteBuffer
+import java.security.MessageDigest
 
 @Service
 class LagringsService (
@@ -18,11 +19,12 @@ class LagringsService (
 
     fun lagreFnrIS3(fnr: String, landkode: String) {
         kanHendelsenOpprettes(fnr, landkode)
-        val path = hentBrukerILand(landkode, fnr)
+        val path = hentBrukerILand(landkode, hashedValue(fnr))
 
         try {
-            logger.debug("Lagrer bruker fra: $landkode i $path")
-            lagre(path, fnr)
+            logger.debug("Lagrer bruker fra: $landkode")
+            logger.debug("Hasha : ${hashedValue(fnr)}")
+            lagre(path)
         } catch (ex: Exception) {
             logger.error("Feiler ved lagring av data: $path $ex")
         }
@@ -30,8 +32,8 @@ class LagringsService (
 
     fun kanHendelsenOpprettes(fnr: String, land: String) : Boolean {
         logger.debug("liste over obj FI/" + list("FI/").toString())
-        logger.debug("liste over obj SE/" + list("SE/").toString())
-        logger.debug("liste over obj PL/" + list("PL/").toString())
+//        logger.debug("liste over obj SE/" + list("SE/").toString())
+//        logger.debug("liste over obj PL/" + list("PL/").toString())
         return !eksisterer(land, fnr, utenlandkYtelseBucket)
     }
     fun eksisterer(land:String, fnr: String, bucketNavn: String): Boolean {
@@ -67,16 +69,22 @@ class LagringsService (
         return path
     }
 
-    fun lagre(storageKey: String, storageValue: String) {
+    fun lagre(storageKey: String) {
         val blobInfo =  BlobInfo.newBuilder(BlobId.of(utenlandkYtelseBucket, storageKey)).setContentType("application/json").build()
         kotlin.runCatching {
-            gcpStorage.writer(blobInfo).use {
-                it.write(ByteBuffer.wrap(storageValue.toByteArray()))
-            }
+            gcpStorage.writer(blobInfo).use { it.write(ByteBuffer.wrap(storageKey.toByteArray())) }
         }.onFailure { e ->
             logger.error("Feilet med å lagre dokument med id: ${blobInfo.blobId.name}", e)
         }.onSuccess {
             logger.info("Lagret fil med blobid:  ${blobInfo.blobId.name} og bytes: $it")
         }
     }
+
+    fun hashedValue(input: String): String {
+        val bytes = input.toByteArray()
+        val md = MessageDigest.getInstance("SHA-256")
+        val digest = md.digest(bytes)
+        return digest.fold("") { str, it -> str + "%02x".format(it) }
+    }
+
 }
