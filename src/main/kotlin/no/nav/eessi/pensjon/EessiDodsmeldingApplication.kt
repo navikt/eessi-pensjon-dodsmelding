@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Profile
 import org.springframework.retry.annotation.EnableRetry
 import org.springframework.scheduling.annotation.EnableScheduling
 
-@Profile("prod", "test")
+//@Profile("prod", "test")
 @EnableJwtTokenValidation
 @EnableOAuth2Client(cacheEnabled = false)
 @SpringBootApplication
