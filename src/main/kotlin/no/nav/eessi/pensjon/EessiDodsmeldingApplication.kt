@@ -6,11 +6,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Profile
 import org.springframework.retry.annotation.EnableRetry
+import org.springframework.scheduling.annotation.EnableScheduling
 
 @Profile("prod", "test")
 @EnableJwtTokenValidation
 @EnableOAuth2Client(cacheEnabled = false)
 @SpringBootApplication
+@EnableScheduling
 @EnableRetry
 class EessiDodsmeldingApplication
 
