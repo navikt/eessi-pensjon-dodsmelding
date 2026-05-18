@@ -9,17 +9,19 @@ import com.google.cloud.storage.Storage
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class LagringsServiceTest {
 
     private val gcpStorage =  mockk<Storage>(relaxed = true)
+    private val vurderSveFinEdifactDokument =  mockk<VurderSveFinEdifactDokument>(relaxed = true)
     private lateinit var lagringsService: LagringsService
 
     @BeforeEach
     fun setup() {
-        lagringsService = LagringsService("dod", gcpStorage)
+        lagringsService = LagringsService("dod", vurderSveFinEdifactDokument, gcpStorage)
     }
 
     @Test
