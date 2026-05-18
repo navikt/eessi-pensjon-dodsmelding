@@ -1,8 +1,10 @@
 package no.nav.eessi.pensjon.dodsmelding
 
 import no.nav.eessi.pensjon.utils.toJson
+import org.springframework.stereotype.Component
 import java.security.MessageDigest
 
+@Component
 class VurderSveFinEdifactDokument {
 
     fun vurderEditfactDokument(edifactDokument: String?): EdifactDokument? {
