@@ -62,7 +62,7 @@ class LagringsService (
             logger.debug("sjekker: $filNavn")
             val innholdIBlob = hent(filNavn).also { logger.debug("Hentet innhold fra blob: $it") }
             val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(innholdIBlob).also { logger.debug("Hentet innhold fra fila: ${it?.toJson()}") }
-            if (edidok?.referanse != null && edidok.mottakerLand != null) {
+            if (edidok?.referanse != null && edidok.avsenderLand != null) {
                 val path = hentBrukerILand(edidok.avsenderLand, edidok.referanse)
                 val hasha = hashedValue(edidok.referanse)
                 if(path.contains(hasha) ) {
