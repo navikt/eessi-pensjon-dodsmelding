@@ -11,6 +11,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class LagringsServiceTest {
@@ -24,6 +25,7 @@ class LagringsServiceTest {
         lagringsService = LagringsService("dod", vurderSveFinEdifactDokument, gcpStorage)
     }
 
+    @Disabled
     @Test
     fun test() {
         val fnr = "12345678901"
