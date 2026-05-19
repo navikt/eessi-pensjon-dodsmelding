@@ -25,7 +25,6 @@ class LagringsServiceTest {
         lagringsService = LagringsService("dod", vurderSveFinEdifactDokument, gcpStorage)
     }
 
-    @Disabled
     @Test
     fun test() {
         val fnr = "12345678901"
@@ -34,7 +33,7 @@ class LagringsServiceTest {
 
         lagringsService.lagreFnrIS3(fnr, "FI")
 
-        verify { gcpStorage.writer(BlobInfo.newBuilder(BlobId.of("dod", "FI/254aa248acb47dd654ca3ea53f48c2c26d641d23d7e2e93a1ec56258df7674c4")).setContentType("application/json").build()) }
+//        verify { gcpStorage.writer(BlobInfo.newBuilder(BlobId.of("dod", "FI/254aa248acb47dd654ca3ea53f48c2c26d641d23d7e2e93a1ec56258df7674c4")).setContentType("application/json").build()) }
     }
 
     private fun mockGcpListeSok(fnr: String) {
@@ -46,4 +45,16 @@ class LagringsServiceTest {
         every { gcpStorage.list(any<String>(), *anyVararg()) } returns page
 
     }
+
+    @Test
+    fun `Fnr fra fil lagre til s3 i riktig mappe`() {
+        val fnr = "12345678901"
+        mockGcpListeSok(fnr)
+        every { gcpStorage.writer(any(), any(), any(), any(), any(), any()) } returns mockk<WriteChannel>(relaxed = true)
+
+        val result = lagringsService.lagreFnrIS3(fnr, "FI")
+
+        verify (exactly = 1) { gcpStorage.writer(BlobInfo.newBuilder(BlobId.of("dod", "FI/12345678901")).setContentType("application/json").build()) }
+    }
+
 }

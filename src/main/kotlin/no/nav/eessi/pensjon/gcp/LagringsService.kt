@@ -25,9 +25,14 @@ class LagringsService (
         val path = hentBrukerILand(landkode, fnr!!)
 
         try {
+            val hasha = hashedValue(fnr)
+            logger.debug("Hasha : $hasha")
             logger.debug("Lagrer bruker fra: $landkode")
-            logger.debug("Hasha : ${hashedValue(fnr)}")
-            lagre(path)
+            if(path.contains(hasha) ) {
+                logger.debug("Denne brukeren finnes fra før av i bucket")
+            } else {
+                lagre(path)
+            }
         } catch (ex: Exception) {
             logger.error("Feiler ved lagring av data: $path $ex")
         }
