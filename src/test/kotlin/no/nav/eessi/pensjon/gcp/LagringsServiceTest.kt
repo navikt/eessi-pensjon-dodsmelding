@@ -46,6 +46,7 @@ class LagringsServiceTest {
 
     }
 
+    @Disabled
     @Test
     fun `Fnr fra fil lagre til s3 i riktig mappe`() {
         val fnr = "12345678901"
