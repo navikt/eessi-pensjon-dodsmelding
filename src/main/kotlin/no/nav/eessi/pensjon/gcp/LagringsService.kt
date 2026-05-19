@@ -21,7 +21,7 @@ class LagringsService (
 
     fun lagreFnrIS3(fnr: String?, landkode: String?) {
         kanHendelsenOpprettes(fnr, landkode)
-        val path = hentBrukerILand(landkode, hashedValue(fnr))
+        val path = hentBrukerILand(landkode, fnr!!)
 
         try {
             logger.debug("Lagrer bruker fra: $landkode")
