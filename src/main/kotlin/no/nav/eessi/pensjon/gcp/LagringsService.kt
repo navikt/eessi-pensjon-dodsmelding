@@ -54,8 +54,8 @@ class LagringsService (
         val listeOverFiler = list("EdifactFil/")
         listeOverFiler.forEach {
             logger.debug("sjekker: $it")
-            hent(it)
-            val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(it)
+            val innholdIBlob = hent(it)
+            val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(innholdIBlob)
             if (edidok?.referanse != null && edidok.mottakerLand != null) {
                 lagreFnrIS3(edidok.referanse, edidok.mottakerLand)
                 logger.info("Lagret hashet fnr til s3")
