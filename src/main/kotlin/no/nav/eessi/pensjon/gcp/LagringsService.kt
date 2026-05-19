@@ -4,6 +4,7 @@ import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.Storage
 import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
+import no.nav.eessi.pensjon.utils.toJson
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -52,10 +53,10 @@ class LagringsService (
     fun filLiggerIS3(bucketNavn: String) {
         logger.debug("sjekker om filen ligger i bucket")
         val listeOverFiler = list("EdifactFil/")
-        listeOverFiler.forEach {
-            logger.debug("sjekker: $it")
-            val innholdIBlob = hent(it).also { logger.debug("Hentet innhold fra blob: $it") }
-            val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(innholdIBlob).also { logger.debug("Hentet innhold fra fila: $it") }
+        listeOverFiler.forEach { filNavn ->
+            logger.debug("sjekker: $filNavn")
+            val innholdIBlob = hent(filNavn).also { logger.debug("Hentet innhold fra blob: $it") }
+            val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(innholdIBlob).also { logger.debug("Hentet innhold fra fila: ${it?.toJson()}") }
             if (edidok?.referanse != null && edidok.mottakerLand != null) {
                 logger.debug("Kommer hit")
                 lagreFnrIS3(edidok.referanse, edidok.mottakerLand)
