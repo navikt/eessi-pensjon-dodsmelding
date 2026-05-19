@@ -55,7 +55,7 @@ class LagringsService (
         return null
     }
 
-    fun filLiggerIS3(bucketNavn: String) {
+    fun filLiggerIS3() {
         logger.debug("sjekker om filen ligger i bucket")
         val listeOverFiler = list("EdifactFil/")
         listeOverFiler.forEach { filNavn ->
@@ -63,9 +63,15 @@ class LagringsService (
             val innholdIBlob = hent(filNavn).also { logger.debug("Hentet innhold fra blob: $it") }
             val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(innholdIBlob).also { logger.debug("Hentet innhold fra fila: ${it?.toJson()}") }
             if (edidok?.referanse != null && edidok.mottakerLand != null) {
-                logger.debug("Kommer hit")
-                lagreFnrIS3(edidok.referanse, edidok.avsenderLand).also { logger.debug("Avsender: $it") }
-                logger.info("Lagret hashet fnr til s3")
+                val path = hentBrukerILand(edidok.avsenderLand, edidok.referanse)
+                val hasha = hashedValue(edidok.referanse)
+                if(path.contains(hasha) ) {
+                    logger.debug("Denne brukeren finnes fra før av i bucket")
+                } else {
+                    logger.debug("Kommer hit")
+                    lagreFnrIS3(edidok.referanse, edidok.avsenderLand).also { logger.debug("Avsender: $it") }
+                    logger.info("Lagret hashet fnr til s3")
+                }
             }
         }
     }
@@ -97,7 +103,7 @@ class LagringsService (
                 throw RuntimeException("Ikke gyldig landkode: $landkode").also { logger.error("Ikke gyldig landkode: $landkode") }
             }
         }
-        val path =  "$land/$fnr"
+        val path =  "$land/${hashedValue(fnr)}"
         logger.debug("Hendelsespath: $path")
 
         return path
