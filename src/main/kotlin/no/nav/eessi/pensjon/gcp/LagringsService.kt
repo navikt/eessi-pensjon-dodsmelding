@@ -63,9 +63,9 @@ class LagringsService (
             val innholdIBlob = hent(filNavn).also { logger.debug("Hentet innhold fra blob: $it") }
             val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(innholdIBlob).also { logger.debug("Hentet innhold fra fila: ${it?.toJson()}") }
             if (edidok?.referanse != null && edidok.avsenderLand != null) {
-                val path = hentBrukerILand(edidok.avsenderLand, edidok.referanse)
-                val hasha = hashedValue(edidok.referanse).also { logger.debug("HashedValue $it , path: $path inneholder ${path.contains(it)}") }
-                if(path.contains(hasha) ) {
+                val blobben = list(edidok.avsenderLand)
+                val hasha = hashedValue(edidok.referanse)
+                if(blobben.contains(hasha) ) {
                     logger.debug("Denne brukeren finnes fra før av i bucket")
                 } else {
                     logger.debug("Kommer hit")
