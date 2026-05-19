@@ -48,6 +48,7 @@
             </encoder>
         </appender>
 
+        <logger name="org.apache.kafka.clients" level="INFO"/>
         <logger name="org.springframework.kafka" level="INFO"/>
 
         <logger name="secureLog" level="DEBUG"  additivity="false">
