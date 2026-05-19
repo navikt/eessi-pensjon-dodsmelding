@@ -35,7 +35,7 @@ class LagringsService (
 
     fun kanHendelsenOpprettes(fnr: String?, land: String?) : Boolean {
         logger.debug("liste over obj FI/" + list("FI/").toString())
-//        logger.debug("liste over obj SE/" + list("SE/").toString())
+        logger.debug("liste over obj SE/" + list("SE/").toString())
 //        logger.debug("liste over obj PL/" + list("PL/").toString())
         return !eksisterer(land, fnr, utenlandkYtelseBucket)
     }
@@ -59,7 +59,7 @@ class LagringsService (
             val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(innholdIBlob).also { logger.debug("Hentet innhold fra fila: ${it?.toJson()}") }
             if (edidok?.referanse != null && edidok.mottakerLand != null) {
                 logger.debug("Kommer hit")
-                lagreFnrIS3(edidok.referanse, edidok.mottakerLand)
+                lagreFnrIS3(edidok.referanse, edidok.avsenderLand).also { logger.debug("Avsender: $it") }
                 logger.info("Lagret hashet fnr til s3")
             }
         }
@@ -89,8 +89,7 @@ class LagringsService (
             "SE" -> "SE"
             "PL" -> "PL"
             else -> {
-                val msg = "Ikke gyldig"
-                throw RuntimeException(msg).also { logger.error(msg) }
+                throw RuntimeException("Ikke gyldig landkode: $landkode").also { logger.error("Ikke gyldig landkode: $landkode") }
             }
         }
         val path =  "$land/$fnr"
