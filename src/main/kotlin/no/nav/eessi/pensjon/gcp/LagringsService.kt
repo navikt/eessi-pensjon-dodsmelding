@@ -25,14 +25,8 @@ class LagringsService (
         val path = hentBrukerILand(landkode, fnr!!)
 
         try {
-            val hasha = hashedValue(fnr)
-            logger.debug("Hasha : $hasha")
-            logger.debug("Lagrer bruker fra: $landkode")
-            if(path.contains(hasha) ) {
-                logger.debug("Denne brukeren finnes fra før av i bucket")
-            } else {
-                lagre(path)
-            }
+            logger.debug("Hasha : ${hashedValue(fnr)}")
+            lagre(path)
         } catch (ex: Exception) {
             logger.error("Feiler ved lagring av data: $path $ex")
         }
@@ -68,8 +62,7 @@ class LagringsService (
                 if(blobben.contains(hasha) ) {
                     logger.debug("Denne brukeren finnes fra før av i bucket")
                 } else {
-                    logger.debug("Kommer hit")
-                    lagreFnrIS3(edidok.referanse, edidok.avsenderLand).also { logger.debug("Avsender: $it") }
+                    lagre(hentBrukerILand(edidok.avsenderLand, edidok.referanse))
                     logger.info("Lagret hashet fnr til s3")
                 }
             }
