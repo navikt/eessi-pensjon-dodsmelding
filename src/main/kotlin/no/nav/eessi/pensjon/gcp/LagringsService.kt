@@ -54,9 +54,10 @@ class LagringsService (
         val listeOverFiler = list("EdifactFil/")
         listeOverFiler.forEach {
             logger.debug("sjekker: $it")
-            val innholdIBlob = hent(it)
-            val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(innholdIBlob)
+            val innholdIBlob = hent(it).also { logger.debug("Hentet innhold fra blob: $it") }
+            val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(innholdIBlob).also { logger.debug("Hentet innhold fra fila: $it") }
             if (edidok?.referanse != null && edidok.mottakerLand != null) {
+                logger.debug("Kommer hit")
                 lagreFnrIS3(edidok.referanse, edidok.mottakerLand)
                 logger.info("Lagret hashet fnr til s3")
             }
