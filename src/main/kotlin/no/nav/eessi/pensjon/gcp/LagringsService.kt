@@ -44,7 +44,7 @@ class LagringsService (
         logger.debug("Henter fila $filIS3")
 
         if(filIS3!= null && filIS3.exists()){
-            return filIS3.getContent().contentToString()
+            return String(filIS3.getContent(), Charsets.UTF_8)
         }
         return null
     }
