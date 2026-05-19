@@ -41,6 +41,7 @@ class LagringsService (
 
     fun hent(storageKey: String): String? {
         val filIS3 =  gcpStorage.get(BlobId.of(utenlandkYtelseBucket, storageKey))
+        logger.debug("Henter fila $filIS3")
 
         if(filIS3!= null && filIS3.exists()){
             return filIS3.getContent().contentToString()
@@ -50,8 +51,9 @@ class LagringsService (
 
     fun filLiggerIS3(bucketNavn: String) {
         logger.debug("sjekker om filen ligger i bucket")
-        val listeOverFiler = listFil("EdifactFil/")
+        val listeOverFiler = list("EdifactFil/")
         listeOverFiler.forEach {
+            logger.debug("sjekker: $it")
             hent(it)
             val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(it)
             if (edidok?.referanse != null && edidok.mottakerLand != null) {
@@ -75,10 +77,7 @@ class LagringsService (
     }
 
     fun list(keyPrefix: String) : List<String> {
-        return gcpStorage.list(utenlandkYtelseBucket , Storage.BlobListOption.prefix(keyPrefix))?.values?.map { v -> v.name}  ?:  emptyList()
-    }
-
-    fun listFil(keyPrefix: String) : List<String> {
+        logger.debug("lister innhold i fila")
         return gcpStorage.list(utenlandkYtelseBucket , Storage.BlobListOption.prefix(keyPrefix))?.values?.map { v -> v.name}  ?:  emptyList()
     }
 
