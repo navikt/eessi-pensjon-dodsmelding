@@ -65,12 +65,14 @@ class DodsmeldingBehandlerTest {
 
     @Test
     fun `behandle henter ikke dokumentmetadata naar person ikke har utenlandskIdentifikasjonsnummer`() {
+        every { lagringsService.skalH070SendesUt(any()) } returns false
         val personhendelse = mockk<Personhendelse> {
             every { personidenter } returns listOf("12345678901")
         }
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPerson(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns emptyList()
+            every { identer } returns emptyList()
         }
 
         dodsmeldingBehandler.behandle(personhendelse)
@@ -103,7 +105,10 @@ class DodsmeldingBehandlerTest {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
                 mockk { every { utstederland } returns "DEU" }
             )
+            every { identer } returns emptyList()
         }
+
+        every { lagringsService.skalH070SendesUt(any()) } returns false
 
         dodsmeldingBehandler.behandle(personhendelse)
 
@@ -338,6 +343,7 @@ class DodsmeldingBehandlerTest {
                 }
             }
         }
+        every { lagringsService.skalH070SendesUt(any()) } returns false
 
         every { opprettH070.oppretterH070(any(), any()) } returns mockk(relaxed = true)
 
@@ -352,8 +358,14 @@ class DodsmeldingBehandlerTest {
             every { personidenter } returns listOf("ugyldig", "12345678901", "98765432100")
         }
         val ident = Ident.bestemIdent("12345678901")
+
+        every { lagringsService.skalH070SendesUt(any()) } returns false
         every { personService.hentPerson(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns emptyList()
+            every { identer } returns listOf(
+                IdentInformasjon("ugyldig", IdentGruppe.FOLKEREGISTERIDENT),
+                IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT),
+                IdentInformasjon("98765432100", IdentGruppe.FOLKEREGISTERIDENT))
         }
 
         dodsmeldingBehandler.behandle(personhendelse)

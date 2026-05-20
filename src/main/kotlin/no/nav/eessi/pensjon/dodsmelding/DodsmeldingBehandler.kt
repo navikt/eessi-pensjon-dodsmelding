@@ -40,7 +40,7 @@ class DodsmeldingBehandler(
 		logger.info("Henter informasjon for ident: ${valgtPersonident.take(4)}")
 		val identFraPdl = Ident.bestemIdent(valgtPersonident)
 
-		val person = personService.hentPerson(identFraPdl).also { logger.debug("Henter person: {}", it) }
+		val person = personService.hentPerson(identFraPdl)//.also { logger.debug("Henter person: {}", it) }
 
 		val sendeH070 = lagringsService.skalH070SendesUt(person?.identer)
 

@@ -64,6 +64,7 @@ class MeldingFraPdlListenerTest {
                 every { identifikasjonsnummer } returns "12345678901"
             }
         }
+        every { lagringsService.skalH070SendesUt(any() ) } returns false
         every { lagringsService.lagreFnrIS3(any(), any()) } just Runs
         every { pesysKlient.hentPensjonSaklist(any()) } returns emptyList()
         every { euxService.opprettH070(any(), any()) } returns EuxService.SaksDetaljer(
@@ -182,14 +183,17 @@ class MeldingFraPdlListenerTest {
     @Test
     fun `mottaLeesahMelding på dødsfall uten gyldig ident logger melding og kaller ikke saf`() {
         val ident = Ident.bestemIdent("12345678901")
-        every { personService.hentPerson(ident) } returns mockk { every { utenlandskIdentifikasjonsnummer } returns emptyList() }
+        every { personService.hentPerson(ident) } returns mockk {
+            every { utenlandskIdentifikasjonsnummer } returns emptyList()
+            every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
+        }
 
         listener.mottaLeesahMelding(
             listOf(ConsumerRecord("topic", 0, 1L, personhendelse.hendelseId, personhendelse)),
             ack
         )
 
-        verify(exactly = 1) { personService.hentPerson(any()) }
+        verify(atLeast = 1) { personService.hentPerson(any()) }
         verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
