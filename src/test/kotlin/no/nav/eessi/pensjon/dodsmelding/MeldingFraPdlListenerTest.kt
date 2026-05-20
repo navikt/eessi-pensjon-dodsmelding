@@ -49,8 +49,8 @@ class MeldingFraPdlListenerTest {
     @BeforeEach
     fun setup() {
         dodsmeldingBehandler =
-            DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, "test")
-        listener = MeldingFraPdlListener(dodsmeldingBehandler, lagringsService)
+            DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, lagringsService, "test")
+        listener = MeldingFraPdlListener(dodsmeldingBehandler)
         justRun { ack.acknowledge() }
 
         personhendelse = mockk<Personhendelse> {

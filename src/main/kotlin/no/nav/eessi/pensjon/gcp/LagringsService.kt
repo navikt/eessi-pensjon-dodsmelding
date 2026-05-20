@@ -4,6 +4,7 @@ import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.Storage
 import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
+import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
 import no.nav.eessi.pensjon.utils.toJson
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -35,9 +36,30 @@ class LagringsService (
     fun kanHendelsenOpprettes(fnr: String?, land: String?) : Boolean {
         logger.debug("liste over obj FI/" + list("FI/").toString())
         logger.debug("liste over obj SE/" + list("SE/").toString())
-//        logger.debug("liste over obj PL/" + list("PL/").toString())
         return !eksisterer(land, fnr, utenlandkYtelseBucket)
     }
+
+    fun skalH070SendesUt(fnr: List<IdentInformasjon>?) : Boolean {
+        logger.debug("sjekker om fnr ligger i bucket")
+        val listeOverFnrIBucket = list("FI/") + list("SE/") + list("PL/") + list("DK/")
+        listeOverFnrIBucket.forEach { fnrIBucket ->
+            logger.debug("sjekker fnr i bucket for bruker: $fnrIBucket")
+            fnr?.forEach { fnrFraPDL ->
+                val ident = fnrFraPDL.ident
+                val hasha = hashedValue(ident)
+                if (fnrIBucket.contains(hasha)) {
+                    logger.debug("Denne brukeren finnes i bucket. H070 kan sendes ut")
+                    return true
+                } else {
+                    logger.info("Bruker finnes ikke i bucket, og kan dermed ignoreres.")
+                    return false
+                }
+            }
+        }
+        return false
+    }
+
+
 
     fun hent(storageKey: String): String? {
         val filIS3 =  gcpStorage.get(BlobId.of(utenlandkYtelseBucket, storageKey))

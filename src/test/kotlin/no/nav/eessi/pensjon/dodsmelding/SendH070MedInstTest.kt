@@ -8,6 +8,7 @@ import no.nav.eessi.pensjon.eux.model.buc.SakStatus.LOPENDE
 import no.nav.eessi.pensjon.eux.model.buc.SakType
 import no.nav.eessi.pensjon.eux.model.buc.SakType.UFOREP
 import no.nav.eessi.pensjon.eux.model.sed.SED
+import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.oppgaverouting.SakInformasjon
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
@@ -28,6 +29,7 @@ class SendH070MedInstTest {
     private val personService = mockk<PersonService>()
     private val opprettH070 = mockk<OpprettH070>()
     private val euxKlient = mockk<EuxKlientLib>()
+    private val lagringsService = mockk<LagringsService>()
 
     private lateinit var dodsmeldingBehandler: DodsmeldingBehandler
     private lateinit var euxService: EuxService
@@ -35,7 +37,7 @@ class SendH070MedInstTest {
     @BeforeEach
     fun setup() {
         euxService = EuxService(euxKlient)
-        dodsmeldingBehandler = DodsmeldingBehandler(fagmodulKlient, personService, opprettH070, euxService, "q2")
+        dodsmeldingBehandler = DodsmeldingBehandler(fagmodulKlient, personService, opprettH070, euxService, lagringsService, "q2")
     }
 
     @Test

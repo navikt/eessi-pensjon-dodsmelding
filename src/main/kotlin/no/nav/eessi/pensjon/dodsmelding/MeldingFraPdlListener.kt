@@ -2,7 +2,10 @@ package no.nav.eessi.pensjon.dodsmelding
 
 import io.micrometer.core.instrument.Metrics
 import no.nav.eessi.pensjon.gcp.LagringsService
+import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.metrics.MetricsHelper
+import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
+import no.nav.eessi.pensjon.personoppslag.pdl.model.Folkeregistermetadata
 import no.nav.person.pdl.leesah.Endringstype
 import no.nav.person.pdl.leesah.Personhendelse
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -16,9 +19,10 @@ import org.springframework.stereotype.Service
 @Service
 class MeldingFraPdlListener(
     private val dodsmeldingBehandler: DodsmeldingBehandler,
-    private val lagringsService: LagringsService,
     @Autowired(required = false) private val metricsHelper: MetricsHelper = MetricsHelper.ForTest()
 ) {
+    @Autowired
+    private lateinit var opprettH070: OpprettH070
     private val logger = LoggerFactory.getLogger(MeldingFraPdlListener::class.java)
     private val secureLogger = LoggerFactory.getLogger("secureLog")
     private val messureOpplysningstype = MessureOpplysningstypeHelper()
@@ -49,7 +53,7 @@ class MeldingFraPdlListener(
                             secureLogger.info("DOEDSFALL_V1: ${personhendelse}")
 
                             personhendelse.personidenter.firstOrNull()?.let {
-                                lagringsService.lagreFnrIS3(it, "FI")
+                                dodsmeldingBehandler.behandle(personhendelse)
                             }
                             messureOpplysningstype.addKjent(personhendelse)
                             when(personhendelse.endringstype) {

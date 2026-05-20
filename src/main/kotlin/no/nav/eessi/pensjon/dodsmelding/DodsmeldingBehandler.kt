@@ -2,6 +2,7 @@ package no.nav.eessi.pensjon.dodsmelding
 
 import no.nav.eessi.pensjon.eux.EuxService
 import no.nav.eessi.pensjon.eux.model.buc.SakType.*
+import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.oppgaverouting.SakInformasjon
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
@@ -21,6 +22,7 @@ class DodsmeldingBehandler(
 	private val personService: PersonService,
 	private val opprettH070: OpprettH070,
 	private val euxService: EuxService,
+	private val lagringsService: LagringsService,
 	@Value("\${ENV}") private val env: String
 ) {
 	val gyldigeUtstederland = listOf("SW", "SWE", "FI", "FIN",  "PO", "POL")
@@ -39,6 +41,10 @@ class DodsmeldingBehandler(
 		val identFraPdl = Ident.bestemIdent(valgtPersonident)
 
 		val person = personService.hentPerson(identFraPdl).also { logger.debug("Henter person: {}", it) }
+
+		val sendeH070 = lagringsService.skalH070SendesUt(person?.identer)
+
+		if (sendeH070) opprettH070.oppretterH070(personhendelse, person!!)
 
 		val landFraIdentUtland = person?.utenlandskIdentifikasjonsnummer
 			?.map { it.utstederland }

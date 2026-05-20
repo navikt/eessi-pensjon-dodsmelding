@@ -7,6 +7,7 @@ import io.mockk.verify
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.eux.EuxService
+import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
@@ -34,18 +35,20 @@ class DodsmeldingBehandlerTest {
     private val opprettH070 = mockk<OpprettH070>()
     private val pesysKlient = mockk<PesysKlient>()
     private val euxService = mockk<EuxService>()
+    private val lagringsService = mockk<LagringsService>()
 
     private lateinit var dodsmeldingBehandler: DodsmeldingBehandler
 
     @BeforeEach
     fun setup() {
-        dodsmeldingBehandler = DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, "dev")
+        dodsmeldingBehandler = DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, lagringsService, "dev")
         every { pesysKlient.hentPensjonSaklist(any()) } returns emptyList()
 
         // ting som ikke er så viktig akkurat nå
         every { opprettH070.oppretterH070(any(), any()) } returns mockk(relaxed = true)
         every { euxService.opprettH070(any(), any()) } returns mockk(relaxed = true)
         every { euxService.sendSed(any(), any()) } returns mockk(relaxed = true)
+        every { lagringsService.skalH070SendesUt(any()) } returns false
     }
 
     @Test
