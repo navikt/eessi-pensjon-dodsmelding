@@ -2,7 +2,6 @@ package no.nav.eessi.pensjon.dodsmelding
 
 import no.nav.eessi.pensjon.utils.toJson
 import org.springframework.stereotype.Component
-import java.security.MessageDigest
 
 @Component
 class VurderSveFinEdifactDokument {
@@ -32,7 +31,7 @@ class VurderSveFinEdifactDokument {
             avsender = hentFelt(unb, 2),
             mottaker = hentFelt(unb, 3),
             meldingstype = hentFelt(bgm, 1),
-            referanse = hentFelt(bgm, 2),
+            norskIdent = hentNorskGirIdent(edifactDokument),
             avsenderLand = avsenderLand,
             mottakerLand = mottakerLand,
             fodselsdato = hentDatoFraDtm(dtm329),
@@ -51,6 +50,11 @@ class VurderSveFinEdifactDokument {
 
     private fun finnNadForRole(segments: List<String>, role: String): String? =
         segments.firstOrNull { it.startsWith("NAD+$role+") }
+
+    private val norskGirRegex = Regex("""NO'GIR\s*\+\d+\+(\d+)""")
+
+    private fun hentNorskGirIdent(edifact: String): String? =
+        norskGirRegex.find(edifact)?.groupValues?.get(1)
 
     private fun finnDtmForQualifier(segments: List<String>, qualifier: String): String? =
         segments.firstOrNull { it.startsWith("DTM+$qualifier:") }
