@@ -43,7 +43,7 @@ class DodsmeldingBehandler(
 		logger.info("Henter informasjon for ident: ${valgtPersonident.take(4)}")
 		val identFraPdl = Ident.bestemIdent(valgtPersonident)
 
-		val person = personService.hentPerson(identFraPdl)//.also { logger.debug("Henter person: {}", it) }
+		val person = personService.hentPerson(identFraPdl).also { logger.debug("Henter person: {}", it) }
 
 		//1. Det kommer inn en dødsmelding på køen
 		//2. Sjekk ident mot leveattester
