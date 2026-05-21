@@ -34,7 +34,7 @@ Applikasjonen er skrevet i Java og bruker Spring Boot.
 │ (PDL-oppslag)   │ │ (GCP-lagring) │ │ (Oppretter H070) │
 │                 │ │ - S3-match    │ │ - Formatterer    │
 └─────────────────┘ │ - EDIFACT     │ │   melding        │
-                    │   parsing      │ └────────┬─────────┘
+                    │   parsing     │ └────────┬─────────┘
                     └───────────────┘          │
                                                ▼
                                     ┌──────────────────────┐
