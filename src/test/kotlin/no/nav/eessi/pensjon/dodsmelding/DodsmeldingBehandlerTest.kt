@@ -4,13 +4,14 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
-import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
-import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.eux.EuxService
 import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
+import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
+import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
+import no.nav.eessi.pensjon.personoppslag.pdl.model.UtenlandskIdentifikasjonsnummer
 import no.nav.eessi.pensjon.saf.BrukerIdType.FNR
 import no.nav.eessi.pensjon.saf.HentdokumentInnholdResponse
 import no.nav.eessi.pensjon.saf.SafClient
@@ -41,14 +42,15 @@ class DodsmeldingBehandlerTest {
 
     @BeforeEach
     fun setup() {
-        dodsmeldingBehandler = DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, lagringsService, "dev")
+        dodsmeldingBehandler = DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, safClient, lagringsService, "q2")
         every { pesysKlient.hentPensjonSaklist(any()) } returns emptyList()
 
         // ting som ikke er så viktig akkurat nå
-        every { opprettH070.oppretterH070(any(), any()) } returns mockk(relaxed = true)
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns false
         every { euxService.opprettH070(any(), any()) } returns mockk(relaxed = true)
         every { euxService.sendSed(any(), any()) } returns mockk(relaxed = true)
-        every { lagringsService.skalH070SendesUt(any()) } returns false
+        every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
+        every { opprettH070.oppretterH070(any(), any()) } returns mockk(relaxed = true)
     }
 
     @Test
@@ -65,7 +67,7 @@ class DodsmeldingBehandlerTest {
 
     @Test
     fun `behandle henter ikke dokumentmetadata naar person ikke har utenlandskIdentifikasjonsnummer`() {
-        every { lagringsService.skalH070SendesUt(any()) } returns false
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns false
         val personhendelse = mockk<Personhendelse> {
             every { personidenter } returns listOf("12345678901")
         }
@@ -78,7 +80,7 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPerson(ident) }
-        verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
+        verify(exactly = 1) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
     @Test
@@ -88,11 +90,13 @@ class DodsmeldingBehandlerTest {
         }
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPerson(ident) } returns null
+        every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
+
 
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPerson(ident) }
-        verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
+        verify(exactly = 1) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
     @Test
@@ -108,12 +112,12 @@ class DodsmeldingBehandlerTest {
             every { identer } returns emptyList()
         }
 
-        every { lagringsService.skalH070SendesUt(any()) } returns false
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns false
 
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPerson(ident) }
-        verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
+        verify(exactly = 1) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
     @ParameterizedTest
@@ -139,7 +143,7 @@ class DodsmeldingBehandlerTest {
 
         dodsmeldingBehandler.behandle(personhendelse)
 
-//        verify(exactly = 1) { safClient.hentDokumentMetadata("12345678901", FNR) }
+        verify(exactly = 1) { safClient.hentDokumentMetadata("12345678901", FNR) }
     }
 
     @Test
@@ -343,7 +347,7 @@ class DodsmeldingBehandlerTest {
                 }
             }
         }
-        every { lagringsService.skalH070SendesUt(any()) } returns false
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns false
 
         every { opprettH070.oppretterH070(any(), any()) } returns mockk(relaxed = true)
 
@@ -359,7 +363,7 @@ class DodsmeldingBehandlerTest {
         }
         val ident = Ident.bestemIdent("12345678901")
 
-        every { lagringsService.skalH070SendesUt(any()) } returns false
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns false
         every { personService.hentPerson(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns emptyList()
             every { identer } returns listOf(
@@ -371,5 +375,30 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPerson(ident) }
+    }
+
+    @Test
+    fun `Når det kommer inn er dødsmelding på pdl køen saa skal det sjekkes om den ligger i bucket Dersom ja saa sendes det ut en H070 til utlandet`() {
+        val norskIdent = "12345678901"
+        val personhendelse = mockk<Personhendelse> {
+            every { personidenter } returns listOf(norskIdent)
+        }
+        val ident = Ident.bestemIdent(norskIdent)
+
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns true
+        every { personService.hentPerson(ident) } returns mockk {
+            every { utenlandskIdentifikasjonsnummer } returns listOf(UtenlandskIdentifikasjonsnummer(
+                identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = mockk())
+            )
+            every { identer } returns listOf(
+                IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
+            )
+        }
+
+        dodsmeldingBehandler.behandle(personhendelse)
+
+        verify(exactly = 1) { personService.hentPerson(ident) }
+        verify(exactly = 1) { opprettH070.oppretterH070(personhendelse, any()) }
+        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
 }

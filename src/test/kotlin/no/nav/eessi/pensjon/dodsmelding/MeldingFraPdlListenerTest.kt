@@ -49,7 +49,7 @@ class MeldingFraPdlListenerTest {
     @BeforeEach
     fun setup() {
         dodsmeldingBehandler =
-            DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, lagringsService, "test")
+            DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, safClient, lagringsService, "test")
         listener = MeldingFraPdlListener(dodsmeldingBehandler)
         justRun { ack.acknowledge() }
 
@@ -64,7 +64,7 @@ class MeldingFraPdlListenerTest {
                 every { identifikasjonsnummer } returns "12345678901"
             }
         }
-        every { lagringsService.skalH070SendesUt(any() ) } returns false
+        every { lagringsService.finnesDodBrukerILeveAttReg(any() ) } returns false
         every { lagringsService.lagreFnrIS3(any(), any()) } just Runs
         every { pesysKlient.hentPensjonSaklist(any()) } returns emptyList()
         every { euxService.opprettH070(any(), any()) } returns EuxService.SaksDetaljer(
