@@ -12,7 +12,7 @@ import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.exchange
 import java.util.*
 
-//@Component
+@Component
 class SafClient(
     private val safGraphQlOidcRestTemplate: RestTemplate,
     private val hentRestUrlRestTemplate: RestTemplate,

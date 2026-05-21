@@ -39,7 +39,7 @@ class LagringsService (
         return !eksisterer(land, fnr, utenlandkYtelseBucket)
     }
 
-    fun skalH070SendesUt(fnr: List<IdentInformasjon>?) : Boolean {
+    fun finnesDodBrukerILeveAttReg(fnr: List<IdentInformasjon>?) : Boolean {
         logger.debug("sjekker om fnr ligger i bucket")
         val listeOverFnrIBucket = list("FI/") + list("SE/") + list("PL/") + list("DK/")
         listeOverFnrIBucket.forEach { fnrIBucket ->
@@ -59,8 +59,6 @@ class LagringsService (
         return false
     }
 
-
-
     fun hent(storageKey: String): String? {
         val filIS3 =  gcpStorage.get(BlobId.of(utenlandkYtelseBucket, storageKey))
         logger.debug("Henter fila $filIS3")
@@ -78,13 +76,13 @@ class LagringsService (
             logger.debug("sjekker: $filNavn")
             val innholdIBlob = hent(filNavn).also { logger.debug("Hentet innhold fra blob: $it") }
             val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(innholdIBlob).also { logger.debug("Hentet innhold fra fila: ${it?.toJson()}") }
-            if (edidok?.referanse != null && edidok.avsenderLand != null) {
+            if (edidok?.norskIdent != null && edidok.avsenderLand != null) {
                 val blobben = list(edidok.avsenderLand)
-                val hasha = hashedValue(edidok.referanse)
+                val hasha = hashedValue(edidok.norskIdent)
                 if(blobben.contains(hasha) ) {
                     logger.debug("Denne brukeren finnes fra før av i bucket")
                 } else {
-                    lagre(hentBrukerILand(edidok.avsenderLand, edidok.referanse))
+                    lagre(hentBrukerILand(edidok.avsenderLand, edidok.norskIdent))
                     logger.info("Lagret hashet fnr til s3")
                 }
             }

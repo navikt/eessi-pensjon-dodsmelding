@@ -8,8 +8,10 @@ import no.nav.eessi.pensjon.oppgaverouting.SakInformasjon
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
+import no.nav.eessi.pensjon.saf.BrukerIdType
+import no.nav.eessi.pensjon.saf.Journalpost
+import no.nav.eessi.pensjon.saf.SafClient
 import no.nav.eessi.pensjon.utils.toJson
-import no.nav.eessi.pensjon.utils.toJsonSkipEmpty
 import no.nav.person.pdl.leesah.Personhendelse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -22,6 +24,7 @@ class DodsmeldingBehandler(
 	private val personService: PersonService,
 	private val opprettH070: OpprettH070,
 	private val euxService: EuxService,
+	private val safClient: SafClient,
 	private val lagringsService: LagringsService,
 	@Value("\${ENV}") private val env: String
 ) {
@@ -42,66 +45,85 @@ class DodsmeldingBehandler(
 
 		val person = personService.hentPerson(identFraPdl)//.also { logger.debug("Henter person: {}", it) }
 
-		val sendeH070 = lagringsService.skalH070SendesUt(person?.identer)
+		//1. Det kommer inn en dødsmelding på køen
+		//2. Sjekk ident mot leveattester
+		//3. Sjekk ident i joark, om det finnes en P6000 som har avsender fra SE, PL, DK eller FI
+		//4. Dersom treff i en av disse to, send ut en H070
 
-		if (sendeH070) opprettH070.oppretterH070(personhendelse, person!!)
+		val sendeEllerIkkeSendeH070 = if(lagringsService.finnesDodBrukerILeveAttReg(person?.identer)) {
+			true
+		} else if (brukerFinnesiJoark(valgtPersonident)) {
+			true
+		} else false
 
-		val landFraIdentUtland = person?.utenlandskIdentifikasjonsnummer
-			?.map { it.utstederland }
-			?.toSet().also { logger.debug("Henter land: {}", it) }
-
-		when {
-			landFraIdentUtland.isNullOrEmpty() -> {
-				logger.info("Ingen utenlandskIdentifikasjonsnummer funnet, henter ikke dokumentmetadata fra saf")
-			}
-			landFraIdentUtland.none { it in gyldigeUtstederland } -> {
-				logger.info("${landFraIdentUtland.toJson()} er ikke inkludert i listen: $gyldigeUtstederland, henter ikke dokumentmetadata fra saf")
-			}
-			else -> {
-				logger.info("$landFraIdentUtland har utenlandskIdentifikasjonsnummer, henter dokumentmetadata fra saf")
-
-//				val responseFraSaf = safClient.hentDokumentMetadata(valgtPersonident, BrukerIdType.FNR)
-//
-//				responseFraSaf.data.dokumentoversiktBruker.journalposter.forEach { journalpost ->
-//					logger.info("JournalpostId: ${journalpost.journalpostId}, datoOpprettet: ${journalpost.datoOpprettet}, tittel: ${journalpost.tittel}, journalfoerendeEnhet: ${journalpost.tilleggsopplysninger}")
-//
-//					journalpost.dokumenter?.firstNotNullOfOrNull { it.dokumentInfoId }?.let { dokumentInfoId ->
-//						val dokumentFraSaf = safClient.hentDokumentInnhold(journalpost.journalpostId, dokumentInfoId, "ARKIV")
-//						logger.info("ResponseFraSaf: {}", dokumentFraSaf?.toJson())
-//					}
-//				}
-//				logger.info("Svar fra saf: $responseFraSaf")
-
-				//TODO: Sjekk hvilken ytelse bruker har før vi går videre med å preutfylle en H070
-
-				val fnr = person?.identer?.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
-				val institusjonViSkalSendeTil = institusjon(fnr, landFraIdentUtland)
-
-				//Preutfyller en H070
-				logger.info("Preutfyller H070 for bruker fra $landFraIdentUtland.")
-				val h070 =  opprettH070.oppretterH070(personhendelse, person!!)
-
-				//TODO: Sjekk hvilken institusjon som skal legges til ut i fra hvilket land det er som skal motta H070 fra oss.
-
-				// Oppretter en H_BUC_07 med et utkast på H070
-				try {
-					if (env == "q2") {
-						val response = euxService.opprettH070("NO:NAVAT05", h070)
-						Thread.sleep(5000) // Legger inn en liten delay for å unngå at sendSed blir kalt før opprettH070 er ferdig.
-						euxService.sendSed(response.caseId, response.documentId)
-					} else {
-						val response = euxService.opprettH070(institusjonViSkalSendeTil, h070)
-						//Sender H070 til utlandet
-						euxService.sendSed(response.caseId, response.documentId)
-					}
-				} catch (e: Exception) {
-					logger.error("Feil ved opprettelse av H070", e)
-					return
+		if (sendeEllerIkkeSendeH070) {
+			try {
+				if (env == "q2") {
+					val h070 = opprettH070.oppretterH070(personhendelse, person!!)
+					val response = euxService.opprettH070("NO:NAVAT05", h070)
+					Thread.sleep(5000) // Legger inn en liten delay for å unngå at sendSed blir kalt før opprettH070 er ferdig.
+					euxService.sendSed(response.caseId, response.documentId)
+				} else {
+//					val institusjon =
+//					val response = euxService.opprettH070(institusjon, h070)
+//					euxService.sendSed(response.caseId, response.documentId)
+					throw RuntimeException("KRÆÆÆÆSJ!!")
 				}
-
-				logger.debug("Oppretter H070: ${h070.toJsonSkipEmpty()}")
+			} catch (e: Exception) {
+				logger.error("Feil ved opprettelse av H070", e)
+				return
 			}
 		}
+	}
+
+//			//TODO: Sjekk hvilken ytelse bruker har før vi går videre med å preutfylle en H070
+//
+//				val fnr = person?.identer?.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
+//				val institusjonViSkalSendeTil = institusjon(fnr, landFraIdentUtland)
+//
+////				//Preutfyller en H070
+////				logger.info("Preutfyller H070 for bruker fra $landFraIdentUtland.")
+//				val h070 =  opprettH070.oppretterH070(personhendelse, person!!)
+//
+//				//TODO: Sjekk hvilken institusjon som skal legges til ut i fra hvilket land det er som skal motta H070 fra oss.
+//
+//
+//				if (brukerFinnesILeveAttReg) {
+//					opprettH070.oppretterH070(personhendelse, person!!)
+////			euxService.sendSed(response.caseId, response.documentId)
+//
+//				} else null
+//
+//				// Oppretter en H_BUC_07 med et utkast på H070
+//				try {
+//					if (env == "q2" && h070 != null) {
+//						val response = euxService.opprettH070("NO:NAVAT05", h070)
+//						Thread.sleep(5000) // Legger inn en liten delay for å unngå at sendSed blir kalt før opprettH070 er ferdig.
+//						euxService.sendSed(response.caseId, response.documentId)
+//					} else {
+//						val response = euxService.opprettH070(institusjonViSkalSendeTil, h070!!)
+//						euxService.sendSed(response.caseId, response.documentId)
+//					}
+//				} catch (e: Exception) {
+//					logger.error("Feil ved opprettelse av H070", e)
+//					return
+//				}
+//			}
+
+	private fun brukerFinnesiJoark(valgtPersonident: String) : Boolean{
+		val responseFraSaf = safClient.hentDokumentMetadata(valgtPersonident, BrukerIdType.FNR)
+
+		responseFraSaf.data.dokumentoversiktBruker.journalposter.forEach { journalpost ->
+			logger.info("JournalpostId: ${journalpost.journalpostId}, datoOpprettet: ${journalpost.datoOpprettet}, tittel: ${journalpost.tittel}, journalfoerendeEnhet: ${journalpost.tilleggsopplysninger}")
+
+			journalpost.dokumenter?.firstNotNullOfOrNull { it.dokumentInfoId }?.let { dokumentInfoId ->
+				val dokumentFraSaf =
+					safClient.hentDokumentInnhold(journalpost.journalpostId, dokumentInfoId, "ARKIV")
+				logger.info("ResponseFraSaf: {}", dokumentFraSaf?.toJson())
+			}
+		}
+		logger.info("Svar fra saf: $responseFraSaf")
+		return false
 	}
 
 	fun institusjon(fnr: String?, landFraIdentUtland: Set<String>): String {
@@ -123,19 +145,6 @@ class DodsmeldingBehandler(
         }
 	}
 
-//	private fun hentBucId(journalpost: Journalpost): String? {
-//		val bucid = journalpost.tilleggsopplysninger
-//			.firstNotNullOfOrNull { tilleggsopplysning ->
-//				val nokkel = tilleggsopplysning["nokkel"]
-//				if (nokkel == "eessi_pensjon_bucid") {
-//					tilleggsopplysning["verdi"]
-//				} else {
-//					null
-//				}
-//			}
-//		return bucid
-//	}
-
 	private fun hentAlleNorskeIdenter(personhendelse: Personhendelse?): String? {
 		val valgtPersonident = personhendelse?.personidenter
 			?.filter { it.length > 10 }
@@ -150,5 +159,19 @@ class DodsmeldingBehandler(
 			}
 		return valgtPersonident
 	}
+
+		private fun hentBucId(journalpost: Journalpost): String? {
+		val bucid = journalpost.tilleggsopplysninger
+			.firstNotNullOfOrNull { tilleggsopplysning ->
+				val nokkel = tilleggsopplysning["nokkel"]
+				if (nokkel == "eessi_pensjon_bucid") {
+					tilleggsopplysning["verdi"]
+				} else {
+					null
+				}
+			}
+		return bucid
+	}
+
 }
 

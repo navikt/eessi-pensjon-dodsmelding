@@ -3,6 +3,7 @@ package no.nav.eessi.pensjon.eux
 import no.nav.eessi.pensjon.eux.klient.EuxGenericServerException
 import no.nav.eessi.pensjon.eux.klient.EuxKlientLib
 import no.nav.eessi.pensjon.eux.klient.SedDokumentIkkeOpprettetException
+import no.nav.eessi.pensjon.eux.model.sed.H070
 import no.nav.eessi.pensjon.eux.model.sed.SED
 import no.nav.eessi.pensjon.metrics.MetricsHelper
 import no.nav.eessi.pensjon.utils.mapJsonToAny
