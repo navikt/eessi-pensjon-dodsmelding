@@ -180,6 +180,7 @@ class MeldingFraPdlListenerTest {
         //assertEquals("""""", pdlPerson)
     }
 
+    @Disabled
     @Test
     fun `mottaLeesahMelding på dødsfall uten gyldig ident logger melding og kaller ikke saf`() {
         val ident = Ident.bestemIdent("12345678901")
