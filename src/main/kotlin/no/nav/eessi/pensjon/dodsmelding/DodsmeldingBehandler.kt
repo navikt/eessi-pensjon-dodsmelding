@@ -51,12 +51,15 @@ class DodsmeldingBehandler(
 		//4. Dersom treff i en av disse to, send ut en H070
 
 		val sendeEllerIkkeSendeH070 = if(lagringsService.finnesDodBrukerILeveAttReg(person?.identer)) {
+			logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
 			true
 		} else if (brukerFinnesiJoark(valgtPersonident)) {
+			logger.info("Bruker finnes i joark, oppretter H070")
 			true
 		} else false
 
 		if (sendeEllerIkkeSendeH070) {
+			logger.info("Preutfyller H070 for bruker.")
 			try {
 				if (env == "q2") {
 					val h070 = opprettH070.oppretterH070(personhendelse, person!!)
@@ -117,8 +120,7 @@ class DodsmeldingBehandler(
 			logger.info("JournalpostId: ${journalpost.journalpostId}, datoOpprettet: ${journalpost.datoOpprettet}, tittel: ${journalpost.tittel}, journalfoerendeEnhet: ${journalpost.tilleggsopplysninger}")
 
 			journalpost.dokumenter?.firstNotNullOfOrNull { it.dokumentInfoId }?.let { dokumentInfoId ->
-				val dokumentFraSaf =
-					safClient.hentDokumentInnhold(journalpost.journalpostId, dokumentInfoId, "ARKIV")
+				val dokumentFraSaf = safClient.hentDokumentInnhold(journalpost.journalpostId, dokumentInfoId, "ARKIV")
 				logger.info("ResponseFraSaf: {}", dokumentFraSaf?.toJson())
 			}
 		}
