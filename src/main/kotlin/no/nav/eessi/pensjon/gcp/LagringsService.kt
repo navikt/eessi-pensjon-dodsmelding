@@ -10,13 +10,15 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.nio.ByteBuffer
-import java.security.MessageDigest
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 @Service
 class LagringsService (
     @param:Value("\${GCP_BUCKET_UTL_YTELSE}") var utenlandkYtelseBucket: String,
     private val vurderSveFinEdifactDokument: VurderSveFinEdifactDokument,
-    private val gcpStorage: Storage
+    private val gcpStorage: Storage,
+    @param:Value("\${HASH_SECRET_KEY}") private val hashSecretKey: String
 ) {
 
     private val logger = LoggerFactory.getLogger(LagringsService::class.java)
@@ -134,10 +136,10 @@ class LagringsService (
     }
 
     fun hashedValue(input: String?): String {
-        val bytes = input?.toByteArray()
-        val md = MessageDigest.getInstance("SHA-256")
-        val digest = md.digest(bytes)
-        return digest.fold("") { str, it -> str + "%02x".format(it) }
+        val mac = Mac.getInstance("HmacSHA256").apply {
+            init(SecretKeySpec(hashSecretKey.toByteArray(), "HmacSHA256"))
+        }
+        return mac.doFinal(input?.toByteArray() ?: ByteArray(0))
+            .joinToString("") { "%02x".format(it) }.also { logger.debug("Hashet verdi for input $input: $it") }
     }
-
 }

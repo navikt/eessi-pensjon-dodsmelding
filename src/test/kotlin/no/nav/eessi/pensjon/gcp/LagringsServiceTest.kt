@@ -10,6 +10,8 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -22,7 +24,7 @@ class LagringsServiceTest {
 
     @BeforeEach
     fun setup() {
-        lagringsService = LagringsService("dod", vurderSveFinEdifactDokument, gcpStorage)
+        lagringsService = LagringsService("dod", vurderSveFinEdifactDokument, gcpStorage, "test-secret-key")
     }
 
     @Test
@@ -56,6 +58,26 @@ class LagringsServiceTest {
         val result = lagringsService.lagreFnrIS3(fnr, "FI")
 
         verify (exactly = 1) { gcpStorage.writer(BlobInfo.newBuilder(BlobId.of("dod", "FI/12345678901")).setContentType("application/json").build()) }
+    }
+
+    @Test
+    fun `hashedValue skal returnere samme hash for samme input`() {
+        val fnr = "12345678901"
+        val hash1 = lagringsService.hashedValue(fnr)
+        val hash2 = lagringsService.hashedValue(fnr)
+
+        assertEquals(hash1, hash2)
+    }
+
+    @Test
+    fun `hashedValue skal returnere forskjellig hash for samme input`() {
+        val fnr1 = "12345678901"
+        val fnr2 = "98765432109"
+
+        val hash1 = lagringsService.hashedValue(fnr1)
+        val hash2 = lagringsService.hashedValue(fnr2)
+
+        assertNotEquals(hash1, hash2)
     }
 
 }
