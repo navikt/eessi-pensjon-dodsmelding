@@ -1,4 +1,4 @@
-HASH_SECRET_KEY: ${hashSecretValue}
+HASH_SECRET_KEY: some-secret-key
 
 no.nav.security.jwt:
   issuer:
