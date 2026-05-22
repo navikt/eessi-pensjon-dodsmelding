@@ -3,3 +3,4 @@ pdl:
   kafka:
     autoStartup: false
 
+HASH_SECRET_KEY: test-secret-key

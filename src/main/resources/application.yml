@@ -1,3 +1,5 @@
+HASH_SECRET_KEY: ${hashSecretValue}
+
 no.nav.security.jwt:
   issuer:
     entraid:
