@@ -68,6 +68,17 @@ spec:
     - name: PDL_URL
       value: https://pdl-api.dev-fss-pub.nais.io/graphql
 
+    #AZURE
+    - name: AZURE_APP_PDL_CLIENT_ID
+      value: dev-fss.pdl.pdl-api
+    - name: AZURE_APP_EUX_CLIENT_ID
+      value: dev-gcp.eessibasis.eux-rina-api-q2
+    - name: AZURE_APP_SAF_CLIENT_ID
+      value: dev-fss.teamdokumenthandtering.saf
+    - name: AZURE_APP_PEN_CLIENT_ID
+      value: dev-fss.pensjon-q2.pensjon-pen-q2
+
+    #KAFKA
     - name: KAFKA_PDLHENDELSE_TOPIC
       value: pdl.leesah-v1
     - name: KAFKA_GROUP_ID
