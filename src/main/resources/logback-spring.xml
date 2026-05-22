@@ -50,6 +50,7 @@
 
         <logger name="no.nav.security.token.support" level="INFO"/>
         <logger name="org.springframework.boot.webmvc" level="INFO"/>
+        <logger name="org.apache.kafka.common" level="INFO"/>
         <logger name="org.apache.kafka.clients" level="INFO"/>
         <logger name="org.springframework.kafka" level="INFO"/>
         <logger name="org.springframework.web.servlet" level="INFO"/>
