@@ -3,17 +3,19 @@ package no.nav.eessi.pensjon.eux
 import no.nav.eessi.pensjon.eux.klient.EuxGenericServerException
 import no.nav.eessi.pensjon.eux.klient.EuxKlientLib
 import no.nav.eessi.pensjon.eux.klient.SedDokumentIkkeOpprettetException
-import no.nav.eessi.pensjon.eux.model.sed.H070
+import no.nav.eessi.pensjon.eux.model.Avsendere
 import no.nav.eessi.pensjon.eux.model.sed.SED
 import no.nav.eessi.pensjon.metrics.MetricsHelper
 import no.nav.eessi.pensjon.utils.mapJsonToAny
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import org.springframework.web.client.RestTemplate
 
 @Service
 class EuxService(
     private val euxKlient: EuxKlientLib,
+    private val euxSystemRestTemplate: RestTemplate,
     @Autowired(required = false) private val metricsHelper: MetricsHelper = MetricsHelper.ForTest()
 ) {
     private var opprettH070: MetricsHelper.Metric
@@ -39,6 +41,12 @@ class EuxService(
         logger.info("Sender H070 til Rina: $rinaSakId, sedId: $dokumentId")
         return euxKlient.sendSed(rinaSakId, dokumentId)
     }
+
+    fun hentAvsenderLand(rinaSakId: String): Avsendere? {
+        logger.info("Henter avsenderland fra SED med rinasakId: $rinaSakId, fra rina")
+        return euxKlient.hentSedMetadataLand(rinaSakId, euxSystemRestTemplate)
+    }
+
 
     data class SaksDetaljer(
         val caseId: String,

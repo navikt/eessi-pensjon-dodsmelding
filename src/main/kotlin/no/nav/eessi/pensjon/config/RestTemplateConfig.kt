@@ -19,7 +19,6 @@ import org.springframework.http.HttpRequest
 import org.springframework.http.client.BufferingClientHttpRequestFactory
 import org.springframework.http.client.ClientHttpRequestExecution
 import org.springframework.http.client.ClientHttpRequestInterceptor
-import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.web.client.DefaultResponseErrorHandler
 import org.springframework.web.client.ResponseErrorHandler
@@ -30,7 +29,7 @@ import java.util.*
 
 @Profile("prod", "test")
 @Configuration
-class OAuth2RestTemplateConfiguration(
+class RestTemplateConfig(
     private val clientConfigurationProperties: ClientConfigurationProperties,
     private val oAuth2AccessTokenService: OAuth2AccessTokenService?,
     private val meterRegistry: MeterRegistry) {
@@ -55,6 +54,9 @@ class OAuth2RestTemplateConfiguration(
 
     @Bean
     fun hentRestUrlRestTemplate() = restTemplate(hentRestUrl, bearerTokenInterceptor(clientProperties("saf-credentials"), oAuth2AccessTokenService!!))
+
+    @Bean
+    fun euxSystemRestTemplate() = restTemplate(euxUrl, oAuth2BearerTokenInterceptor(clientProperties("eux-credentials"), oAuth2AccessTokenService), EuxErrorHandler())
 
     /**
      * Create one RestTemplate per OAuth2 client entry to separate between different scopes per API
@@ -89,7 +91,7 @@ class OAuth2RestTemplateConfiguration(
     private fun clientProperties(oAuthKey: String): ClientProperties = clientConfigurationProperties.registration[oAuthKey]
         ?: throw RuntimeException("could not find oauth2 client config for $oAuthKey")
 
-    private fun restTemplate(url: String, tokenIntercetor: ClientHttpRequestInterceptor, defaultErrorHandler: ResponseErrorHandler = DefaultResponseErrorHandler()) : RestTemplate {
+    private fun restTemplate(url: String, tokenInterceptor: ClientHttpRequestInterceptor, defaultErrorHandler: ResponseErrorHandler = DefaultResponseErrorHandler()) : RestTemplate {
         logger.info("init restTemplate: $url")
         return RestTemplateBuilder()
             .rootUri(url)
@@ -101,7 +103,7 @@ class OAuth2RestTemplateConfiguration(
                 IOExceptionRetryInterceptor(),
                 RequestCountInterceptor(meterRegistry),
                 RequestResponseLoggerInterceptor(),
-                tokenIntercetor
+                tokenInterceptor
             )
             .build().apply {
                 requestFactory = BufferingClientHttpRequestFactory(SimpleClientHttpRequestFactory())
