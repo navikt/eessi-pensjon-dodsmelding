@@ -18,6 +18,7 @@ import no.nav.eessi.pensjon.utils.mapJsonToAny
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.web.client.RestTemplate
 
 private const val SAKSID = "1456541"
 private const val DOK_ID = "edb72a2474ac4d6f901c74e614da9b5b"
@@ -36,7 +37,7 @@ class SendH070MedInstTest {
 
     @BeforeEach
     fun setup() {
-        euxService = EuxService(euxKlient)
+        euxService = EuxService(euxKlient, mockk<RestTemplate>())
         dodsmeldingBehandler = DodsmeldingBehandler(fagmodulKlient, personService, opprettH070, euxService, safClient, lagringsService, "q2")
     }
 

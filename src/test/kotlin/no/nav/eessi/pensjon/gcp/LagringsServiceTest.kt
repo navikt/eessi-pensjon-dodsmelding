@@ -24,7 +24,7 @@ class LagringsServiceTest {
 
     @BeforeEach
     fun setup() {
-        lagringsService = LagringsService("dod", vurderSveFinEdifactDokument, gcpStorage, "test-secret-key")
+        lagringsService = LagringsService("dod", vurderSveFinEdifactDokument, gcpStorage, "eessipensjonn")
     }
 
     @Test
@@ -73,11 +73,13 @@ class LagringsServiceTest {
     fun `hashedValue skal returnere forskjellig hash for samme input`() {
         val fnr1 = "12345678901"
         val fnr2 = "98765432109"
+        val fnr3 = "01495517019"
 
         val hash1 = lagringsService.hashedValue(fnr1)
         val hash2 = lagringsService.hashedValue(fnr2)
+        val hash3 = lagringsService.hashedValue(fnr3)
 
-        assertNotEquals(hash1, hash2)
+        assertNotEquals(hash1, hash2, hash3)
     }
 
 }
