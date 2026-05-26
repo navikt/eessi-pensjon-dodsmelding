@@ -77,15 +77,19 @@ class LagringsService (
         listeOverFiler.forEach { filNavn ->
             logger.debug("sjekker: $filNavn")
             val innholdIBlob = hent(filNavn).also { logger.debug("Hentet innhold fra blob: $it") }
-            val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(innholdIBlob).also { logger.debug("Hentet innhold fra fila: ${it?.toJson()}") }
-            if (edidok?.norskIdent != null && edidok.avsenderLand != null) {
-                val blobben = list(edidok.avsenderLand)
-                val hasha = hashedValue(edidok.norskIdent)
-                if(blobben.contains(hasha) ) {
-                    logger.debug("Denne brukeren finnes fra før av i bucket")
-                } else {
-                    lagre(hentBrukerILand(edidok.avsenderLand, edidok.norskIdent))
-                    logger.info("Lagret hashet fnr til s3")
+            val dokumenter = vurderSveFinEdifactDokument.splittTilDokumenter(innholdIBlob)
+            logger.debug("Fant ${dokumenter.size} dokumenter i filen $filNavn")
+            dokumenter.forEach { dokument ->
+                val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(dokument).also { logger.debug("Tolket dokument: ${it?.toJson()}") }
+                if (edidok?.norskIdent != null && edidok.avsenderLand != null) {
+                    val blobben = list(edidok.avsenderLand)
+                    val hasha = hashedValue(edidok.norskIdent)
+                    if (blobben.contains(hasha)) {
+                        logger.debug("Denne brukeren finnes fra før av i bucket")
+                    } else {
+                        lagre(hentBrukerILand(edidok.avsenderLand, edidok.norskIdent))
+                        logger.info("Lagret hashet fnr til s3")
+                    }
                 }
             }
         }

@@ -39,6 +39,37 @@ class VurderSveFinEdifactDokument {
         ).also { println( "Tolkning av EDIFACT: ${it.toJson()}") }
     }
 
+    fun splittTilDokumenter(filInnhold: String?): List<String> {
+        if (filInnhold.isNullOrBlank()) return emptyList()
+
+        val segments = normaliser(filInnhold)
+            .split("'")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+
+        val dokumenter = mutableListOf<String>()
+        var currentDoc = mutableListOf<String>()
+        var inDocument = false
+
+        for (segment in segments) {
+            when {
+                segment.startsWith("UNH+") -> {
+                    inDocument = true
+                    currentDoc = mutableListOf()
+                    currentDoc.add(segment)
+                }
+                segment.startsWith("UNT+") -> {
+                    currentDoc.add(segment)
+                    dokumenter.add(currentDoc.joinToString("'"))
+                    inDocument = false
+                }
+                inDocument -> currentDoc.add(segment)
+            }
+        }
+
+        return dokumenter
+    }
+
     private fun normaliser(edifact: String): String =
         edifact
             .replace('’', '\'')
@@ -53,8 +84,10 @@ class VurderSveFinEdifactDokument {
 
     private val norskGirRegex = Regex("""NO'GIR\s*\+\d+\+(\d+)""")
 
-    private fun hentNorskGirIdent(edifact: String): String? =
-        norskGirRegex.find(edifact)?.groupValues?.get(1)
+    private fun hentNorskGirIdent(edifact: String?): String? =
+        edifact
+            ?.let(::normaliser)
+            ?.let { norskGirRegex.find(it)?.groupValues?.get(1) }
 
     private fun finnDtmForQualifier(segments: List<String>, qualifier: String): String? =
         segments.firstOrNull { it.startsWith("DTM+$qualifier:") }
