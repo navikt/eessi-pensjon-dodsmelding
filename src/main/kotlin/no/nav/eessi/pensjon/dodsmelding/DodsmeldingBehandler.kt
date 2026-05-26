@@ -11,6 +11,7 @@ import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.saf.BrukerIdType
 import no.nav.eessi.pensjon.saf.Journalpost
 import no.nav.eessi.pensjon.saf.SafClient
+import no.nav.eessi.pensjon.utils.mapAnyToJson
 import no.nav.eessi.pensjon.utils.toJson
 import no.nav.person.pdl.leesah.Personhendelse
 import org.slf4j.Logger
@@ -54,6 +55,8 @@ class DodsmeldingBehandler(
 			logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
 			true
 		} else if (brukerFinnesiJoark(valgtPersonident)) {
+			val dokdata = safClient.hentDokumentMetadata(valgtPersonident, BrukerIdType.FNR)
+			logger.debug("svar frahentdokData: $dokdata")
 			logger.info("Bruker finnes i joark, oppretter H070")
 			true
 		} else false
