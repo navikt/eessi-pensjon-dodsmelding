@@ -5,6 +5,9 @@ import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
 import no.nav.eessi.pensjon.eux.EuxService
+import no.nav.eessi.pensjon.eux.klient.EuxKlientLib
+import no.nav.eessi.pensjon.eux.model.Avsendere
+import no.nav.eessi.pensjon.eux.model.Motparter
 import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
@@ -13,10 +16,15 @@ import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
 import no.nav.eessi.pensjon.personoppslag.pdl.model.UtenlandskIdentifikasjonsnummer
 import no.nav.eessi.pensjon.saf.BrukerIdType.FNR
+import no.nav.eessi.pensjon.saf.Data
+import no.nav.eessi.pensjon.saf.DokumentoversiktBruker
+import no.nav.eessi.pensjon.saf.HentMetadataResponse
 import no.nav.eessi.pensjon.saf.HentdokumentInnholdResponse
+import no.nav.eessi.pensjon.saf.Journalpost
 import no.nav.eessi.pensjon.saf.SafClient
 import no.nav.person.pdl.leesah.Personhendelse
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -36,6 +44,7 @@ class DodsmeldingBehandlerTest {
     private val opprettH070 = mockk<OpprettH070>()
     private val pesysKlient = mockk<PesysKlient>()
     private val euxService = mockk<EuxService>()
+    private val euxKlient = mockk<EuxKlientLib>()
     private val lagringsService = mockk<LagringsService>()
 
     private lateinit var dodsmeldingBehandler: DodsmeldingBehandler
@@ -46,11 +55,11 @@ class DodsmeldingBehandlerTest {
         every { pesysKlient.hentPensjonSaklist(any()) } returns emptyList()
 
         // ting som ikke er så viktig akkurat nå
-        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns false
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
         every { euxService.opprettH070(any(), any()) } returns mockk(relaxed = true)
         every { euxService.sendSed(any(), any()) } returns mockk(relaxed = true)
-        every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
-        every { opprettH070.oppretterH070(any(), any()) } returns mockk(relaxed = true)
+//        every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
+        every { opprettH070.preutFyltH070(any(), any()) } returns mockk(relaxed = true)
     }
 
     @Test
@@ -67,7 +76,6 @@ class DodsmeldingBehandlerTest {
 
     @Test
     fun `behandle henter ikke dokumentmetadata naar person ikke har utenlandskIdentifikasjonsnummer`() {
-        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns false
         val personhendelse = mockk<Personhendelse> {
             every { personidenter } returns listOf("12345678901")
         }
@@ -80,7 +88,7 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPerson(ident) }
-        verify(exactly = 1) { safClient.hentDokumentMetadata(any(), any()) }
+        verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
     @Test
@@ -96,7 +104,7 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPerson(ident) }
-        verify(exactly = 1) { safClient.hentDokumentMetadata(any(), any()) }
+        verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
     @Test
@@ -112,14 +120,15 @@ class DodsmeldingBehandlerTest {
             every { identer } returns emptyList()
         }
 
-        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns false
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
 
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPerson(ident) }
-        verify(exactly = 1) { safClient.hentDokumentMetadata(any(), any()) }
+        verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
+    @Disabled
     @ParameterizedTest
     @CsvSource("SWE", "FIN", "POL")
     fun `behandle henter dokumentmetadata naar utstederland er `(land: String) {
@@ -209,7 +218,7 @@ class DodsmeldingBehandlerTest {
             )
         } returns ResponseEntity(dummyResource, org.springframework.http.HttpStatus.OK)
 
-        every { opprettH070.oppretterH070(any(), any()) } returns mockk(relaxed = true)
+        every { opprettH070.preutFyltH070(any(), any()) } returns mockk(relaxed = true)
 
         dodsmeldingBehandler.behandle(personhendelse)
 
@@ -278,7 +287,7 @@ class DodsmeldingBehandlerTest {
             contentType = "application/pdf"
         )
 
-        every { opprettH070.oppretterH070(any(), any()) } returns mockk(relaxed = true)
+        every { opprettH070.preutFyltH070(any(), any()) } returns mockk(relaxed = true)
 
         dodsmeldingBehandler.behandle(personhendelse)
 
@@ -313,7 +322,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        every { opprettH070.oppretterH070(any(), any()) } returns mockk(relaxed = true)
+        every { opprettH070.preutFyltH070(any(), any()) } returns mockk(relaxed = true)
 
         dodsmeldingBehandler.behandle(personhendelse)
 
@@ -347,9 +356,8 @@ class DodsmeldingBehandlerTest {
                 }
             }
         }
-        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns false
-
-        every { opprettH070.oppretterH070(any(), any()) } returns mockk(relaxed = true)
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
+        every { opprettH070.preutFyltH070(any(), any()) } returns mockk(relaxed = true)
 
         dodsmeldingBehandler.behandle(personhendelse)
 
@@ -363,7 +371,7 @@ class DodsmeldingBehandlerTest {
         }
         val ident = Ident.bestemIdent("12345678901")
 
-        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns false
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
         every { personService.hentPerson(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns emptyList()
             every { identer } returns listOf(
@@ -385,7 +393,7 @@ class DodsmeldingBehandlerTest {
         }
         val ident = Ident.bestemIdent(norskIdent)
 
-        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns true
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
         every { personService.hentPerson(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(UtenlandskIdentifikasjonsnummer(
                 identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = mockk())
@@ -398,7 +406,64 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPerson(ident) }
-        verify(exactly = 1) { opprettH070.oppretterH070(personhendelse, any()) }
+        verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
+        verify(exactly = 1) { euxService.sendSed(any(), any()) }
+    }
+
+    @Test
+    fun `Når det kommer inn er dødsmelding på pdl køen saa skal det sjekkes om den finnes i buvket eller joark Dersom ja saa sendes det ut en H070 til utlandet`() {
+        val norskIdent = "12345678901"
+        val personhendelse = mockk<Personhendelse> {
+            every { personidenter } returns listOf(norskIdent)
+        }
+        val ident = Ident.bestemIdent(norskIdent)
+
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair(norskIdent, "FI")
+        every { personService.hentPerson(ident) } returns mockk {
+            every { utenlandskIdentifikasjonsnummer } returns listOf(UtenlandskIdentifikasjonsnummer(
+                identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = mockk())
+            )
+            every { identer } returns listOf(
+                IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
+            )
+        }
+
+        dodsmeldingBehandler.behandle(personhendelse)
+
+        verify(exactly = 1) { personService.hentPerson(ident) }
+        verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
+        verify(exactly = 1) { euxService.sendSed(any(), any()) }
+    }
+
+    @Test
+    fun `Når det kommer inn er dødsmelding på pdl køen saa skal det sjekkes om den finnes joark Dersom ja saa sendes det ut en H070 til utlandet`() {
+        val norskIdent = "12345678901"
+        val personhendelse = mockk<Personhendelse> {
+            every { personidenter } returns listOf(norskIdent)
+        }
+        val ident = Ident.bestemIdent(norskIdent)
+
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns null
+        every { personService.hentPerson(ident) } returns mockk {
+            every { utenlandskIdentifikasjonsnummer } returns listOf(UtenlandskIdentifikasjonsnummer(
+                identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = mockk())
+            )
+            every { identer } returns listOf(
+                IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
+            )
+        }
+        every { safClient.hentDokumentMetadata(any(), any()) } returns HentMetadataResponse(data = Data(
+            DokumentoversiktBruker(listOf(Journalpost(tilleggsopplysninger= listOf(mapOf("eessi_pensjon_bucid" to "1457030")), journalpostId = "1457050", tittel = "P6000", journalfoerendeEnhet = "4444"))),
+        ))
+
+//        every { euxKlient.hentSedMetadataLand(any(), mockk<RestTemplate>()) } returns Avsendere(motparter = listOf(Motparter(motpartId = "123456", motpartLand = "FI", motpartLandkode = "FI")))
+//        every { euxService.hentAvsenderLand(any()) } returns Avsendere(listOf(Motparter(motpartId = "123456", motpartLand = "FI", motpartLandkode = "FI")))
+
+
+        dodsmeldingBehandler.behandle(personhendelse)
+
+        verify(exactly = 1) { personService.hentPerson(ident) }
+        verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
         verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
 }

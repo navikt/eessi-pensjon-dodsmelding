@@ -46,7 +46,7 @@ class OpprettH070Test {
             every { doedsfall } returns no.nav.person.pdl.leesah.doedsfall.Doedsfall(LocalDate.of(2024, 5, 1))
         }
 
-        val response = opprettH070.oppretterH070(personhendelse, pdlPerson)
+        val response = opprettH070.preutFyltH070(personhendelse, pdlPerson)
 
         assertEquals("2024-05-01", response.hnav?.bruker?.doedsfall?.doedsdato)
 

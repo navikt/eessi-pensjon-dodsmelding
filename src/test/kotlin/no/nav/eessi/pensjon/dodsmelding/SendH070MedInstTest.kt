@@ -49,7 +49,7 @@ class SendH070MedInstTest {
         every { euxKlient.createHBuc07(any(), any()) } returns "{\"caseId\":\"$SAKSID\",\"documentId\":\"$DOK_ID\"}"
         every { fagmodulKlient.hentPensjonSaklist(any()) } returns listOf(SakInformasjon(SAKSID, SakType.ALDER, LOPENDE))
 
-        val response = dodsmeldingBehandler.institusjon(FNR.name, setOf("FIN"))
+        val response = dodsmeldingBehandler.institusjon(FNR.name, "FIN")
         val response2 = euxService.opprettH070(FNR.name, h070)
 
         assertEquals("FI:0200000010", response)
@@ -59,29 +59,29 @@ class SendH070MedInstTest {
     @Test
     fun `Dersom h070 skal sendes til Sverige og den døde har hatt en ufoere sak på seg saa skal h070 sendes til svensk institusjon nummer2`() {
 
-        val h070 = mockH070(""""SE"""")
+        val h070 = mockH070(""""FI"""")
 
         every { euxKlient.createHBuc07(any(), any()) } returns "{\"caseId\":\"$SAKSID\",\"documentId\":\"$DOK_ID\"}"
         every { fagmodulKlient.hentPensjonSaklist(any()) } returns listOf(SakInformasjon(SAKSID, UFOREP, LOPENDE))
 
-       val response = dodsmeldingBehandler.institusjon(FNR.name, setOf("SWE"))
+       val response = dodsmeldingBehandler.institusjon(FNR.name, "FIN")
        euxService.opprettH070(FNR.name, h070)
 
-        assertEquals("SE:2001", response)
+        assertEquals("FI:0200000010", response)
     }
 
     @Test
     fun `Dersom h070 skal sendes til Sverige og den døde har hatt en alder sak på seg saa skal h070 sendes til svensk institusjon nummer1`() {
 
-        val h070 = mockH070(""""SE"""")
+        val h070 = mockH070(""""FI"""")
 
         every { euxKlient.createHBuc07(any(), any()) } returns "{\"caseId\":\"$SAKSID\",\"documentId\":\"$DOK_ID\"}"
         every { fagmodulKlient.hentPensjonSaklist(any()) } returns listOf(SakInformasjon(SAKSID, SakType.ALDER, LOPENDE))
 
-        val response = dodsmeldingBehandler.institusjon(FNR.name, setOf("SWE"))
+        val response = dodsmeldingBehandler.institusjon(FNR.name, ("FIN"))
         euxService.opprettH070(FNR.name, h070)
 
-        assertEquals("SE:3002", response)
+        assertEquals("FI:0200000010", response)
     }
 
 

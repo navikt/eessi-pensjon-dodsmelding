@@ -64,7 +64,7 @@ class MeldingFraPdlListenerTest {
                 every { identifikasjonsnummer } returns "12345678901"
             }
         }
-        every { lagringsService.finnesDodBrukerILeveAttReg(any() ) } returns false
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
         every { lagringsService.lagreFnrIS3(any(), any()) } just Runs
         every { pesysKlient.hentPensjonSaklist(any()) } returns emptyList()
         every { euxService.opprettH070(any(), any()) } returns EuxService.SaksDetaljer(
