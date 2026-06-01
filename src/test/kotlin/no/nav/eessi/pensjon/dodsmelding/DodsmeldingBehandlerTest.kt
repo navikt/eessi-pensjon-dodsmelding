@@ -8,6 +8,7 @@ import no.nav.eessi.pensjon.eux.EuxService
 import no.nav.eessi.pensjon.eux.klient.EuxKlientLib
 import no.nav.eessi.pensjon.eux.model.Avsendere
 import no.nav.eessi.pensjon.eux.model.Motparter
+import no.nav.eessi.pensjon.eux.model.sed.Tilleggsinformasjon
 import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
@@ -22,6 +23,7 @@ import no.nav.eessi.pensjon.saf.HentMetadataResponse
 import no.nav.eessi.pensjon.saf.HentdokumentInnholdResponse
 import no.nav.eessi.pensjon.saf.Journalpost
 import no.nav.eessi.pensjon.saf.SafClient
+import no.nav.eessi.pensjon.utils.mapJsonToAny
 import no.nav.person.pdl.leesah.Personhendelse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
@@ -452,13 +454,40 @@ class DodsmeldingBehandlerTest {
                 IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
             )
         }
+
+        val tilleggsopplysninger = """
+        {
+          "tilleggsopplysninger": [
+            {
+              "nokkel": "eessi_pensjon_bucid",
+              "verdi": "1455350"
+            }
+          ],
+          "journalpostId": "454102392",
+          "datoOpprettet": "2026-03-25T11:15:48",
+          "tittel": "Inngående P6000 - Melding om vedtak",
+          "journalfoerendeEnhet": "4476",
+          "behandlingstema": "ab0254",
+          "dokumenter": [
+            {
+              "dokumentInfoId": "454528669",
+              "tittel": "P6000 - Melding om vedtak.pdf",
+              "dokumentvarianter": [
+                {
+                  "filnavn": null,
+                  "variantformat": "ARKIV"
+                }
+              ]
+            }
+          ]
+        }
+        """.trimIndent()
+        val bla = mapJsonToAny<Journalpost>(tilleggsopplysninger)
+
         every { safClient.hentDokumentMetadata(any(), any()) } returns HentMetadataResponse(data = Data(
-            DokumentoversiktBruker(listOf(Journalpost(tilleggsopplysninger= listOf(mapOf("eessi_pensjon_bucid" to "1457030")), journalpostId = "1457050", tittel = "P6000", journalfoerendeEnhet = "4444"))),
-        ))
-
-//        every { euxKlient.hentSedMetadataLand(any(), mockk<RestTemplate>()) } returns Avsendere(motparter = listOf(Motparter(motpartId = "123456", motpartLand = "FI", motpartLandkode = "FI")))
-//        every { euxService.hentAvsenderLand(any()) } returns Avsendere(listOf(Motparter(motpartId = "123456", motpartLand = "FI", motpartLandkode = "FI")))
-
+            DokumentoversiktBruker(listOf(bla),
+        )))
+        every { euxService.hentAvsenderLand(any()) } returns Avsendere(listOf(Motparter(motpartId = "123456", motpartLand = "FI", motpartLandkode = "FI")))
 
         dodsmeldingBehandler.behandle(personhendelse)
 
