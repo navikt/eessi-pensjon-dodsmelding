@@ -1,19 +1,14 @@
 package no.nav.eessi.pensjon.h070
 
 import no.nav.eessi.pensjon.eux.model.SedType
-import no.nav.eessi.pensjon.eux.model.sed.Bruker
 import no.nav.eessi.pensjon.eux.model.sed.Doedsfall
-import no.nav.eessi.pensjon.eux.model.sed.H02x
 import no.nav.eessi.pensjon.eux.model.sed.H070
 import no.nav.eessi.pensjon.eux.model.sed.HBruker
 import no.nav.eessi.pensjon.eux.model.sed.HNav
-import no.nav.eessi.pensjon.eux.model.sed.Nav
 import no.nav.eessi.pensjon.eux.model.sed.Person
 import no.nav.eessi.pensjon.eux.model.sed.PinItem
-import no.nav.eessi.pensjon.eux.model.sed.PinLandItem
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPerson
-import no.nav.eessi.pensjon.utils.toJsonSkipEmpty
 import no.nav.person.pdl.leesah.Personhendelse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -25,7 +20,7 @@ import java.time.format.DateTimeFormatter
 class OpprettH070  {
     private val logger: Logger = LoggerFactory.getLogger(OpprettH070::class.java)
 
-    fun oppretterH070(personhendelse: Personhendelse, pdlPerson: PdlPerson): H070 {
+    fun preutFyltH070(personhendelse: Personhendelse, pdlPerson: PdlPerson): H070 {
 
         val navSed = HNav(
             bruker = HBruker(

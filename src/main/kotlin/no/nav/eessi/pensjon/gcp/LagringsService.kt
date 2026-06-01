@@ -41,7 +41,7 @@ class LagringsService (
         return !eksisterer(land, fnr, utenlandkYtelseBucket)
     }
 
-    fun finnesDodBrukerILeveAttReg(fnr: List<IdentInformasjon>?) : Boolean {
+    fun finnesDodBrukerILeveAttReg(fnr: List<IdentInformasjon>?) : Pair<String?, String>? {
         logger.debug("sjekker om fnr ligger i bucket")
         val listeOverFnrIBucket = list("FI/") + list("SE/") + list("PL/") + list("DK/")
         listeOverFnrIBucket.forEach { fnrIBucket ->
@@ -51,14 +51,14 @@ class LagringsService (
                 val hasha = hashedValue(ident)
                 if (fnrIBucket.contains(hasha)) {
                     logger.debug("Denne brukeren finnes i bucket. H070 kan sendes ut")
-                    return true
+                    return Pair(fnrFraPDL.ident, fnrIBucket)
                 } else {
                     logger.info("Bruker finnes ikke i bucket, og kan dermed ignoreres.")
-                    return false
+                    return null
                 }
             }
         }
-        return false
+        return null
     }
 
     fun hent(storageKey: String): String? {
