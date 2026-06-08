@@ -46,7 +46,7 @@ spec:
 
   webproxy: true
   kafka:
-    pool: nav-dev
+    pool: nav-prod
   env:
     - name: SPRING_PROFILES_ACTIVE
       value: prod
@@ -90,7 +90,7 @@ spec:
 
   image: {{ image }}
   ingresses:
-    - https://eessi-pensjon-dodsmelding.intern.dev.nav.no
+    - https://eessi-pensjon-dodsmelding.intern.nav.no
   port: 8080
   prometheus:
     enabled: true
