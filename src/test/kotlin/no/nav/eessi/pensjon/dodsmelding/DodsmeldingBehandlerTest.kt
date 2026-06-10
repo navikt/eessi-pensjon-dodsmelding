@@ -387,7 +387,6 @@ class DodsmeldingBehandlerTest {
         verify(exactly = 1) { personService.hentPerson(ident) }
     }
 
-    @Disabled
     @Test
     fun `Når det kommer inn er dødsmelding på pdl køen saa skal det sjekkes om den ligger i bucket Dersom ja saa sendes det ut en H070 til utlandet`() {
         val norskIdent = "12345678901"
@@ -410,10 +409,9 @@ class DodsmeldingBehandlerTest {
 
         verify(exactly = 1) { personService.hentPerson(ident) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
-        verify(exactly = 1) { euxService.sendSed(any(), any()) }
+//        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
 
-    @Disabled
     @Test
     fun `Når det kommer inn er dødsmelding på pdl køen saa skal det sjekkes om den finnes i buvket eller joark Dersom ja saa sendes det ut en H070 til utlandet`() {
         val norskIdent = "12345678901"
@@ -436,10 +434,9 @@ class DodsmeldingBehandlerTest {
 
         verify(exactly = 1) { personService.hentPerson(ident) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
-        verify(exactly = 1) { euxService.sendSed(any(), any()) }
+//        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
 
-    @Disabled
     @Test
     fun `Når det kommer inn er dødsmelding på pdl køen saa skal det sjekkes om den finnes joark Dersom ja saa sendes det ut en H070 til utlandet`() {
         val norskIdent = "12345678901"
@@ -496,6 +493,7 @@ class DodsmeldingBehandlerTest {
 
         verify(exactly = 1) { personService.hentPerson(ident) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
-        verify(exactly = 1) { euxService.sendSed(any(), any()) }
+        //TODO: kan kommenteres inn etter prodsetting av sende ut H070 sed
+//        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
 }
