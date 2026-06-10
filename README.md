@@ -4,7 +4,7 @@ En H070 sendes i de tilfeller hvor vi har en match i PDL på en person som er re
     1. Personen har en utenlandsk pensjon (registrert i S3 via edifact filer fra utenlandske pensjonsmyndigheter)
     2. Personen har en P6000 registrert i Jorak
 
-Applikasjonen er skrevet i Java og bruker Spring Boot.
+Applikasjonen er skrevet i Kotlin og Spring Boot.
 
 ## Arkitektur
 
