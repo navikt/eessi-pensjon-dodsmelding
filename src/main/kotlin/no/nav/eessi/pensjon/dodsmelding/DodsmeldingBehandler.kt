@@ -56,23 +56,23 @@ class DodsmeldingBehandler(
         //4. Dersom treff i en av disse to, send ut en H070
 
         val brukerILeveAttReg = lagringsService.finnesDodBrukerILeveAttReg(person.identer)
-//        val h070 = opprettH070.preutFyltH070(personhendelse, person).also { logger.debug("preutfylt h070: {}", it) }
+        val h070 = opprettH070.preutFyltH070(personhendelse, person).also { logger.debug("preutfylt h070: {}", it) }
 
-        if (brukerILeveAttReg != null) {
-            logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
-            val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second).also { logger.debug("Sender til institusjon: {}", it) }
+//        if (brukerILeveAttReg != null) {
+//            logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
+//            val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second).also { logger.debug("Sender til institusjon: {}", it) }
 //            opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
-        } else {
-            val rinaSakId = brukerFinnesiJoark(valgtPersonident)
-            val land = euxService.hentAvsenderLand(rinaSakId!!)
-            val mottakerLand = land?.motparter?.firstOrNull { it.motpartLand !in listOf("NO", "NOR") }?.motpartLand
-            if (land != null && mottakerLand != null) {
-//                opprettOgSendH070(h070, mottakerLand)
-//                .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
-                logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand") }
-            }
-//        }
-//        logger.info("Preutfyller H070 for bruker.")
+//        } else {
+//            val rinaSakId = brukerFinnesiJoark(valgtPersonident)
+//            val land = euxService.hentAvsenderLand(rinaSakId!!)
+//            val mottakerLand = land?.motparter?.firstOrNull { it.motpartLand !in listOf("NO", "NOR") }?.motpartLand
+//            if (land != null && mottakerLand != null) {
+////                opprettOgSendH070(h070, mottakerLand)
+////                .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
+//                logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand") }
+//            }
+////        }
+        logger.info("Preutfyller H070 for bruker.")
 
         //TODO: Sjekk hvilken ytelse bruker har før vi går videre med å preutfylle en H070
         //TODO: Sjekk hvilken institusjon som skal legges til ut i fra hvilket land det er som skal motta H070 fra oss.
@@ -104,7 +104,8 @@ class DodsmeldingBehandler(
                 euxService.sendSed(response.caseId, response.documentId)
             } else {
                 val response = euxService.opprettH070(instViSkalSendeTil, h070)
-                euxService.sendSed(response.caseId, response.documentId)
+                //TODO: Legg inn denne for å få sendt h070 i prod
+//                euxService.sendSed(response.caseId, response.documentId)
             }
         } catch (e: Exception) {
             logger.error("Feil ved opprettelse av H070", e)
