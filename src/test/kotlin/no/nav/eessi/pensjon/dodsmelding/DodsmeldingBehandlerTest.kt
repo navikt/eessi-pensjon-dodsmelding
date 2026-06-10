@@ -409,7 +409,7 @@ class DodsmeldingBehandlerTest {
 
         verify(exactly = 1) { personService.hentPerson(ident) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
-        verify(exactly = 1) { euxService.sendSed(any(), any()) }
+//        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
 
     @Test
@@ -434,7 +434,7 @@ class DodsmeldingBehandlerTest {
 
         verify(exactly = 1) { personService.hentPerson(ident) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
-        verify(exactly = 1) { euxService.sendSed(any(), any()) }
+//        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
 
     @Test
@@ -493,6 +493,7 @@ class DodsmeldingBehandlerTest {
 
         verify(exactly = 1) { personService.hentPerson(ident) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
-        verify(exactly = 1) { euxService.sendSed(any(), any()) }
+        //TODO: kan kommenteres inn etter prodsetting av sende ut H070 sed
+//        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
 }

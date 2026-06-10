@@ -1,0 +1,116 @@
+kind: Application
+apiVersion: nais.io/v1alpha1
+metadata:
+  name: eessi-pensjon-dodsmelding
+  namespace: eessipensjon
+  labels:
+    team: eessipensjon
+spec:
+  observability:
+    logging:
+      destinations:
+        - id: elastic
+        - id: loki
+    autoInstrumentation:
+      enabled: true
+      runtime: java
+  envFrom:
+    - secret: dodsmelding-prod #secret name in Google Secret Manager
+  azure:
+    application:
+      enabled: true
+  accessPolicy:
+    outbound:
+      rules:
+        - application: logging
+          namespace: nais-system
+        - application: eessi-pensjon-dodsmelding
+          namespace: eessipensjon
+          cluster: prod-gcp
+      external:
+        - host: eux-rina-api.intern.nav.no
+        - host: pdl-api.prod-fss-pub.nais.io
+        - host: prod-fss.prod-fss-pub.nais.io
+        - host: pensjon-pen.prod-fss-pub.nais.io
+        - host: saf.prod-fss-pub.nais.io
+
+    inbound:
+      rules:
+        - application: pensjon-psak
+          namespace: pensjon
+          cluster: prod-gcp
+  gcp:
+    buckets:
+      - name: eessi-pensjon-dodsmelding
+        uniformBucketLevelAccess: true
+
+  webproxy: true
+  kafka:
+    pool: nav-prod
+  env:
+    - name: SPRING_PROFILES_ACTIVE
+      value: prod
+    - name: NAMESPACE
+      value: p
+
+    - name: GCP_BUCKET_UTL_YTELSE
+      value: eessi-pensjon-dodsmelding
+
+    - name: EUX_RINA_API_V1_URL
+      value: https://eux-rina-api.intern.nav.no/cpi
+
+    - name: PESYS_URL
+      value: https://pensjon-pen.prod-fss-pub.nais.io/pen/api/eessi/v2
+
+    - name: SAF_GRAPHQL_URL
+      value: https://saf.prod-fss-pub.nais.io/graphql
+
+    - name: SAF_HENTDOKUMENT_URL
+      value: https://saf.prod-fss-pub.nais.io/rest/hentdokument
+
+    - name: PDL_URL
+      value: https://pdl-api.prod-fss-pub.nais.io/graphql
+
+    #AZURE
+    - name: AZURE_APP_PDL_CLIENT_ID
+      value: prod-fss.pdl.pdl-api
+    - name: AZURE_APP_EUX_CLIENT_ID
+      value: prod-gcp.eessibasis.eux-rina-api
+    - name: AZURE_APP_SAF_CLIENT_ID
+      value: prod-fss.teamdokumenthandtering.saf
+    - name: AZURE_APP_PEN_CLIENT_ID
+      value: prod-fss.pensjondeployer.pensjon-pen
+
+    #KAFKA
+    - name: KAFKA_PDLHENDELSE_TOPIC
+      value: pdl.leesah-v1
+    - name: KAFKA_GROUP_ID
+      value: eessi-pensjon-dodsmelding
+
+
+  image: {{ image }}
+  ingresses:
+    - https://eessi-pensjon-dodsmelding.intern.nav.no
+  port: 8080
+  prometheus:
+    enabled: true
+    path: /actuator/prometheus
+  liveness:
+    path: /internal/isalive
+    port: 8080
+    initialDelay: 20
+  readiness:
+    path: /internal/isready
+    port: 8080
+    initialDelay: 20
+  replicas:
+    min: 1
+    max: 1
+    cpuThresholdPercentage: 80
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 512Mi
+
