@@ -1,0 +1,105 @@
+
+# ******************************************************************************************************************
+#
+# Dette er en auto-generert fil; endringer gjøres i templates/.github/workflows/etterlevelse-rapport.yml
+# Kjør deretter ' make generate-files' for oppdatering av workflow hos prosjekter
+#
+# Forutsetninger (settes som repo-/org-secrets):
+#   COPILOT_CLI_TOKEN          - token med GitHub Copilot-tilgang (brukes av Copilot CLI)
+#   EP_ETTERLEVELSE_KILDE_TOKEN - token med lesetilgang til navikt/eessi-pensjon (henter krav-kildene)
+#
+# ******************************************************************************************************************
+
+name: Etterlevelsesrapport
+on:
+  workflow_dispatch:
+    inputs:
+      meta_ref:
+        description: 'Ref/branch i navikt/eessi-pensjon å hente krav-kildene fra'
+        required: false
+        default: 'main'
+
+jobs:
+  etterlevelse_rapport:
+    name: 'Generer etterlevelsesrapport for komponenten'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: 'Pull repo'
+        uses: actions/checkout@v4
+
+      - name: 'Node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 'Installer GitHub Copilot CLI'
+        run: npm install -g @github/copilot
+
+      - name: 'Hent etterlevelse-kilder fra meta-repo'
+        env:
+          GH_TOKEN: ${{ secrets.EP_ETTERLEVELSE_KILDE_TOKEN }}
+          META_REPO: navikt/eessi-pensjon
+          META_REF: ${{ github.event.inputs.meta_ref }}
+        run: |
+          set -euo pipefail
+          mkdir -p .etterlevelse-kilde/agent-input .etterlevelse-kilde/doc
+          fetch() {
+            gh api -H "Accept: application/vnd.github.raw" \
+              "repos/$META_REPO/contents/$1?ref=$META_REF" > "$2"
+          }
+          fetch architecture.md .etterlevelse-kilde/architecture.md
+          fetch .github/agents/eessi-pensjon-etterlevelse.agent.md .etterlevelse-kilde/agent.md
+          fetch .github/skills/etterlevelse-rapport/SKILL.md .etterlevelse-kilde/SKILL.md
+          gh api "repos/$META_REPO/contents/etterlevelse/agent-input?ref=$META_REF" \
+            --jq '.[] | select(.name | endswith(".txt")) | .path' \
+            | while read -r p; do fetch "$p" ".etterlevelse-kilde/agent-input/$(basename "$p")"; done
+          gh api "repos/$META_REPO/contents/etterlevelse/doc?ref=$META_REF" \
+            --jq '.[] | select(.name | endswith(".txt")) | .path' \
+            | while read -r p; do fetch "$p" ".etterlevelse-kilde/doc/$(basename "$p")"; done
+          echo "Hentet $(ls .etterlevelse-kilde/agent-input | wc -l) krav."
+
+      - name: 'Gjør agent og skill tilgjengelig for Copilot CLI'
+        run: |
+          set -euo pipefail
+          mkdir -p .github/agents .github/skills/etterlevelse-rapport
+          cp .etterlevelse-kilde/agent.md .github/agents/eessi-pensjon-etterlevelse.agent.md
+          cp .etterlevelse-kilde/SKILL.md .github/skills/etterlevelse-rapport/SKILL.md
+
+      - name: 'Generer rapport med Copilot CLI'
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
+          COPILOT_HOME: ${{ github.workspace }}/.copilot-home
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          copilot --allow-all-tools --no-ask-user --silent \
+            --agent eessi-pensjon-etterlevelse \
+            --model claude-opus-4.6 \
+            -p "Følg instruksjonene i .github/skills/etterlevelse-rapport/SKILL.md og generer etterlevelsesrapporten for komponenten i dette repoet ($REPO_NAME). Krav-kildene er allerede lastet ned til mappen .etterlevelse-kilde/ (agent-input/, architecture.md, agent.md, doc/). Analyser kildekoden i gjeldende repo som komponenten, og skriv rapporten til etterlevelse/etterlevelse-rapport.md. Ikke still spørsmål; kjør autonomt."
+
+      - name: 'Rydd opp midlertidige kilder'
+        if: always()
+        run: |
+          rm -rf .etterlevelse-kilde \
+                 .github/skills/etterlevelse-rapport \
+                 .github/agents/eessi-pensjon-etterlevelse.agent.md
+          rmdir .github/skills .github/agents 2>/dev/null || true
+
+      - name: 'Opprett pull request med oppdatert rapport'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: etterlevelse/oppdater-rapport
+          delete-branch: true
+          add-paths: etterlevelse/etterlevelse-rapport.md
+          commit-message: 'd - Oppdater etterlevelsesrapport'
+          title: 'd - Oppdater etterlevelsesrapport'
+          body: |
+            Auto-generert etterlevelsesrapport for denne komponenten, basert på
+            etterlevelseskravene i navikt/eessi-pensjon (etterlevelse/agent-input).
+
+            Rapporten er en intern analyse per komponent og må kvalitetssikres av
+            teamet før den brukes som dokumentasjon.
