@@ -52,3 +52,9 @@ Applikasjonen er skrevet i Kotlin og Spring Boot.
 - **LagringsService**: Håndterer GCP-lagring for pensjonsmatch (Sverige/Finland EDIFACT-filer)
 - **OpprettH070**: Oppretter og formatterer H070-meldinger
 - **EuxService**: Sender H070 til EESSI (EU-utveksling)
+
+## Etterlevelse: monitorering av kritisk dataflyt
+
+- Overordnet rutine og krav: `docs/monitorering-kritisk-dataflyt.md`
+- Dataflytregister og kritikalitet: `docs/dataflyt-register-kritikalitet.md`
+
