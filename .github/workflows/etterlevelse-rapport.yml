@@ -70,7 +70,7 @@ jobs:
 
       - name: 'Generer rapport med Copilot CLI'
         env:
-          COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
           COPILOT_HOME: ${{ github.workspace }}/.copilot-home
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
