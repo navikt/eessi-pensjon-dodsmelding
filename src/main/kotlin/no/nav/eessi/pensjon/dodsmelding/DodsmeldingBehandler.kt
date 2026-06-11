@@ -28,9 +28,10 @@ class DodsmeldingBehandler(
     private val lagringsService: LagringsService,
     @Value("\${ENV}") private val env: String
 ) {
-    val gyldigeUtstederland = listOf("SW", "SWE", "FI", "FIN", "PO", "POL")
-
     private val logger: Logger = LoggerFactory.getLogger(DodsmeldingBehandler::class.java)
+    private val secureLogger = LoggerFactory.getLogger("secureLog")
+
+    val gyldigeUtstederland = listOf("SW", "SWE", "FI", "FIN", "PO", "POL")
 
     fun behandle(personhendelse: Personhendelse) {
         val valgtPersonident = hentAlleNorskeIdenter(personhendelse)
@@ -56,7 +57,8 @@ class DodsmeldingBehandler(
         //4. Dersom treff i en av disse to, send ut en H070
 
         val brukerILeveAttReg = lagringsService.finnesDodBrukerILeveAttReg(person.identer)
-        val h070 = opprettH070.preutFyltH070(personhendelse, person).also { logger.debug("preutfylt h070: {}", it) }
+//        val h070 =
+            opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070: {}", it) }
 
 //        if (brukerILeveAttReg != null) {
 //            logger.info("Bruker finnes i leveattestregisteret, oppretter H070")

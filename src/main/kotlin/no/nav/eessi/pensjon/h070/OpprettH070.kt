@@ -19,9 +19,6 @@ import java.time.format.DateTimeFormatter
 
 @Component
 class OpprettH070  {
-    private val logger: Logger = LoggerFactory.getLogger(OpprettH070::class.java)
-    private val secureLogger = LoggerFactory.getLogger("secureLog")
-
 
     fun preutFyltH070(personhendelse: Personhendelse, pdlPerson: PdlPerson): H070 {
 
@@ -54,7 +51,7 @@ class OpprettH070  {
                     kjoenn = pdlPerson.kjoenn?.kjoenn?.name?.substring(0, 1),
                 )
             )
-        ).also { secureLogger.info("Preutfylt H070: ${it.toJson()}") }
+        )
 
         return H070(
             type = SedType.H070,
