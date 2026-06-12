@@ -44,6 +44,11 @@ class DodsmeldingBehandler(
         logger.info("Henter informasjon for ident: ${valgtPersonident.take(4)}")
         val identFraPdl = Ident.bestemIdent(valgtPersonident)
 
+        if (lagringsService.finnesDoedsmeldingAlleredeForBruker(identFraPdl.id)) {
+            logger.debug("Bruker finnes allerede i bucket")
+            return
+        }
+
         val person = personService.hentPerson(identFraPdl).also { logger.debug("Henter person: {}", it) }
 
         if(person == null ) {
@@ -59,6 +64,7 @@ class DodsmeldingBehandler(
         val brukerILeveAttReg = lagringsService.finnesDodBrukerILeveAttReg(person.identer)
 //        val h070 =
             opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070: {}", it) }
+            lagringsService.opprettetH070ForFnr(identFraPdl.id)
 
 //        if (brukerILeveAttReg != null) {
 //            logger.info("Bruker finnes i leveattestregisteret, oppretter H070")

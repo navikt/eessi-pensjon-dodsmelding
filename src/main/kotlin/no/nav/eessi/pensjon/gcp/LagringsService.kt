@@ -16,6 +16,7 @@ import javax.crypto.spec.SecretKeySpec
 @Service
 class LagringsService (
     @param:Value("\${GCP_BUCKET_UTL_YTELSE}") var utenlandkYtelseBucket: String,
+    @param:Value("\${GCP_H070_OPPRETTET}") var h070_opprettetBucket: String,
     private val vurderSveFinEdifactDokument: VurderSveFinEdifactDokument,
     private val gcpStorage: Storage,
     @param:Value("\${HASH_SECRET_KEY}") private val hashSecretKey: String
@@ -35,15 +36,27 @@ class LagringsService (
         }
     }
 
+    fun opprettetH070ForFnr(fnr: String?): Boolean {
+        val hashafnr = hashedValue(fnr)
+        try {
+            logger.debug("Hasha : $hashafnr")
+            lagre(hashafnr)
+            return true
+        } catch (ex: Exception) {
+            logger.error("Feiler ved lagring av: $hashafnr $ex")
+        }
+        return false
+    }
+
     fun kanHendelsenOpprettes(fnr: String?, land: String?) : Boolean {
-        logger.debug("liste over obj FI/" + list("FI/").toString())
-        logger.debug("liste over obj SE/" + list("SE/").toString())
+        logger.debug("liste over obj FI/" + list("FI/", utenlandkYtelseBucket).toString())
+        logger.debug("liste over obj SE/" + list("SE/", utenlandkYtelseBucket).toString())
         return !eksisterer(land, fnr, utenlandkYtelseBucket)
     }
 
     fun finnesDodBrukerILeveAttReg(fnr: List<IdentInformasjon>?) : Pair<String?, String>? {
         logger.debug("sjekker om fnr ligger i bucket")
-        val listeOverFnrIBucket = list("FI/") + list("SE/") + list("PL/") + list("DK/")
+        val listeOverFnrIBucket = list("FI/",utenlandkYtelseBucket) + list("SE/",utenlandkYtelseBucket) + list("PL/", utenlandkYtelseBucket) + list("DK/",utenlandkYtelseBucket)
         listeOverFnrIBucket.forEach { fnrIBucket ->
             logger.debug("sjekker fnr i bucket for bruker: $fnrIBucket")
             fnr?.forEach { fnrFraPDL ->
@@ -61,6 +74,23 @@ class LagringsService (
         return null
     }
 
+    fun finnesDoedsmeldingAlleredeForBruker(fnr: String): Boolean {
+        logger.debug("sjekker om fnr allerede ligger inne med dodsmelding i bucket")
+        val listeOverFnrIBucket = list("H070_OPPRETTET", h070_opprettetBucket)
+        listeOverFnrIBucket.forEach { fnrIBucket ->
+            val hasha = hashedValue(fnrIBucket)
+            logger.debug("Sjekker om fnr finnes i bucket for bruker: $hasha")
+            return if (fnrIBucket.contains(hasha)) {
+                logger.debug("Denne brukeren finnes i bucket. H070 er allerede sendt ut")
+                true
+            } else {
+                logger.info("Bruker finnes ikke i bucket, H070 kan opprettes på bruker.")
+                false
+            }
+        }
+        return false
+    }
+
     fun hent(storageKey: String): String? {
         val filIS3 =  gcpStorage.get(BlobId.of(utenlandkYtelseBucket, storageKey))
         logger.debug("Henter fila $filIS3")
@@ -73,7 +103,7 @@ class LagringsService (
 
     fun filLiggerIS3() {
         logger.debug("sjekker om filen ligger i bucket")
-        val listeOverFiler = list("EdifactFil/")
+        val listeOverFiler = list("EdifactFil/", utenlandkYtelseBucket)
         listeOverFiler.forEach { filNavn ->
             logger.debug("sjekker: $filNavn")
             val innholdIBlob = hent(filNavn).also { logger.debug("Hentet innhold fra blob: $it") }
@@ -82,7 +112,7 @@ class LagringsService (
             dokumenter.forEach { dokument ->
                 val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(dokument).also { logger.debug("Tolket dokument: ${it?.toJson()}") }
                 if (edidok?.norskIdent != null && edidok.avsenderLand != null) {
-                    val blobben = list(edidok.avsenderLand)
+                    val blobben = list(edidok.avsenderLand,utenlandkYtelseBucket)
                     val hasha = hashedValue(edidok.norskIdent)
                     if (blobben.contains(hasha)) {
                         logger.debug("Denne brukeren finnes fra før av i bucket")
@@ -108,9 +138,9 @@ class LagringsService (
         return false
     }
 
-    fun list(keyPrefix: String) : List<String> {
+    fun list(keyPrefix: String, bucket: String) : List<String> {
         logger.debug("lister innhold i fila")
-        return gcpStorage.list(utenlandkYtelseBucket , Storage.BlobListOption.prefix(keyPrefix))?.values?.map { v -> v.name}  ?:  emptyList()
+        return gcpStorage.list(bucket , Storage.BlobListOption.prefix(keyPrefix))?.values?.map { v -> v.name}  ?:  emptyList()
     }
 
     fun hentBrukerILand(landkode: String?, fnr: String): String {
