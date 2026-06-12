@@ -45,7 +45,7 @@ class DodsmeldingBehandler(
         val identFraPdl = Ident.bestemIdent(valgtPersonident)
 
         if (lagringsService.finnesDoedsmeldingAlleredeForBruker(identFraPdl.id)) {
-            logger.debug("Bruker finnes allerede i bucket")
+            logger.info("Bruker finnes allerede i bucket")
             return
         }
 
