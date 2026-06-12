@@ -58,6 +58,8 @@ class DodsmeldingBehandlerTest {
 
         // ting som ikke er så viktig akkurat nå
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
+        every { lagringsService.finnesDoedsmeldingAlleredeForBruker(any()) } returns mockk(relaxed = true )
+        every { lagringsService.opprettetH070ForFnr(any()) } returns mockk(relaxed = true )
         every { euxService.opprettH070(any(), any()) } returns mockk(relaxed = true)
         every { euxService.sendSed(any(), any()) } returns mockk(relaxed = true)
 //        every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
@@ -101,6 +103,7 @@ class DodsmeldingBehandlerTest {
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPerson(ident) } returns null
         every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
+        every { lagringsService.finnesDoedsmeldingAlleredeForBruker(any()) } returns mockk(relaxed = true )
 
 
         dodsmeldingBehandler.behandle(personhendelse)

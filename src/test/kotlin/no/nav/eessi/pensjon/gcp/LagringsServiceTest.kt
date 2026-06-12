@@ -24,7 +24,7 @@ class LagringsServiceTest {
 
     @BeforeEach
     fun setup() {
-        lagringsService = LagringsService("dod", vurderSveFinEdifactDokument, gcpStorage, "eessipensjonn")
+        lagringsService = LagringsService("dod", "h070_opprettetBucket", vurderSveFinEdifactDokument, gcpStorage, "eessipensjonn")
     }
 
     @Test
