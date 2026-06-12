@@ -43,6 +43,8 @@ spec:
     buckets:
       - name: eessi-pensjon-dodsmelding
         uniformBucketLevelAccess: true
+      - name: eessi-pensjon-opprettet-h070
+        uniformBucketLevelAccess: true
 
   webproxy: true
   kafka:
@@ -59,7 +61,7 @@ spec:
       value: eessi-pensjon-dodsmelding
 
     - name: GCP_H070_OPPRETTET
-      value: eessi-pensjon-dodsmelding
+      value: eessi-pensjon-opprettet-h070
 
     - name: EUX_RINA_API_V1_URL
       value: https://eux-rina-api.intern.nav.no/cpi
