@@ -53,6 +53,9 @@ spec:
     - name: GCP_BUCKET_UTL_YTELSE
       value: eessi-pensjon-dodsmelding-q2
 
+    - name: GCP_H070_OPPRETTET
+      value: eessi-pensjon-dodsmelding-q2
+
     - name: EUX_RINA_API_V1_URL
       value: https://eux-rina-api-q2.intern.dev.nav.no/cpi
 
