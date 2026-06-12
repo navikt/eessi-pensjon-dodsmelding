@@ -30,7 +30,7 @@ class LagringsService (
 
         try {
             logger.debug("Hasha : ${hashedValue(fnr)}")
-            lagre(path)
+            lagre(path, utenlandkYtelseBucket)
         } catch (ex: Exception) {
             logger.error("Feiler ved lagring av data: $path $ex")
         }
@@ -40,7 +40,7 @@ class LagringsService (
         val hashafnr = hashedValue(fnr)
         try {
             logger.debug("Hasha : $hashafnr")
-            lagre(hashafnr)
+            lagre(hashafnr,h070_opprettetBucket)
             return true
         } catch (ex: Exception) {
             logger.error("Feiler ved lagring av: $hashafnr $ex")
@@ -76,9 +76,9 @@ class LagringsService (
 
     fun finnesDoedsmeldingAlleredeForBruker(fnr: String): Boolean {
         logger.debug("sjekker om fnr allerede ligger inne med dodsmelding i bucket")
-        val listeOverFnrIBucket = list("H070_OPPRETTET", h070_opprettetBucket)
+        val hasha = hashedValue(fnr)
+        val listeOverFnrIBucket = list(hasha, h070_opprettetBucket)
         listeOverFnrIBucket.forEach { fnrIBucket ->
-            val hasha = hashedValue(fnrIBucket)
             logger.debug("Sjekker om fnr finnes i bucket for bruker: $hasha")
             return if (fnrIBucket.contains(hasha)) {
                 logger.debug("Denne brukeren finnes i bucket. H070 er allerede sendt ut")
@@ -117,7 +117,7 @@ class LagringsService (
                     if (blobben.contains(hasha)) {
                         logger.debug("Denne brukeren finnes fra før av i bucket")
                     } else {
-                        lagre(hentBrukerILand(edidok.avsenderLand, edidok.norskIdent))
+                        lagre(hentBrukerILand(edidok.avsenderLand, edidok.norskIdent), utenlandkYtelseBucket)
                         logger.info("Lagret hashet fnr til s3")
                     }
                 }
@@ -158,8 +158,8 @@ class LagringsService (
         return path
     }
 
-    fun lagre(storageKey: String) {
-        val blobInfo =  BlobInfo.newBuilder(BlobId.of(utenlandkYtelseBucket, storageKey)).setContentType("application/json").build()
+    fun lagre(storageKey: String, bucket: String) {
+        val blobInfo =  BlobInfo.newBuilder(BlobId.of(bucket, storageKey)).setContentType("application/json").build()
         kotlin.runCatching {
             gcpStorage.writer(blobInfo).use { it.write(ByteBuffer.wrap(storageKey.toByteArray())) }
         }.onFailure { e ->
