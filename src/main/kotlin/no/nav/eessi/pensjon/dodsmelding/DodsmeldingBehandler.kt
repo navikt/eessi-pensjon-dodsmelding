@@ -62,24 +62,24 @@ class DodsmeldingBehandler(
         //4. Dersom treff i en av disse to, send ut en H070
 
         val brukerILeveAttReg = lagringsService.finnesDodBrukerILeveAttReg(person.identer)
-//        val h070 =
-            opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070: {}", it) }
-            lagringsService.opprettetH070ForFnr(identFraPdl.id)
-
-//        if (brukerILeveAttReg != null) {
-//            logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
-//            val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second).also { logger.debug("Sender til institusjon: {}", it) }
+        if (brukerILeveAttReg != null) {
+            logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
+            val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second).also { logger.info("Sender til institusjon: {}", it) }
+            lagringsService.lagreFnrForBruker(identFraPdl.id)
+            opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070 fra LeveAttestReg: {}", it) }
 //            opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
-//        } else {
-//            val rinaSakId = brukerFinnesiJoark(valgtPersonident)
-//            val land = euxService.hentAvsenderLand(rinaSakId!!)
-//            val mottakerLand = land?.motparter?.firstOrNull { it.motpartLand !in listOf("NO", "NOR") }?.motpartLand
-//            if (land != null && mottakerLand != null) {
-////                opprettOgSendH070(h070, mottakerLand)
-////                .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
-//                logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand") }
-//            }
-////        }
+        } else {
+            val rinaSakId = brukerFinnesiJoark(valgtPersonident)
+            val land = euxService.hentAvsenderLand(rinaSakId!!)
+            val mottakerLand = land?.motparter?.firstOrNull { it.motpartLand !in listOf("NO", "NOR") }?.motpartLand
+            if (land != null && mottakerLand != null) {
+                lagringsService.lagreFnrForBruker(identFraPdl.id)
+                opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070 fra Joark: {}", it) }
+//                opprettOgSendH070(h070, mottakerLand)
+//                .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
+                logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand") }
+            }
+//        }
         logger.info("Preutfyller H070 for bruker.")
 
         //TODO: Sjekk hvilken ytelse bruker har før vi går videre med å preutfylle en H070
@@ -125,10 +125,10 @@ class DodsmeldingBehandler(
         val ytelsesInfo = pesysKlient.hentPensjonSaklist(fnr!!).also { logger.debug("Henter pensjonsakliste: {}", it.toJson()) }
         val penytelse = ytelsesInfo.firstOrNull { it.sakType in listOf(UFOREP, GJENLEV, BARNEP, ALDER, OMSORG) }
         val land =
-            if (landFraIdentUtland.contains("FI")) "FIN" else if (landFraIdentUtland.contains("SE")) "SWE" else if (landFraIdentUtland.contains(
-                    "PL"
-                )
-            ) "POL" else null
+            if (landFraIdentUtland.contains("FI")) "FIN"
+            else if (landFraIdentUtland.contains("SE")) "SWE"
+            else if (landFraIdentUtland.contains("DK")) "DKK"
+            else if (landFraIdentUtland.contains("PL")) "POL" else null
         val institusjonViSkalSendeTil = mottakendeInstitusjon(penytelse, land)
         return institusjonViSkalSendeTil
     }

@@ -36,9 +36,10 @@ class LagringsService (
         }
     }
 
-    fun opprettetH070ForFnr(fnr: String?): Boolean {
+    fun lagreFnrForBruker(fnr: String): Boolean {
         val hashafnr = hashedValue(fnr)
         try {
+            if(finnesDoedsmeldingAlleredeForBruker(fnr)) return false.also { logger.error("Bruker finnes i bucket.") }
             logger.debug("Hasha : $hashafnr")
             lagre(hashafnr,h070_opprettetBucket)
             return true
@@ -64,7 +65,7 @@ class LagringsService (
                 val hasha = hashedValue(ident)
                 if (fnrIBucket.contains(hasha)) {
                     logger.debug("Denne brukeren finnes i bucket. H070 kan sendes ut")
-                    return Pair(fnrFraPDL.ident, fnrIBucket)
+                    return Pair(fnrFraPDL.ident, hentLandFraPrefix(fnrIBucket))
                 } else {
                     logger.info("Bruker finnes ikke i bucket, og kan dermed ignoreres.")
                     return null
@@ -72,6 +73,12 @@ class LagringsService (
             }
         }
         return null
+    }
+
+    fun hentLandFraPrefix(hash: String) : String {
+        val land = hash.substring(0, 2)
+        if(land in listOf("FI", "SE", "DK")) return land
+        throw RuntimeException("Henter landkode fra prefix $land")
     }
 
     fun finnesDoedsmeldingAlleredeForBruker(fnr: String): Boolean {
