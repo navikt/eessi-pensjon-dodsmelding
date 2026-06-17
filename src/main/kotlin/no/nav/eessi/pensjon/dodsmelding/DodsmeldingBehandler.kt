@@ -69,7 +69,13 @@ class DodsmeldingBehandler(
             opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070 fra LeveAttestReg: {}", it) }
 //            opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
         } else {
-            val rinaSakId = brukerFinnesiJoark(valgtPersonident)
+            val rinaSakId = brukerRinasakIdFraJoark(valgtPersonident)
+
+            if (rinaSakId == null) {
+                logger.warn("Finner ikke rinasak for bruker fra joark")
+                return
+            }
+
             val land = euxService.hentAvsenderLand(rinaSakId)
             val mottakerLand = land?.motparter?.firstOrNull { it.motpartLand !in listOf("NO", "NOR") }?.motpartLand
             if (land != null && mottakerLand != null) {
@@ -87,7 +93,7 @@ class DodsmeldingBehandler(
 
     }
 
-    private fun brukerFinnesiJoark(valgtPersonident: String): String? {
+    private fun brukerRinasakIdFraJoark(valgtPersonident: String): String? {
         val responseFraSaf = safClient.hentDokumentMetadata(valgtPersonident, BrukerIdType.FNR)
 
         responseFraSaf.data.dokumentoversiktBruker.journalposter.forEach { journalpost ->
