@@ -84,7 +84,7 @@ class LagringsService (
     fun finnesDoedsmeldingAlleredeForBruker(fnr: String): Boolean {
         logger.debug("sjekker om fnr allerede ligger inne med dodsmelding i bucket")
         val hasha = hashedValue(fnr)
-        val listeOverFnrIBucket = list(hasha, h070_opprettetBucket)
+        val listeOverFnrIBucket = list("HashedUsers/$hasha", h070_opprettetBucket)
         listeOverFnrIBucket.forEach { fnrIBucket ->
             logger.debug("Sjekker om fnr finnes i bucket for bruker: $hasha")
             return if (fnrIBucket.contains(hasha)) {
