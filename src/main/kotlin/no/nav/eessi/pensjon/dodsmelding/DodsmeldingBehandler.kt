@@ -99,7 +99,7 @@ class DodsmeldingBehandler(
         responseFraSaf.data.dokumentoversiktBruker.journalposter.forEach { journalpost ->
             logger.info("JournalpostId: ${journalpost.journalpostId}, datoOpprettet: ${journalpost.datoOpprettet}, tittel: ${journalpost.tittel}, journalfoerendeEnhet: ${journalpost.tilleggsopplysninger}")
 
-            val buciD = journalpost.tilleggsopplysninger.find { it["nokkel"] == "eessi_pensjon_bucid" }?.get("verdi").also { logger.debug("Verdien: ${it?.toJson()}") }
+            val buciD = hentBucId(journalpost).also { logger.debug("Verdien: ${it?.toJson()}") }
             journalpost.dokumenter?.forEach { dokument ->
                 if (buciD != null && dokument.tittel?.contains("P6000") == true) {
                     logger.info("BucId: {}", buciD)
@@ -108,6 +108,19 @@ class DodsmeldingBehandler(
             }
         }
         return null
+    }
+
+    private fun hentBucId(journalpost: Journalpost): String? {
+        val bucid = journalpost.tilleggsopplysninger
+            .firstNotNullOfOrNull { tilleggsopplysning ->
+                val nokkel = tilleggsopplysning["nokkel"]
+                if (nokkel == "eessi_pensjon_bucid") {
+                    tilleggsopplysning["verdi"]
+                } else {
+                    null
+                }
+            }
+        return bucid
     }
 
     fun opprettOgSendH070(h070: SED, instViSkalSendeTil: String) {
@@ -167,18 +180,4 @@ class DodsmeldingBehandler(
             }
         return valgtPersonident
     }
-
-    private fun hentBucId(journalpost: Journalpost): String? {
-        val bucid = journalpost.tilleggsopplysninger
-            .firstNotNullOfOrNull { tilleggsopplysning ->
-                val nokkel = tilleggsopplysning["nokkel"]
-                if (nokkel == "eessi_pensjon_bucid") {
-                    tilleggsopplysning["verdi"]
-                } else {
-                    null
-                }
-            }
-        return bucid
-    }
-
 }

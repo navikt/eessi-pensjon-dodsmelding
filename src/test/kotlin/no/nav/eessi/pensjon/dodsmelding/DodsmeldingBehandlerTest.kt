@@ -19,6 +19,7 @@ import no.nav.eessi.pensjon.saf.*
 import no.nav.eessi.pensjon.saf.BrukerIdType.FNR
 import no.nav.eessi.pensjon.utils.mapJsonToAny
 import no.nav.person.pdl.leesah.Personhendelse
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -494,5 +495,38 @@ class DodsmeldingBehandlerTest {
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
         //TODO: kan kommenteres inn etter prodsetting av sende ut H070 sed
 //        verify(exactly = 1) { euxService.sendSed(any(), any()) }
+    }
+
+    @Test
+    fun `brukerRinasakIdFraJoark henter bucid fra tilleggsopplysninger`() {
+        val norskIdent = "12345678901"
+        val bucid = "1455350"
+
+        val journalpost = Journalpost(
+            tilleggsopplysninger = listOf(mapOf("nokkel" to "eessi_pensjon_bucid", "verdi" to bucid)),
+            journalpostId = "454102392",
+            datoOpprettet = "2026-03-25T11:15:48",
+            tittel = "Inngående P6000 - Melding om vedtak",
+            journalfoerendeEnhet = "4476",
+            dokumenter = listOf(
+                Dokument(
+                    dokumentInfoId = "454528669",
+                    tittel = "P6000 - Melding om vedtak.pdf",
+                    dokumentvarianter = emptyList()
+                )
+            )
+        )
+
+        every { safClient.hentDokumentMetadata(norskIdent, FNR) } returns HentMetadataResponse(
+            data = Data(DokumentoversiktBruker(listOf(journalpost)))
+        )
+
+        val method = DodsmeldingBehandler::class.java
+            .getDeclaredMethod("brukerRinasakIdFraJoark", String::class.java)
+            .apply { isAccessible = true }
+
+        val result = method.invoke(dodsmeldingBehandler, norskIdent) as String?
+
+        assertEquals(bucid, result)
     }
 }
