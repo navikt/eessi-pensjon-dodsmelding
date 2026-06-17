@@ -15,13 +15,8 @@ import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
 import no.nav.eessi.pensjon.personoppslag.pdl.model.UtenlandskIdentifikasjonsnummer
+import no.nav.eessi.pensjon.saf.*
 import no.nav.eessi.pensjon.saf.BrukerIdType.FNR
-import no.nav.eessi.pensjon.saf.Data
-import no.nav.eessi.pensjon.saf.DokumentoversiktBruker
-import no.nav.eessi.pensjon.saf.HentMetadataResponse
-import no.nav.eessi.pensjon.saf.HentdokumentInnholdResponse
-import no.nav.eessi.pensjon.saf.Journalpost
-import no.nav.eessi.pensjon.saf.SafClient
 import no.nav.eessi.pensjon.utils.mapJsonToAny
 import no.nav.person.pdl.leesah.Personhendelse
 import org.junit.jupiter.api.BeforeEach
@@ -442,6 +437,7 @@ class DodsmeldingBehandlerTest {
     @Test
     fun `Når det kommer inn er dødsmelding på pdl køen saa skal det sjekkes om den finnes joark Dersom ja saa sendes det ut en H070 til utlandet`() {
         val norskIdent = "12345678901"
+        val bucid = "1455350"
         val personhendelse = mockk<Personhendelse> {
             every { personidenter } returns listOf(norskIdent)
         }
@@ -462,7 +458,7 @@ class DodsmeldingBehandlerTest {
           "tilleggsopplysninger": [
             {
               "nokkel": "eessi_pensjon_bucid",
-              "verdi": "1455350"
+              "verdi": "$bucid"
             }
           ],
           "journalpostId": "454102392",
@@ -489,11 +485,12 @@ class DodsmeldingBehandlerTest {
         every { safClient.hentDokumentMetadata(any(), any()) } returns HentMetadataResponse(data = Data(
             DokumentoversiktBruker(listOf(bla),
         )))
-        every { euxService.hentAvsenderLand(any()) } returns Avsendere(listOf(Motparter(motpartId = "123456", motpartLand = "FI", motpartLandkode = "FI")))
+        every { euxService.hentAvsenderLand(bucid) } returns Avsendere(listOf(Motparter(motpartId = "123456", motpartLand = "FI", motpartLandkode = "FI")))
 
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPerson(ident) }
+        verify(exactly = 1) { euxService.hentAvsenderLand(bucid) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
         //TODO: kan kommenteres inn etter prodsetting av sende ut H070 sed
 //        verify(exactly = 1) { euxService.sendSed(any(), any()) }

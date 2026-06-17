@@ -103,7 +103,7 @@ class DodsmeldingBehandler(
             journalpost.dokumenter?.forEach { dokument ->
                 if (buciD != null && dokument.tittel?.contains("P6000") == true) {
                     logger.info("BucId: {}", buciD)
-                    return "buciD"
+                    return buciD
                 }
             }
         }
@@ -111,6 +111,9 @@ class DodsmeldingBehandler(
     }
 
     fun opprettOgSendH070(h070: SED, instViSkalSendeTil: String) {
+
+        throw RuntimeException("Denne metoden skal ikke brukes i prod enda") //TODO: Skal fjerne når alt annet er testet
+
         try {
             if (env == "q2") {
                 val response = euxService.opprettH070("NO:NAVAT05", h070)
@@ -119,7 +122,7 @@ class DodsmeldingBehandler(
             } else {
                 val response = euxService.opprettH070(instViSkalSendeTil, h070)
                 //TODO: Legg inn denne for å få sendt h070 i prod
-//                euxService.sendSed(response.caseId, response.documentId)
+                euxService.sendSed(response.caseId, response.documentId)
             }
         } catch (e: Exception) {
             logger.error("Feil ved opprettelse av H070", e)
@@ -179,4 +182,3 @@ class DodsmeldingBehandler(
     }
 
 }
-
