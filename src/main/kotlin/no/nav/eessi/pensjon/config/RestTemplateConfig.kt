@@ -67,7 +67,7 @@ class RestTemplateConfig(
             Optional.ofNullable(clientConfigurationProperties.registration["eux-credentials"])
                 .orElseThrow { RuntimeException("could not find oauth2 client config for example-onbehalfof") }
         return RestTemplateBuilder()
-            .rootUri(euxUrl)
+            .baseUri(euxUrl)
             .additionalInterceptors(
                 bearerTokenInterceptor(clientProperties, oAuth2AccessTokenService!!),
                 IOExceptionRetryInterceptor(),
@@ -94,7 +94,7 @@ class RestTemplateConfig(
     private fun restTemplate(url: String, tokenInterceptor: ClientHttpRequestInterceptor, defaultErrorHandler: ResponseErrorHandler = DefaultResponseErrorHandler()) : RestTemplate {
         logger.info("init restTemplate: $url")
         return RestTemplateBuilder()
-            .rootUri(url)
+            .baseUri(url)
             .errorHandler(defaultErrorHandler)
             .readTimeout(Duration.ofSeconds(120))
             .connectTimeout(Duration.ofSeconds(120))
