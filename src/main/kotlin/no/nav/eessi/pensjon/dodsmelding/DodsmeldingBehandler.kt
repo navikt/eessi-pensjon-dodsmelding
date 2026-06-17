@@ -70,7 +70,7 @@ class DodsmeldingBehandler(
 //            opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
         } else {
             val rinaSakId = brukerFinnesiJoark(valgtPersonident)
-            val land = euxService.hentAvsenderLand(rinaSakId!!)
+            val land = euxService.hentAvsenderLand(rinaSakId)
             val mottakerLand = land?.motparter?.firstOrNull { it.motpartLand !in listOf("NO", "NOR") }?.motpartLand
             if (land != null && mottakerLand != null) {
                 lagringsService.lagreFnrForBruker(identFraPdl.id)
