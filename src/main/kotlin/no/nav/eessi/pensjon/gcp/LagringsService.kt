@@ -41,7 +41,7 @@ class LagringsService (
         try {
             if(finnesDoedsmeldingAlleredeForBruker(fnr)) return false.also { logger.error("Bruker finnes i bucket.") }
             logger.debug("Hasha : $hashafnr")
-            lagre(hashafnr,h070_opprettetBucket)
+            lagre("HashedUsers/$hashafnr", h070_opprettetBucket)
             return true
         } catch (ex: Exception) {
             logger.error("Feiler ved lagring av: $hashafnr $ex")
