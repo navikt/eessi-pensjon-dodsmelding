@@ -56,8 +56,6 @@ kotlin {
 
     compilerOptions {
         allWarningsAsErrors.set(true)
-        freeCompilerArgs.add("-Xannotation-default-target=param-property")
-
     }
 }
 
