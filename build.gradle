@@ -68,7 +68,7 @@ dependencies {
 
     //kafka
     implementation "org.springframework.kafka:spring-kafka:$springKafkaVersion"
-    implementation("io.confluent:kafka-avro-serializer:8.2.1"){
+    implementation("io.confluent:kafka-avro-serializer:8.3.0"){
         exclude module: 'org.apache.avro'
     }
 
