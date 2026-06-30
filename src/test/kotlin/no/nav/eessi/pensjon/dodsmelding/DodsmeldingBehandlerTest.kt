@@ -8,7 +8,6 @@ import no.nav.eessi.pensjon.eux.EuxService
 import no.nav.eessi.pensjon.eux.klient.EuxKlientLib
 import no.nav.eessi.pensjon.eux.model.Avsendere
 import no.nav.eessi.pensjon.eux.model.Motparter
-import no.nav.eessi.pensjon.eux.model.sed.Tilleggsinformasjon
 import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
@@ -16,15 +15,11 @@ import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
 import no.nav.eessi.pensjon.personoppslag.pdl.model.UtenlandskIdentifikasjonsnummer
+import no.nav.eessi.pensjon.saf.*
 import no.nav.eessi.pensjon.saf.BrukerIdType.FNR
-import no.nav.eessi.pensjon.saf.Data
-import no.nav.eessi.pensjon.saf.DokumentoversiktBruker
-import no.nav.eessi.pensjon.saf.HentMetadataResponse
-import no.nav.eessi.pensjon.saf.HentdokumentInnholdResponse
-import no.nav.eessi.pensjon.saf.Journalpost
-import no.nav.eessi.pensjon.saf.SafClient
 import no.nav.eessi.pensjon.utils.mapJsonToAny
 import no.nav.person.pdl.leesah.Personhendelse
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -59,7 +54,7 @@ class DodsmeldingBehandlerTest {
         // ting som ikke er så viktig akkurat nå
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
         every { lagringsService.finnesDoedsmeldingAlleredeForBruker(any()) } returns mockk(relaxed = true )
-        every { lagringsService.opprettetH070ForFnr(any()) } returns mockk(relaxed = true )
+        every { lagringsService.lagreFnrForBruker(any()) } returns mockk(relaxed = true )
         every { euxService.opprettH070(any(), any()) } returns mockk(relaxed = true)
         every { euxService.sendSed(any(), any()) } returns mockk(relaxed = true)
 //        every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
@@ -443,6 +438,7 @@ class DodsmeldingBehandlerTest {
     @Test
     fun `Når det kommer inn er dødsmelding på pdl køen saa skal det sjekkes om den finnes joark Dersom ja saa sendes det ut en H070 til utlandet`() {
         val norskIdent = "12345678901"
+        val bucid = "1455350"
         val personhendelse = mockk<Personhendelse> {
             every { personidenter } returns listOf(norskIdent)
         }
@@ -463,7 +459,7 @@ class DodsmeldingBehandlerTest {
           "tilleggsopplysninger": [
             {
               "nokkel": "eessi_pensjon_bucid",
-              "verdi": "1455350"
+              "verdi": "$bucid"
             }
           ],
           "journalpostId": "454102392",
@@ -490,13 +486,47 @@ class DodsmeldingBehandlerTest {
         every { safClient.hentDokumentMetadata(any(), any()) } returns HentMetadataResponse(data = Data(
             DokumentoversiktBruker(listOf(bla),
         )))
-        every { euxService.hentAvsenderLand(any()) } returns Avsendere(listOf(Motparter(motpartId = "123456", motpartLand = "FI", motpartLandkode = "FI")))
+        every { euxService.hentAvsenderLand(bucid) } returns Avsendere(listOf(Motparter(motpartId = "123456", motpartLand = "FI", motpartLandkode = "FI")))
 
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPerson(ident) }
+        verify(exactly = 1) { euxService.hentAvsenderLand(bucid) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
         //TODO: kan kommenteres inn etter prodsetting av sende ut H070 sed
 //        verify(exactly = 1) { euxService.sendSed(any(), any()) }
+    }
+
+    @Test
+    fun `brukerRinasakIdFraJoark henter bucid fra tilleggsopplysninger`() {
+        val norskIdent = "12345678901"
+        val bucid = "1455350"
+
+        val journalpost = Journalpost(
+            tilleggsopplysninger = listOf(mapOf("nokkel" to "eessi_pensjon_bucid", "verdi" to bucid)),
+            journalpostId = "454102392",
+            datoOpprettet = "2026-03-25T11:15:48",
+            tittel = "Inngående P6000 - Melding om vedtak",
+            journalfoerendeEnhet = "4476",
+            dokumenter = listOf(
+                Dokument(
+                    dokumentInfoId = "454528669",
+                    tittel = "P6000 - Melding om vedtak.pdf",
+                    dokumentvarianter = emptyList()
+                )
+            )
+        )
+
+        every { safClient.hentDokumentMetadata(norskIdent, FNR) } returns HentMetadataResponse(
+            data = Data(DokumentoversiktBruker(listOf(journalpost)))
+        )
+
+        val method = DodsmeldingBehandler::class.java
+            .getDeclaredMethod("brukerRinasakIdFraJoark", String::class.java)
+            .apply { isAccessible = true }
+
+        val result = method.invoke(dodsmeldingBehandler, norskIdent) as String?
+
+        assertEquals(bucid, result)
     }
 }

@@ -62,24 +62,30 @@ class DodsmeldingBehandler(
         //4. Dersom treff i en av disse to, send ut en H070
 
         val brukerILeveAttReg = lagringsService.finnesDodBrukerILeveAttReg(person.identer)
-//        val h070 =
-            opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070: {}", it) }
-            lagringsService.opprettetH070ForFnr(identFraPdl.id)
-
-//        if (brukerILeveAttReg != null) {
-//            logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
-//            val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second).also { logger.debug("Sender til institusjon: {}", it) }
+        if (brukerILeveAttReg != null) {
+            logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
+            val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second).also { logger.info("Sender til institusjon: {}", it) }
+            lagringsService.lagreFnrForBruker(identFraPdl.id)
+            opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070 fra LeveAttestReg: {}", it) }
 //            opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
-//        } else {
-//            val rinaSakId = brukerFinnesiJoark(valgtPersonident)
-//            val land = euxService.hentAvsenderLand(rinaSakId!!)
-//            val mottakerLand = land?.motparter?.firstOrNull { it.motpartLand !in listOf("NO", "NOR") }?.motpartLand
-//            if (land != null && mottakerLand != null) {
-////                opprettOgSendH070(h070, mottakerLand)
-////                .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
-//                logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand") }
-//            }
-////        }
+        } else {
+            val rinaSakId = brukerRinasakIdFraJoark(valgtPersonident)
+
+            if (rinaSakId == null) {
+                logger.warn("Finner ikke rinasak for bruker fra joark")
+                return
+            }
+
+            val land = euxService.hentAvsenderLand(rinaSakId)
+            val mottakerLand = land?.motparter?.firstOrNull { it.motpartLand !in listOf("NO", "NOR") }?.motpartLand
+            if (land != null && mottakerLand != null) {
+                lagringsService.lagreFnrForBruker(identFraPdl.id)
+                opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070 fra Joark: {}", it) }
+//                opprettOgSendH070(h070, mottakerLand)
+//                .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
+                logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand") }
+            }
+//        }
         logger.info("Preutfyller H070 for bruker.")
 
         //TODO: Sjekk hvilken ytelse bruker har før vi går videre med å preutfylle en H070
@@ -87,24 +93,40 @@ class DodsmeldingBehandler(
 
     }
 
-    private fun brukerFinnesiJoark(valgtPersonident: String): String? {
+    private fun brukerRinasakIdFraJoark(valgtPersonident: String): String? {
         val responseFraSaf = safClient.hentDokumentMetadata(valgtPersonident, BrukerIdType.FNR)
 
         responseFraSaf.data.dokumentoversiktBruker.journalposter.forEach { journalpost ->
             logger.info("JournalpostId: ${journalpost.journalpostId}, datoOpprettet: ${journalpost.datoOpprettet}, tittel: ${journalpost.tittel}, journalfoerendeEnhet: ${journalpost.tilleggsopplysninger}")
 
-            val buciD = journalpost.tilleggsopplysninger.find { it["nokkel"] == "eessi_pensjon_bucid" }?.get("verdi").also { logger.debug("Verdien: ${it?.toJson()}") }
+            val buciD = hentBucId(journalpost).also { logger.debug("Verdien: ${it?.toJson()}") }
             journalpost.dokumenter?.forEach { dokument ->
                 if (buciD != null && dokument.tittel?.contains("P6000") == true) {
                     logger.info("BucId: {}", buciD)
-                    return "buciD"
+                    return buciD
                 }
             }
         }
         return null
     }
 
+    private fun hentBucId(journalpost: Journalpost): String? {
+        val bucid = journalpost.tilleggsopplysninger
+            .firstNotNullOfOrNull { tilleggsopplysning ->
+                val nokkel = tilleggsopplysning["nokkel"]
+                if (nokkel == "eessi_pensjon_bucid") {
+                    tilleggsopplysning["verdi"]
+                } else {
+                    null
+                }
+            }
+        return bucid
+    }
+
     fun opprettOgSendH070(h070: SED, instViSkalSendeTil: String) {
+
+        throw RuntimeException("Denne metoden skal ikke brukes i prod enda") //TODO: Skal fjerne når alt annet er testet
+
         try {
             if (env == "q2") {
                 val response = euxService.opprettH070("NO:NAVAT05", h070)
@@ -113,7 +135,7 @@ class DodsmeldingBehandler(
             } else {
                 val response = euxService.opprettH070(instViSkalSendeTil, h070)
                 //TODO: Legg inn denne for å få sendt h070 i prod
-//                euxService.sendSed(response.caseId, response.documentId)
+                euxService.sendSed(response.caseId, response.documentId)
             }
         } catch (e: Exception) {
             logger.error("Feil ved opprettelse av H070", e)
@@ -125,10 +147,10 @@ class DodsmeldingBehandler(
         val ytelsesInfo = pesysKlient.hentPensjonSaklist(fnr!!).also { logger.debug("Henter pensjonsakliste: {}", it.toJson()) }
         val penytelse = ytelsesInfo.firstOrNull { it.sakType in listOf(UFOREP, GJENLEV, BARNEP, ALDER, OMSORG) }
         val land =
-            if (landFraIdentUtland.contains("FI")) "FIN" else if (landFraIdentUtland.contains("SE")) "SWE" else if (landFraIdentUtland.contains(
-                    "PL"
-                )
-            ) "POL" else null
+            if (landFraIdentUtland.contains("FI")) "FIN"
+            else if (landFraIdentUtland.contains("SE")) "SWE"
+            else if (landFraIdentUtland.contains("DK")) "DKK"
+            else if (landFraIdentUtland.contains("PL")) "POL" else null
         val institusjonViSkalSendeTil = mottakendeInstitusjon(penytelse, land)
         return institusjonViSkalSendeTil
     }
@@ -158,19 +180,4 @@ class DodsmeldingBehandler(
             }
         return valgtPersonident
     }
-
-    private fun hentBucId(journalpost: Journalpost): String? {
-        val bucid = journalpost.tilleggsopplysninger
-            .firstNotNullOfOrNull { tilleggsopplysning ->
-                val nokkel = tilleggsopplysning["nokkel"]
-                if (nokkel == "eessi_pensjon_bucid") {
-                    tilleggsopplysning["verdi"]
-                } else {
-                    null
-                }
-            }
-        return bucid
-    }
-
 }
-

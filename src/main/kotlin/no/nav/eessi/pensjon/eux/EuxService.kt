@@ -42,9 +42,9 @@ class EuxService(
         return euxKlient.sendSed(rinaSakId, dokumentId)
     }
 
-    fun hentAvsenderLand(rinaSakId: String): Avsendere? {
+    fun hentAvsenderLand(rinaSakId: String?): Avsendere? {
         logger.info("Henter avsenderland fra SED med rinasakId: $rinaSakId, fra rina")
-        return euxKlient.hentSedMetadataLand(rinaSakId, euxSystemRestTemplate)
+        return rinaSakId?.let { euxKlient.hentSedMetadataLand(it, euxSystemRestTemplate) }
     }
 
 
