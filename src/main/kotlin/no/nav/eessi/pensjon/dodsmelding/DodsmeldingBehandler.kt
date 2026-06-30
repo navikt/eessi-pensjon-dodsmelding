@@ -66,7 +66,7 @@ class DodsmeldingBehandler(
             logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
             val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second).also { logger.info("Sender til institusjon: {}", it) }
             lagringsService.lagreFnrForBruker(identFraPdl.id)
-            opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070 fra LeveAttestReg: {}", it) }
+            opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070 fra LeveAttestReg: {}, land: $landInstitusjon", it) }
 //            opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
         } else {
             val rinaSakId = brukerRinasakIdFraJoark(valgtPersonident)
