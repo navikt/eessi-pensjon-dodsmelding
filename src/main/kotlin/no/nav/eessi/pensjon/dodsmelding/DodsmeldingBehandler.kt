@@ -68,34 +68,37 @@ class DodsmeldingBehandler(
             lagringsService.lagreFnrForBruker(identFraPdl.id)
             opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070 fra LeveAttestReg: {}, land: $landInstitusjon", it) }
 //            opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
-        } else {
-            val rinaSakId = brukerRinasakIdFraJoark(valgtPersonident)
-
-            if (rinaSakId.isNullOrBlank()) {
-                logger.warn("Finner ikke rinasak for bruker fra joark")
-                return
-            }
-
-            val land = euxService.hentAvsenderLand(rinaSakId)
-            if(land == null) {
-                logger.warn("Fant ingen land")
-                return
-            }
-            val mottakerLand = land.motparter.firstOrNull { it.motpartLand !in listOf("NO", "NOR") }?.motpartLand
-            if(mottakerLand.isNullOrBlank()) {
-                logger.warn("Fant ingen mottakerland for bruker fra joark")
-                return
-            }
-            lagringsService.lagreFnrForBruker(identFraPdl.id)
-            opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070 fra Joark: {}", it) }
-//                opprettOgSendH070(h070, mottakerLand)
-//                .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
-            logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand") }
+            return
         }
+
+        val rinaSakId = brukerRinasakIdFraJoark(valgtPersonident)
+
+        if (rinaSakId.isNullOrBlank()) {
+            logger.warn("Mangler rinaSakId fra Joark, avbryter")
+            return
+        }
+
+        val land = euxService.hentAvsenderLand(rinaSakId)
+        if (land == null) {
+            logger.warn("Mangler land, avbryter")
+            return
+        }
+
+        val mottakerLand = land.motparter.firstOrNull { it.motpartLand !in listOf("NO", "NOR") }?.motpartLand
+        if (mottakerLand.isNullOrBlank()) {
+            logger.warn("Mangler mottaker land, avbryter")
+            return
+        }
+
+        lagringsService.lagreFnrForBruker(identFraPdl.id)
+        opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070 fra Joark: {}", it) }
+//        opprettOgSendH070(h070, mottakerLand)
+//            .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
+        logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand")
         //TODO: Sjekk hvilken ytelse bruker har før vi går videre med å preutfylle en H070
         //TODO: Sjekk hvilken institusjon som skal legges til ut i fra hvilket land det er som skal motta H070 fra oss.
 
-//    }
+    }
 
     private fun brukerRinasakIdFraJoark(valgtPersonident: String): String? {
         val responseFraSaf = safClient.hentDokumentMetadata(valgtPersonident, BrukerIdType.FNR)
