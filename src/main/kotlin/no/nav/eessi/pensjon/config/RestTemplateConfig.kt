@@ -37,6 +37,10 @@ class RestTemplateConfig(
     @Value("\${eux_rina_api_v1_url}")
     private lateinit var euxUrl: String
 
+    @Value("\${eux_rina_api_v2_url}")
+    private lateinit var euxUrlV2: String
+
+
     @Value("\${PESYS_URL}")
     lateinit var pesysUrl: String
 
@@ -57,6 +61,10 @@ class RestTemplateConfig(
 
     @Bean
     fun euxSystemRestTemplate() = restTemplate(euxUrl, oAuth2BearerTokenInterceptor(clientProperties("eux-credentials"), oAuth2AccessTokenService), EuxErrorHandler())
+
+    @Bean
+    fun euxV2RestTemplate() = restTemplate(euxUrlV2, oAuth2BearerTokenInterceptor(clientProperties("eux-credentials"), oAuth2AccessTokenService), EuxErrorHandler())
+
 
     /**
      * Create one RestTemplate per OAuth2 client entry to separate between different scopes per API
