@@ -486,7 +486,7 @@ class DodsmeldingBehandlerTest {
         every { safClient.hentDokumentMetadata(any(), any()) } returns HentMetadataResponse(data = Data(
             DokumentoversiktBruker(listOf(bla),
         )))
-        every { euxService.hentAvsenderLand(bucid) } returns Avsendere(listOf(Motparter(motpartId = "123456", motpartLand = "FI", motpartLandkode = "FI")))
+        every { euxService.hentAvsenderLand(bucid) } returns listOf(Motparter(motpartId = "123456", motpartLand = "FI", motpartLandkode = "FI"))
 
         dodsmeldingBehandler.behandle(personhendelse)
 

@@ -4,6 +4,7 @@ import no.nav.eessi.pensjon.eux.klient.EuxGenericServerException
 import no.nav.eessi.pensjon.eux.klient.EuxKlientLib
 import no.nav.eessi.pensjon.eux.klient.SedDokumentIkkeOpprettetException
 import no.nav.eessi.pensjon.eux.model.Avsendere
+import no.nav.eessi.pensjon.eux.model.Motparter
 import no.nav.eessi.pensjon.eux.model.sed.SED
 import no.nav.eessi.pensjon.metrics.MetricsHelper
 import no.nav.eessi.pensjon.utils.mapJsonToAny
@@ -42,10 +43,10 @@ class EuxService(
         return euxKlient.sendSed(rinaSakId, dokumentId)
     }
 
-    fun hentAvsenderLand(rinaSakId: String?): Avsendere? {
+    fun hentAvsenderLand(rinaSakId: String?): List<Motparter>? {
         logger.info("Henter avsenderland fra SED med rinasakId: $rinaSakId, fra rina")
         try {
-            return rinaSakId?.let { euxKlient.hentSedMetadataLand(it, euxV2RestTemplate) }
+            return rinaSakId?.let { euxKlient.hentSedMetadataLand(it, euxV2RestTemplate) }?.motparter
         } catch (e: Exception) {
            logger.warn("Feil under henting av avsenderland fra Rina for rinasakId: $rinaSakId", e)
         }
