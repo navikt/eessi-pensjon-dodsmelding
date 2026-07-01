@@ -37,7 +37,7 @@ class RestTemplateConfig(
     @Value("\${eux_rina_api_v1_url}")
     private lateinit var euxUrl: String
 
-    @Value("\${eux_rina_api_v2_url}")
+    @Value("\${eux_rina_api_v5_url}")
     private lateinit var euxUrlV2: String
 
 

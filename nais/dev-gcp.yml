@@ -61,8 +61,8 @@ spec:
     - name: EUX_RINA_API_V1_URL
       value: https://eux-rina-api-q2.intern.dev.nav.no/cpi
 
-    - name: EUX_RINA_API_V2_URL
-      value: https://eux-rina-api-q2.intern.dev.nav.no/v2
+    - name: EUX_RINA_API_V5_URL
+      value: https://eux-rina-api-q2.intern.dev.nav.no/v5
 
     - name: PESYS_URL
       value: https://pensjon-pen-q2.dev-fss-pub.nais.io/pen/api/eessi/v2
