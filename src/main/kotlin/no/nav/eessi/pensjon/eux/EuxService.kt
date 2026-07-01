@@ -15,7 +15,7 @@ import org.springframework.web.client.RestTemplate
 @Service
 class EuxService(
     private val euxKlient: EuxKlientLib,
-    private val euxSystemRestTemplate: RestTemplate,
+    private val euxV2RestTemplate: RestTemplate,
     @Autowired(required = false) private val metricsHelper: MetricsHelper = MetricsHelper.ForTest()
 ) {
     private var opprettH070: MetricsHelper.Metric
@@ -45,7 +45,7 @@ class EuxService(
     fun hentAvsenderLand(rinaSakId: String?): Avsendere? {
         logger.info("Henter avsenderland fra SED med rinasakId: $rinaSakId, fra rina")
         try {
-            return rinaSakId?.let { euxKlient.hentSedMetadataLand(it, euxSystemRestTemplate) }
+            return rinaSakId?.let { euxKlient.hentSedMetadataLand(it, euxV2RestTemplate) }
         } catch (e: Exception) {
            logger.warn("Feil under henting av avsenderland fra Rina for rinasakId: $rinaSakId", e)
         }
