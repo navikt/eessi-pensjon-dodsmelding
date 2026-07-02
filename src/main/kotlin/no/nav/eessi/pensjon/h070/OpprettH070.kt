@@ -9,10 +9,7 @@ import no.nav.eessi.pensjon.eux.model.sed.Person
 import no.nav.eessi.pensjon.eux.model.sed.PinItem
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPerson
-import no.nav.eessi.pensjon.utils.toJson
 import no.nav.person.pdl.leesah.Personhendelse
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -20,7 +17,34 @@ import java.time.format.DateTimeFormatter
 @Component
 class OpprettH070  {
 
-    fun preutFyltH070(personhendelse: Personhendelse, pdlPerson: PdlPerson): H070 {
+    fun preutFyltH070(personhendelse: Personhendelse, pdlPerson: PdlPerson): H070? {
+        val norskIdent = pdlPerson.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
+        val utenlandskIdent = pdlPerson.utenlandskIdentifikasjonsnummer.firstOrNull()
+        val pin = buildList {
+            norskIdent?.let {
+                add(
+                    PinItem(
+                        identifikator = it,
+                        // 1.1.7.2 Land
+                        land = "NOR",
+                    )
+                )
+            }
+
+            utenlandskIdent?.let {
+                add(
+                    PinItem(
+                        identifikator = it.identifikasjonsnummer,
+                        // 1.1.7.2 Land
+                        land = it.utstederland.take(3)
+                    )
+                )
+            }
+        }
+
+        if (pin.isEmpty()) {
+            return null
+        }
 
         val navSed = HNav(
             bruker = HBruker(
@@ -28,19 +52,9 @@ class OpprettH070  {
                 doedsfall = Doedsfall(personhendelse.doedsfall.doedsdato.simpleFormat()),
                 person = Person(
                     //1.1 Personnummer
-                    // 1.1.7.1 Personnummer
+                    //1.1.7.1 Personnummer
                     //Under skal fyles ut en bolk for hver pin (norsk og utenlandsk)
-                    pin = listOf(
-                        PinItem(
-                            identifikator = pdlPerson.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident,
-                            // 1.1.7.2 Land
-                            land = "NOR",
-                        ), PinItem(
-                            identifikator = pdlPerson.utenlandskIdentifikasjonsnummer.firstOrNull()?.identifikasjonsnummer,
-                            // 1.1.7.2 Land
-                            land = pdlPerson.utenlandskIdentifikasjonsnummer.firstOrNull()?.utstederland?.substring(0, 3)
-                        )
-                    ),
+                    pin = pin,
                     //1.1.1 Etternavn
                     etternavn = pdlPerson.navn?.etternavn,
                     //1.1.2 Fornavn
