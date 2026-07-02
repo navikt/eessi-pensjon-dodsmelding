@@ -78,7 +78,7 @@ class DodsmeldingBehandler(
             return
         }
 
-        val motparter = euxService.hentAvsenderLand(rinaSakId)
+        val motparter = euxService.hentAvsenderLand(rinaSakId).also { logger.info("AvsenderLand: {}", it) }
         if (motparter.isNullOrEmpty()) {
             logger.warn("Mangler land, avbryter")
             return
