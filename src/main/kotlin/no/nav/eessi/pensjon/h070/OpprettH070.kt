@@ -34,11 +34,11 @@ class OpprettH070  {
                         PinItem(
                             identifikator = pdlPerson.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident,
                             // 1.1.7.2 Land
-                            land = "NO",
+                            land = "NOR",
                         ), PinItem(
                             identifikator = pdlPerson.utenlandskIdentifikasjonsnummer.firstOrNull()?.identifikasjonsnummer,
                             // 1.1.7.2 Land
-                            land = pdlPerson.utenlandskIdentifikasjonsnummer.firstOrNull()?.utstederland?.substring(0, 2)
+                            land = pdlPerson.utenlandskIdentifikasjonsnummer.firstOrNull()?.utstederland?.substring(0, 3)
                         )
                     ),
                     //1.1.1 Etternavn
