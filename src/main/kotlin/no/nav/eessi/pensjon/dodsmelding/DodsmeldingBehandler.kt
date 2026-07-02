@@ -84,7 +84,7 @@ class DodsmeldingBehandler(
             return
         }
 
-        val mottakerLand = motparter.firstOrNull { it.motpartLand !in listOf("NO", "NOR") }?.motpartLand
+        val mottakerLand = motparter.filter { it.motpartLand in listOf("SE", "FI", "PL", "DK") }.firstOrNull { it.motpartLand !in listOf("NO") }?.motpartLand
         if (mottakerLand.isNullOrBlank()) {
             logger.warn("Mangler mottaker land, avbryter")
             return
