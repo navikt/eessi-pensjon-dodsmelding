@@ -52,12 +52,8 @@ class MeldingFraPdlListener(
                         when (personhendelse.opplysningstype) {
                             "DOEDSFALL_V1" -> {
                                 logger.info("Behandler ${consumerRecords.size} meldinger, firstOffset=${consumerRecords.first().offset()}, lastOffset=${consumerRecords.last().offset()}")
-                                logger.debug("DOEDSFALL_V1: ${personhendelse}")
                                 secureLogger.info("DOEDSFALL_V1: ${personhendelse}")
 
-                                personhendelse.personidenter.firstOrNull()?.let {
-                                    dodsmeldingBehandler.behandle(personhendelse)
-                                }
                                 messureOpplysningstype.addKjent(personhendelse)
                                 when (personhendelse.endringstype) {
                                     Endringstype.OPPRETTET -> dodsmeldingBehandler.behandle(personhendelse).also { logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, behandler denne") }
