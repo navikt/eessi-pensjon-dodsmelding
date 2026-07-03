@@ -7,7 +7,6 @@ import no.nav.eessi.pensjon.eux.model.sed.HBruker
 import no.nav.eessi.pensjon.eux.model.sed.HNav
 import no.nav.eessi.pensjon.eux.model.sed.Person
 import no.nav.eessi.pensjon.eux.model.sed.PinItem
-import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPerson
 import no.nav.person.pdl.leesah.Personhendelse
 import org.springframework.stereotype.Component
@@ -17,35 +16,7 @@ import java.time.format.DateTimeFormatter
 @Component
 class OpprettH070  {
 
-    fun preutFyltH070(personhendelse: Personhendelse, pdlPerson: PdlPerson): H070? {
-        val norskIdent = pdlPerson.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
-        val utenlandskIdent = pdlPerson.utenlandskIdentifikasjonsnummer.firstOrNull()
-        val pin = buildList {
-            norskIdent?.let {
-                add(
-                    PinItem(
-                        identifikator = it,
-                        // 1.1.7.2 Land
-                        land = "NOR",
-                    )
-                )
-            }
-
-            utenlandskIdent?.let {
-                add(
-                    PinItem(
-                        identifikator = it.identifikasjonsnummer,
-                        // 1.1.7.2 Land
-                        land = it.utstederland.take(3)
-                    )
-                )
-            }
-        }
-
-        if (pin.isEmpty()) {
-            return null
-        }
-
+    fun preutFyltH070(personhendelse: Personhendelse, pdlPerson: PdlPerson, pin: List<PinItem>): H070 {
         val navSed = HNav(
             bruker = HBruker(
                 //2.1 Dødsdato

@@ -2,12 +2,15 @@ package no.nav.eessi.pensjon.dodsmelding
 
 import no.nav.eessi.pensjon.eux.EuxService
 import no.nav.eessi.pensjon.eux.model.buc.SakType.*
+import no.nav.eessi.pensjon.eux.model.sed.PinItem
 import no.nav.eessi.pensjon.eux.model.sed.SED
 import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.oppgaverouting.SakInformasjon
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
+import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
+import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPerson
 import no.nav.eessi.pensjon.saf.BrukerIdType
 import no.nav.eessi.pensjon.saf.Journalpost
 import no.nav.eessi.pensjon.saf.SafClient
@@ -51,8 +54,14 @@ class DodsmeldingBehandler(
 
         val person = personService.hentPerson(identFraPdl).also { logger.debug("Henter person: {}", it) }
 
-        if(person == null ) {
+        if (person == null) {
             logger.warn("Fant ingen personident")
+            return
+        }
+
+        val pin = opprettPinListe(person)
+        if (pin.isEmpty()) {
+            logger.warn("Fant verken norsk eller utenlandsk ident, avbryter opprettelse av H070")
             return
         }
 
@@ -64,9 +73,11 @@ class DodsmeldingBehandler(
         val brukerILeveAttReg = lagringsService.finnesDodBrukerILeveAttReg(person.identer)
         if (brukerILeveAttReg != null) {
             logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
-            val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second).also { logger.info("Sender til institusjon: {}", it) }
+            val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second)
+                .also { logger.info("Sender til institusjon: {}", it) }
             lagringsService.lagreFnrForBruker(identFraPdl.id)
-            opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070 fra LeveAttestReg: {}, land: $landInstitusjon", it) }
+            opprettH070.preutFyltH070(personhendelse, person, pin)
+                .also { secureLogger.info("preutfylt h070 fra LeveAttestReg: {}, land: $landInstitusjon", it) }
 //            opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
             return
         }
@@ -84,14 +95,18 @@ class DodsmeldingBehandler(
             return
         }
 
-        val mottakerLand = motparter.filter { it.motpartLand in listOf("SE", "FI", "PL", "DK") }.firstOrNull { it.motpartLand !in listOf("NO") }?.motpartLand
+        val mottakerLand = motparter
+            .filter { it.motpartLand in listOf("SE", "FI", "PL", "DK") }
+            .firstOrNull { it.motpartLand !in listOf("NO") }
+            ?.motpartLand
         if (mottakerLand.isNullOrBlank()) {
             logger.warn("Mangler mottaker land, avbryter")
             return
         }
 
         lagringsService.lagreFnrForBruker(identFraPdl.id)
-        opprettH070.preutFyltH070(personhendelse, person).also { secureLogger.info("preutfylt h070 fra Joark: {}", it) }
+        opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra Joark: {}", it) }
+
 //        opprettOgSendH070(h070, mottakerLand)
 //            .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
         logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand")
@@ -128,6 +143,31 @@ class DodsmeldingBehandler(
                 }
             }
         return bucid
+    }
+
+    private fun opprettPinListe(person: PdlPerson): List<PinItem> {
+        val norskIdent = person.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
+        val utenlandskIdent = person.utenlandskIdentifikasjonsnummer.firstOrNull()
+
+        return buildList {
+            norskIdent?.let {
+                add(
+                    PinItem(
+                        identifikator = it,
+                        land = "NOR"
+                    )
+                )
+            }
+
+            utenlandskIdent?.let {
+                add(
+                    PinItem(
+                        identifikator = it.identifikasjonsnummer,
+                        land = it.utstederland.take(3)
+                    )
+                )
+            }
+        }
     }
 
     fun opprettOgSendH070(h070: SED, instViSkalSendeTil: String) {

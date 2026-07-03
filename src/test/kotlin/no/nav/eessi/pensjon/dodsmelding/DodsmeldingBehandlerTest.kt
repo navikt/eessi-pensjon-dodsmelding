@@ -58,7 +58,7 @@ class DodsmeldingBehandlerTest {
         every { euxService.opprettH070(any(), any()) } returns mockk(relaxed = true)
         every { euxService.sendSed(any(), any()) } returns mockk(relaxed = true)
 //        every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
-        every { opprettH070.preutFyltH070(any(), any()) } returns mockk(relaxed = true)
+        every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
     }
 
     @Test
@@ -218,7 +218,7 @@ class DodsmeldingBehandlerTest {
             )
         } returns ResponseEntity(dummyResource, org.springframework.http.HttpStatus.OK)
 
-        every { opprettH070.preutFyltH070(any(), any()) } returns mockk(relaxed = true)
+        every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
 
         dodsmeldingBehandler.behandle(personhendelse)
 
@@ -287,7 +287,7 @@ class DodsmeldingBehandlerTest {
             contentType = "application/pdf"
         )
 
-        every { opprettH070.preutFyltH070(any(), any()) } returns mockk(relaxed = true)
+        every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
 
         dodsmeldingBehandler.behandle(personhendelse)
 
@@ -322,7 +322,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        every { opprettH070.preutFyltH070(any(), any()) } returns mockk(relaxed = true)
+        every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
 
         dodsmeldingBehandler.behandle(personhendelse)
 
@@ -357,7 +357,7 @@ class DodsmeldingBehandlerTest {
             }
         }
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
-        every { opprettH070.preutFyltH070(any(), any()) } returns mockk(relaxed = true)
+        every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
 
         dodsmeldingBehandler.behandle(personhendelse)
 
@@ -406,7 +406,7 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPerson(ident) }
-        verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
+        verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any(), any()) }
 //        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
 
@@ -431,7 +431,7 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPerson(ident) }
-        verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
+        verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any(), any()) }
 //        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
 
@@ -492,7 +492,7 @@ class DodsmeldingBehandlerTest {
 
         verify(exactly = 1) { personService.hentPerson(ident) }
         verify(exactly = 1) { euxService.hentAvsenderLand(bucid) }
-        verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any()) }
+        verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any(), any()) }
         //TODO: kan kommenteres inn etter prodsetting av sende ut H070 sed
 //        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
