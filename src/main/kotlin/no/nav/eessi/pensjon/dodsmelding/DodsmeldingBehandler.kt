@@ -119,12 +119,10 @@ class DodsmeldingBehandler(
         val responseFraSaf = safClient.hentDokumentMetadata(valgtPersonident, BrukerIdType.FNR)
 
         responseFraSaf.data.dokumentoversiktBruker.journalposter.forEach { journalpost ->
-            logger.info("JournalpostId: ${journalpost.journalpostId}, datoOpprettet: ${journalpost.datoOpprettet}, tittel: ${journalpost.tittel}, journalfoerendeEnhet: ${journalpost.tilleggsopplysninger}")
-
-            val buciD = hentBucId(journalpost).also { logger.debug("Verdien: ${it?.toJson()}") }
+            val buciD = hentBucId(journalpost)
             journalpost.dokumenter?.forEach { dokument ->
                 if (buciD != null && dokument.tittel?.contains("P6000") == true) {
-                    logger.info("BucId: {}", buciD)
+                    logger.info("Treff for journalpostId: ${journalpost.journalpostId}, buciD: $buciD, datoOpprettet: ${journalpost.datoOpprettet}, tittel: ${journalpost.tittel}, journalfoerendeEnhet: ${journalpost.tilleggsopplysninger}")
                     return buciD
                 }
             }
