@@ -122,7 +122,7 @@ class DodsmeldingBehandler(
             val buciD = hentBucId(journalpost)
             journalpost.dokumenter?.forEach { dokument ->
                 if (buciD != null && dokument.tittel?.contains("P6000") == true) {
-                    logger.info("Treff for journalpostId: ${journalpost.journalpostId}, buciD: $buciD, datoOpprettet: ${journalpost.datoOpprettet}, tittel: ${journalpost.tittel}, journalfoerendeEnhet: ${journalpost.tilleggsopplysninger}")
+                    logger.info("Treff for journalpostId: ${journalpost.journalpostId}, buciD: $buciD, datoOpprettet: ${journalpost.datoOpprettet}, journalfoerendeEnhet: ${journalpost.tilleggsopplysninger}")
                     return buciD
                 }
             }
