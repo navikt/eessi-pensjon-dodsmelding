@@ -46,8 +46,6 @@ class SafClient(
                     String::class.java
                 )
 
-                logger.info("Response fra journalføring: ${response.body}")
-
                 mapJsonToAny(response.body!!)
 
             } catch (ex: Exception) {
