@@ -11,10 +11,12 @@ import no.nav.person.pdl.leesah.Personhendelse
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Service
+import java.util.UUID
 
 @Service
 class MeldingFraPdlListener(
@@ -45,31 +47,34 @@ class MeldingFraPdlListener(
             consumerRecords.forEach { record ->
                 leesahKafkaListenerMetric.measure {
                     val personhendelse = record.value()
+                    MDC.put("x_request_id", UUID.randomUUID().toString())
+                    try {
+                        when (personhendelse.opplysningstype) {
+                            "DOEDSFALL_V1" -> {
+                                logger.info("Behandler ${consumerRecords.size} meldinger, firstOffset=${consumerRecords.first().offset()}, lastOffset=${consumerRecords.last().offset()}")
+                                logger.debug("DOEDSFALL_V1: ${personhendelse}")
+                                secureLogger.info("DOEDSFALL_V1: ${personhendelse}")
 
-                    when (personhendelse.opplysningstype) {
-                        "DOEDSFALL_V1" -> {
-                            logger.info("Behandler ${consumerRecords.size} meldinger, firstOffset=${consumerRecords.first().offset()}, lastOffset=${consumerRecords.last().offset()}")
-                            logger.debug("DOEDSFALL_V1: ${personhendelse}")
-                            secureLogger.info("DOEDSFALL_V1: ${personhendelse}")
-
-                            personhendelse.personidenter.firstOrNull()?.let {
-                                dodsmeldingBehandler.behandle(personhendelse)
-                            }
-                            messureOpplysningstype.addKjent(personhendelse)
-                            when(personhendelse.endringstype) {
-                                Endringstype.OPPRETTET -> dodsmeldingBehandler.behandle(personhendelse).also { logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, behandler denne") }
-                                else -> {
-                                    logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, ignorerer denne")
+                                personhendelse.personidenter.firstOrNull()?.let {
+                                    dodsmeldingBehandler.behandle(personhendelse)
+                                }
+                                messureOpplysningstype.addKjent(personhendelse)
+                                when (personhendelse.endringstype) {
+                                    Endringstype.OPPRETTET -> dodsmeldingBehandler.behandle(personhendelse).also { logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, behandler denne") }
+                                    else -> {
+                                        logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, ignorerer denne")
+                                    }
                                 }
                             }
-
+                            "BOSTEDSADRESSE_V1", "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1" -> {
+                                messureOpplysningstype.addKjent(personhendelse)
+                            }
+                            else -> {
+                                messureOpplysningstype.addUkjent(personhendelse)
+                            }
                         }
-                        "BOSTEDSADRESSE_V1", "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1" -> {
-                            messureOpplysningstype.addKjent(personhendelse)
-                        }
-                        else -> {
-                            messureOpplysningstype.addUkjent(personhendelse)
-                        }
+                    } finally {
+                        MDC.remove("x_request_id")
                     }
                 }
             }
