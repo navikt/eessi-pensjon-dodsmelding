@@ -115,7 +115,11 @@ class DodsmeldingBehandlerTest {
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPerson(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
-                mockk { every { utstederland } returns "DEU" }
+                mockk {
+                    every { utstederland } returns "DEU"
+                    every { identifikasjonsnummer } returns "SE1234567890"
+                }
+
             )
             every { identer } returns emptyList()
         }
@@ -163,7 +167,10 @@ class DodsmeldingBehandlerTest {
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPerson(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
-                mockk { every { utstederland } returns "SWE" }
+                mockk {
+                    every { utstederland } returns "SWE"
+                    every { identifikasjonsnummer } returns "SE1234567890"
+                }
             )
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
         }
@@ -233,8 +240,14 @@ class DodsmeldingBehandlerTest {
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPerson(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
-                mockk { every { utstederland } returns "DEU" },
-                mockk { every { utstederland } returns "SWE" }
+                mockk {
+                    every { utstederland } returns "DEU"
+                    every { identifikasjonsnummer } returns "DE1234567890"
+                },
+                mockk {
+                    every { utstederland } returns "SWE"
+                    every { identifikasjonsnummer } returns "SE1234567890"
+                }
             )
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
         }
@@ -259,7 +272,10 @@ class DodsmeldingBehandlerTest {
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPerson(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
-                mockk { every { utstederland } returns "SWE" }
+                mockk {
+                    every { utstederland } returns "SWE"
+                    every { identifikasjonsnummer } returns "SE1234567890"
+                }
             )
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
         }
@@ -302,7 +318,10 @@ class DodsmeldingBehandlerTest {
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPerson(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
-                mockk { every { utstederland } returns "SWE" }
+                mockk {
+                    every { utstederland } returns "SWE"
+                    every { identifikasjonsnummer } returns "SE1234567890"
+                }
             )
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
         }
@@ -337,8 +356,10 @@ class DodsmeldingBehandlerTest {
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPerson(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
-                mockk { every { utstederland } returns "SWE" }
-            )
+                mockk {
+                    every { utstederland } returns "SWE"
+                    every { identifikasjonsnummer } returns "SE1234567890"
+                }            )
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
         }
         every { safClient.hentDokumentMetadata("12345678901", FNR) } returns mockk {
