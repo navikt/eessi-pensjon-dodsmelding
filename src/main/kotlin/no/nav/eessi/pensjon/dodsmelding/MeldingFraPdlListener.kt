@@ -50,24 +50,10 @@ class MeldingFraPdlListener(
                     MDC.put("x_request_id", UUID.randomUUID().toString())
                     try {
                         when (personhendelse.opplysningstype) {
-                            "DOEDSFALL_V1" -> {
-                                logger.info("Behandler ${consumerRecords.size} meldinger, firstOffset=${consumerRecords.first().offset()}, lastOffset=${consumerRecords.last().offset()}")
-                                secureLogger.info("DOEDSFALL_V1: ${personhendelse}")
-
+                            "DOEDSFALL_V1" -> behandleDoedsfall(personhendelse, consumerRecords)
+                            "BOSTEDSADRESSE_V1", "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1" ->
                                 messureOpplysningstype.addKjent(personhendelse)
-                                when (personhendelse.endringstype) {
-                                    Endringstype.OPPRETTET -> dodsmeldingBehandler.behandle(personhendelse).also { logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, behandler denne") }
-                                    else -> {
-                                        logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, ignorerer denne")
-                                    }
-                                }
-                            }
-                            "BOSTEDSADRESSE_V1", "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1" -> {
-                                messureOpplysningstype.addKjent(personhendelse)
-                            }
-                            else -> {
-                                messureOpplysningstype.addUkjent(personhendelse)
-                            }
+                            else -> messureOpplysningstype.addUkjent(personhendelse)
                         }
                     } finally {
                         MDC.remove("x_request_id")
@@ -78,9 +64,35 @@ class MeldingFraPdlListener(
             logger.error("Behandling av hendelse feilet", e)
             throw e
         }
+
         messureOpplysningstype.createMetrics()
         messureOpplysningstype.clearAll()
 //        ack.acknowledge()
+    }
+
+
+    private fun behandleDoedsfall(
+        personhendelse: Personhendelse,
+        consumerRecords: List<ConsumerRecord<String, Personhendelse>>
+    ) {
+        logger.info("Behandler ${consumerRecords.size} meldinger, firstOffset=${consumerRecords.first().offset()}, lastOffset=${consumerRecords.last().offset()}")
+        secureLogger.info("DOEDSFALL_V1: $personhendelse")
+
+        personhendelse.personidenter.firstOrNull()?.let {
+            dodsmeldingBehandler.behandle(personhendelse)
+        }
+
+        messureOpplysningstype.addKjent(personhendelse)
+
+        when (personhendelse.endringstype) {
+            Endringstype.OPPRETTET ->
+                dodsmeldingBehandler.behandle(personhendelse).also {
+                    logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, behandler denne")
+                }
+            else -> {
+                logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, ignorerer denne")
+            }
+        }
     }
 
 
