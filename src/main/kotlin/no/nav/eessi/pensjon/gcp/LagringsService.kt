@@ -111,13 +111,13 @@ class LagringsService (
     }
 
     fun filLiggerIS3() {
-        logger.debug("sjekker om filen ligger i bucket")
+        logger.info("sjekker om filen ligger i bucket")
         val listeOverFiler = list("EdifactFil/", utenlandkYtelseBucket)
         listeOverFiler.forEach { filNavn ->
-            logger.debug("sjekker: $filNavn")
+            logger.info("sjekker: $filNavn")
             val innholdIBlob = hent(filNavn).also { logger.debug("Hentet innhold fra blob: $it") }
             val dokumenter = vurderSveFinEdifactDokument.splittTilDokumenter(innholdIBlob)
-            logger.debug("Fant ${dokumenter.size} dokumenter i filen $filNavn")
+            logger.info("Fant ${dokumenter.size} dokumenter i filen $filNavn")
             dokumenter.forEach { dokument ->
                 val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(dokument).also { logger.debug("Tolket dokument: ${it?.toJson()}") }
                 if (edidok?.norskIdent != null && edidok.avsenderLand != null) {
