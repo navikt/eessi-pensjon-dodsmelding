@@ -76,8 +76,7 @@ class DodsmeldingBehandler(
             val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second)
                 .also { logger.info("Sender til institusjon: {}", it) }
             lagringsService.lagreFnrForBruker(identFraPdl.id)
-            opprettH070.preutFyltH070(personhendelse, person, pin)
-                .also { secureLogger.info("preutfylt h070 fra LeveAttestReg: {}, land: $landInstitusjon", it) }
+            opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra LeveAttestReg: {}, land: $landInstitusjon", it) }
 //            opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
             return
         }
