@@ -13,6 +13,8 @@ import java.nio.ByteBuffer
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
+private const val HASH_PRESET = "HashedUsers"
+
 @Service
 class LagringsService (
     @param:Value("\${GCP_BUCKET_UTL_YTELSE}") var utenlandkYtelseBucket: String,
@@ -41,7 +43,7 @@ class LagringsService (
         try {
             if(finnesDoedsmeldingAlleredeForBruker(fnr)) return false.also { logger.error("Bruker finnes i bucket.") }
             logger.debug("Hasha : $hashafnr")
-            lagre("HashedUsers/$hashafnr", h070_opprettetBucket)
+            lagre("$HASH_PRESET/$hashafnr", h070_opprettetBucket)
             return true
         } catch (ex: Exception) {
             logger.error("Feiler ved lagring av: $hashafnr $ex")
@@ -84,7 +86,7 @@ class LagringsService (
     fun finnesDoedsmeldingAlleredeForBruker(fnr: String): Boolean {
         logger.debug("sjekker om fnr allerede ligger inne med dodsmelding i bucket")
         val hasha = hashedValue(fnr)
-        val listeOverFnrIBucket = list("HashedUsers/$hasha", h070_opprettetBucket)
+        val listeOverFnrIBucket = list("$HASH_PRESET/$hasha", h070_opprettetBucket)
         listeOverFnrIBucket.forEach { fnrIBucket ->
             logger.debug("Sjekker om fnr finnes i bucket for bruker: $hasha")
             return if (fnrIBucket.contains(hasha)) {
