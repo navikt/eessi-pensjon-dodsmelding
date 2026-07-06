@@ -32,7 +32,10 @@ class LagringsService (
 
         try {
             logger.debug("Hasha : ${hashedValue(fnr)}")
-            lagre(path, utenlandkYtelseBucket)
+            if (path != null) {
+                lagre(path, utenlandkYtelseBucket)
+            }
+            else logger.warn("Fant ikke path")
         } catch (ex: Exception) {
             logger.error("Feiler ved lagring av data: $path $ex")
         }
@@ -113,27 +116,41 @@ class LagringsService (
     fun filLiggerIS3() {
         logger.info("sjekker om filen ligger i bucket")
         val listeOverFiler = list("EdifactFil/", utenlandkYtelseBucket)
+
         listeOverFiler.forEach { filNavn ->
             logger.info("sjekker: $filNavn")
+
             val innholdIBlob = hent(filNavn).also { logger.debug("Hentet innhold fra blob: $it") }
             val dokumenter = vurderSveFinEdifactDokument.splittTilDokumenter(innholdIBlob)
             logger.info("Fant ${dokumenter.size} dokumenter i filen $filNavn")
+
             dokumenter.forEach { dokument ->
-                val edidok = vurderSveFinEdifactDokument.vurderEditfactDokument(dokument).also { logger.debug("Tolket dokument: ${it?.toJson()}") }
-                if (edidok?.norskIdent != null && edidok.avsenderLand != null) {
-                    val blobben = list(edidok.avsenderLand,utenlandkYtelseBucket)
-                    val hasha = hashedValue(edidok.norskIdent)
-                    if (blobben.contains(hasha)) {
-                        logger.debug("Denne brukeren finnes fra før av i bucket")
-                    } else {
-                        lagre(hentBrukerILand(edidok.avsenderLand, edidok.norskIdent), utenlandkYtelseBucket)
-                        logger.info("Lagret hashet fnr til s3")
-                    }
+                val edidok = vurderSveFinEdifactDokument
+                    .vurderEditfactDokument(dokument)
+                    .also { logger.debug("Tolket dokument: ${it?.toJson()}") }
+
+                val norskIdent = edidok?.norskIdent
+                val avsenderLand = edidok?.avsenderLand
+                if (norskIdent == null || avsenderLand == null) return@forEach
+
+                val blobben = list(avsenderLand, utenlandkYtelseBucket)
+                val hasha = hashedValue(norskIdent)
+
+                if (blobben.contains(hasha)) {
+                    logger.debug("Denne brukeren finnes fra før av i bucket")
+                    return@forEach
+                }
+
+                val landkode = hentBrukerILand(avsenderLand, norskIdent)
+                if (landkode.isNullOrBlank()) {
+                    logger.warn("************* manglende landkode **************")
+                } else {
+                    lagre(landkode, utenlandkYtelseBucket)
+                    logger.info("Lagret hashet fnr til s3")
                 }
             }
         }
     }
-
     fun eksisterer(land: String?, fnr: String?, bucketNavn: String): Boolean {
         logger.debug("sjekker om $land finnes i bucket: $bucketNavn")
         val path =  hentBrukerILand(land, fnr!!)
@@ -152,13 +169,14 @@ class LagringsService (
         return gcpStorage.list(bucket , Storage.BlobListOption.prefix(keyPrefix))?.values?.map { v -> v.name}  ?:  emptyList()
     }
 
-    fun hentBrukerILand(landkode: String?, fnr: String): String {
+    fun hentBrukerILand(landkode: String?, fnr: String): String? {
         val land = when (landkode) {
             "FI" -> "FI"
             "SE" -> "SE"
             "PL" -> "PL"
             else -> {
-                throw RuntimeException("Ikke gyldig landkode: $landkode").also { logger.error("Ikke gyldig landkode: $landkode") }
+                logger.error("Ikke gyldig landkode: $landkode")
+                return null
             }
         }
         val path =  "$land/${hashedValue(fnr)}"
