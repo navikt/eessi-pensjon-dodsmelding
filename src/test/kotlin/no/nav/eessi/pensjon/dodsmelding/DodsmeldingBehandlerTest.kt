@@ -176,7 +176,7 @@ class DodsmeldingBehandlerTest {
         }
 
         every {
-            safGraphQlOidcRestTemplate.exchange("/", HttpMethod.POST, any(), String::class.java)
+            safGraphQlOidcRestTemplate.exchange("", HttpMethod.POST, any(), String::class.java)
         } returns ResponseEntity(
             """
                 {
