@@ -40,7 +40,7 @@ class SafClient(
                 headers.contentType = MediaType.APPLICATION_JSON
                 val httpEntity = HttpEntity(genererQueryByIdent(ident, identType), headers)
                 val response = safGraphQlOidcRestTemplate.exchange(
-                    "/",
+                    "",
                     HttpMethod.POST,
                     httpEntity,
                     String::class.java
