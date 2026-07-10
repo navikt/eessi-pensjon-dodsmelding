@@ -34,6 +34,7 @@ class MeldingFraPdlListenerTest {
     private val mockAck = mockk<Acknowledgment>()
     private val mapper = configureObjectMapper()
     private val safClient = mockk<SafClient>(relaxed = true)
+    private val safService = SafService(safClient)
     private val personService = mockk<PersonService>()
     private val ack = mockk<Acknowledgment>()
     private val opprettH070 = OpprettH070()
@@ -49,7 +50,7 @@ class MeldingFraPdlListenerTest {
     @BeforeEach
     fun setup() {
         dodsmeldingBehandler =
-            DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, safClient, lagringsService, "test")
+            DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, safService, lagringsService, "test")
         listener = MeldingFraPdlListener(dodsmeldingBehandler)
         justRun { ack.acknowledge() }
 

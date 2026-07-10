@@ -27,6 +27,7 @@ class SendH070MedInstTest {
 
     private val fagmodulKlient = mockk<PesysKlient>()
     private val safClient = mockk<SafClient>()
+    private val safService = SafService(safClient)
     private val personService = mockk<PersonService>()
     private val opprettH070 = mockk<OpprettH070>()
     private val euxKlient = mockk<EuxKlientLib>()
@@ -38,7 +39,7 @@ class SendH070MedInstTest {
     @BeforeEach
     fun setup() {
         euxService = EuxService(euxKlient, mockk<RestTemplate>())
-        dodsmeldingBehandler = DodsmeldingBehandler(fagmodulKlient, personService, opprettH070, euxService, safClient, lagringsService, "q2")
+        dodsmeldingBehandler = DodsmeldingBehandler(fagmodulKlient, personService, opprettH070, euxService, safService, lagringsService, "q2")
     }
 
     @Test

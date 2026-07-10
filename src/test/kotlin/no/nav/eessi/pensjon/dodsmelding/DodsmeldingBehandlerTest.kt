@@ -37,6 +37,7 @@ class DodsmeldingBehandlerTest {
     private val safGraphQlOidcRestTemplate: RestTemplate = mockk(relaxed = true)
     private val hentRestUrlRestTemplate: RestTemplate = mockk(relaxed = true)
     private val safClient: SafClient = spyk(SafClient(safGraphQlOidcRestTemplate, hentRestUrlRestTemplate))
+    private val safService = SafService(safClient)
     private val personService = mockk<PersonService>()
     private val opprettH070 = mockk<OpprettH070>()
     private val pesysKlient = mockk<PesysKlient>()
@@ -48,7 +49,7 @@ class DodsmeldingBehandlerTest {
 
     @BeforeEach
     fun setup() {
-        dodsmeldingBehandler = DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, safClient, lagringsService, "q2")
+        dodsmeldingBehandler = DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, safService, lagringsService, "q2")
         every { pesysKlient.hentPensjonSaklist(any()) } returns emptyList()
 
         // ting som ikke er så viktig akkurat nå
