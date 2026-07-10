@@ -129,18 +129,12 @@ class DodsmeldingBehandler(
         return null
     }
 
-    private fun hentBucId(journalpost: Journalpost): String? {
-        val bucid = journalpost.tilleggsopplysninger
-            .firstNotNullOfOrNull { tilleggsopplysning ->
-                val nokkel = tilleggsopplysning["nokkel"]
-                if (nokkel == "eessi_pensjon_bucid") {
-                    tilleggsopplysning["verdi"]
-                } else {
-                    null
-                }
+    private fun hentBucId(journalpost: Journalpost): String? =
+        journalpost.tilleggsopplysninger
+            .firstNotNullOfOrNull {
+                it.takeIf { opplysning -> opplysning["nokkel"] == "eessi_pensjon_bucid" }
+                    ?.get("verdi")
             }
-        return bucid
-    }
 
     private fun opprettPinListe(person: PdlPerson): List<PinItem> {
         val norskIdent = person.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
