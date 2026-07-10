@@ -27,7 +27,7 @@ class DodsmeldingBehandler(
     private val personService: PersonService,
     private val opprettH070: OpprettH070,
     private val euxService: EuxService,
-    private val safClient: SafClient,
+    private val safService: SafService,
     private val lagringsService: LagringsService,
     @Value("\${ENV}") private val env: String
 ) {
@@ -81,7 +81,7 @@ class DodsmeldingBehandler(
             return
         }
 
-        val rinaSakId = brukerRinasakIdFraJoark(valgtPersonident)
+        val rinaSakId = safService.brukerRinasakIdFraJoark(valgtPersonident)
 
         if (rinaSakId.isNullOrBlank()) {
             logger.warn("Mangler rinaSakId fra Joark, avbryter")
@@ -114,27 +114,21 @@ class DodsmeldingBehandler(
 
     }
 
-    private fun brukerRinasakIdFraJoark(valgtPersonident: String): String? {
-        val responseFraSaf = safClient.hentDokumentMetadata(valgtPersonident, BrukerIdType.FNR)
+//    private fun brukerRinasakIdFraJoark(valgtPersonident: String): String? {
+//        val responseFraSaf = safClient.hentDokumentMetadata(valgtPersonident, BrukerIdType.FNR)
+//
+//        responseFraSaf.data.dokumentoversiktBruker.journalposter.forEach { journalpost ->
+//            val buciD = hentBucId(journalpost)
+//            journalpost.dokumenter?.forEach { dokument ->
+//                if (buciD != null && dokument.tittel?.contains("P6000") == true) {
+//                    logger.info("Treff for journalpostId: ${journalpost.journalpostId}, buciD: $buciD, datoOpprettet: ${journalpost.datoOpprettet}, journalfoerendeEnhet: ${journalpost.tilleggsopplysninger}")
+//                    return buciD
+//                }
+//            }
+//        }
+//        return null
+//    }
 
-        responseFraSaf.data.dokumentoversiktBruker.journalposter.forEach { journalpost ->
-            val buciD = hentBucId(journalpost)
-            journalpost.dokumenter?.forEach { dokument ->
-                if (buciD != null && dokument.tittel?.contains("P6000") == true) {
-                    logger.info("Treff for journalpostId: ${journalpost.journalpostId}, buciD: $buciD, datoOpprettet: ${journalpost.datoOpprettet}, journalfoerendeEnhet: ${journalpost.tilleggsopplysninger}")
-                    return buciD
-                }
-            }
-        }
-        return null
-    }
-
-    private fun hentBucId(journalpost: Journalpost): String? =
-        journalpost.tilleggsopplysninger
-            .firstNotNullOfOrNull {
-                it.takeIf { opplysning -> opplysning["nokkel"] == "eessi_pensjon_bucid" }
-                    ?.get("verdi")
-            }
 
     private fun opprettPinListe(person: PdlPerson): List<PinItem> {
         val norskIdent = person.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
