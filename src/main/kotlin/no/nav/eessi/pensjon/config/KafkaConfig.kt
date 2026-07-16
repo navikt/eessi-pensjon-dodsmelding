@@ -34,17 +34,6 @@ class KafkaConfig(
     @Autowired private val kafkaErrorHandler: KafkaStoppingErrorHandler?
 ) {
 
-//    @Bean
-//    fun producerFactory(): ProducerFactory<String, String> {
-//        val configMap: MutableMap<String, Any> = HashMap()
-//        populerCommonConfig(configMap)
-//        configMap[ProducerConfig.CLIENT_ID_CONFIG] = "eessi-pensjon-pdl-produsent"
-//        configMap[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = StringSerializer::class.java
-//        configMap[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = StringSerializer::class.java
-//        configMap[ProducerConfig.BOOTSTRAP_SERVERS_CONFIG] = bootstrapServers
-//        return DefaultKafkaProducerFactory(configMap)
-//    }
-
     @Bean
     fun kafkaAivenHendelseListenerAvroLatestContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, Personhendelse> {
         val factory = ConcurrentKafkaListenerContainerFactory<String, Personhendelse>()
