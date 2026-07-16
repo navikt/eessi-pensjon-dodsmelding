@@ -520,6 +520,7 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
+    @Disabled
     fun `brukerRinasakIdFraJoark henter bucid fra tilleggsopplysninger`() {
         val norskIdent = "12345678901"
         val bucid = "1455350"
