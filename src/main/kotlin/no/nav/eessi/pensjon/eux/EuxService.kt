@@ -46,7 +46,7 @@ class EuxService(
     fun hentAvsenderLand(rinaSakId: String?): List<Motparter>? {
         logger.info("Henter avsenderland fra SED med rinasakId: $rinaSakId, fra rina")
         try {
-            return rinaSakId?.let { euxKlient.hentSedMetadataLand(it, euxV2RestTemplate) }?.motparter
+            return rinaSakId?.let { euxKlient.hentSedMetadataLand(it, euxV2RestTemplate) }?.normalisert()?.motparter
         } catch (e: Exception) {
            logger.warn("Feil under henting av avsenderland fra Rina for rinasakId: $rinaSakId", e)
         }
