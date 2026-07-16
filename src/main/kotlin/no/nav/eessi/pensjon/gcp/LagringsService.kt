@@ -60,24 +60,42 @@ class LagringsService (
         return !eksisterer(land, fnr, utenlandkYtelseBucket)
     }
 
-    fun finnesDodBrukerILeveAttReg(fnr: List<IdentInformasjon>?) : Pair<String?, String>? {
-        logger.debug("sjekker om fnr ligger i bucket")
-        val listeOverFnrIBucket = list("FI/",utenlandkYtelseBucket) + list("SE/",utenlandkYtelseBucket) + list("PL/", utenlandkYtelseBucket) + list("DK/",utenlandkYtelseBucket)
-        listeOverFnrIBucket.forEach { fnrIBucket ->
-            logger.debug("sjekker fnr i bucket for bruker: $fnrIBucket")
-            fnr?.forEach { fnrFraPDL ->
-                val ident = fnrFraPDL.ident
-                val hasha = hashedValue(ident)
-                if (fnrIBucket.contains(hasha)) {
-                    logger.debug("Denne brukeren finnes i bucket. H070 kan sendes ut")
-                    return Pair(fnrFraPDL.ident, hentLandFraPrefix(fnrIBucket))
+    fun finnesDodBrukerILeveAttReg(
+        fnr: List<IdentInformasjon>?
+    ): Pair<String, String>? {
+        logger.debug("Sjekker om fødselsnummer ligger i bucket")
+
+        val identifikatorer = fnr.orEmpty()
+        if (identifikatorer.isEmpty()) {
+            logger.debug("Ingen identifikatorer mottatt fra PDL")
+            return null
+        }
+
+        val bucketEntries = listOf("FI/", "SE/", "PL/", "DK/")
+            .flatMap { prefix ->
+                list(prefix, utenlandkYtelseBucket)
+            }
+
+        val resultat = bucketEntries.firstNotNullOfOrNull { bucketEntry ->
+            identifikatorer.firstNotNullOfOrNull { identInformasjon ->
+                val ident = identInformasjon.ident
+                val hash = hashedValue(ident)
+
+                if (bucketEntry.contains(hash)) {
+                    ident to hentLandFraPrefix(bucketEntry)
                 } else {
-                    logger.info("Bruker finnes ikke i bucket, og kan dermed ignoreres.")
-                    return null
+                    null
                 }
             }
         }
-        return null
+
+        if (resultat != null) {
+            logger.debug("Brukeren finnes i bucket. H070 kan sendes ut")
+        } else {
+            logger.info("Brukeren finnes ikke i bucket og kan dermed ignoreres")
+        }
+
+        return resultat
     }
 
     fun hentLandFraPrefix(hash: String) : String {
