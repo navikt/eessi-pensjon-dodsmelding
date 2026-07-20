@@ -84,7 +84,7 @@ class DodsmeldingBehandler(
         val rinaSakId = safService.brukerRinasakIdFraJoark(valgtPersonident)
 
         if (rinaSakId.isNullOrBlank()) {
-            logger.warn("Mangler rinaSakId fra Joark, avbryter")
+            logger.info("Mangler rinaSakId fra Joark, avbryter")
             return
         }
 
