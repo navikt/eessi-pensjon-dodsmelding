@@ -189,7 +189,7 @@ class LagringsService (
     }
 
     fun hentBrukerILand(landkode: String?, fnr: String): String? {
-        val land = when (landkode?.trim()) {
+        val land = when (landkode?.trim()?.replace(" ", "")) {
             "FI" -> "FI"
             "SE" -> "SE"
             "PL" -> "PL"
