@@ -5,7 +5,9 @@ import com.google.cloud.storage.Storage
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
+import org.springframework.stereotype.Component
 
+@Component
 class GcpLagretInnhold (
     private val storage: Storage,
     @Value("\${GCP_BUCKET_UTL_YTELSE}")
@@ -15,6 +17,7 @@ class GcpLagretInnhold (
     private val logger = LoggerFactory.getLogger(javaClass)
 
     override fun run(args: ApplicationArguments) {
+        logger.info("Starting gcp-lagret-innhold")
         runCatching {
             storage
                 .list(bucketName)
