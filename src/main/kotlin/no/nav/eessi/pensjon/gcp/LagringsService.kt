@@ -171,7 +171,8 @@ class LagringsService (
     }
     fun eksisterer(land: String?, fnr: String?, bucketNavn: String): Boolean {
         logger.debug("sjekker om $land finnes i bucket: $bucketNavn")
-        val path =  hentBrukerILand(land, fnr!!)
+        val path = hentBrukerILand(land, fnr!!) ?: return false
+
         kotlin.runCatching {
             gcpStorage.get(BlobId.of(bucketNavn, path)).exists()
         }.onFailure {
@@ -188,12 +189,12 @@ class LagringsService (
     }
 
     fun hentBrukerILand(landkode: String?, fnr: String): String? {
-        val land = when (landkode) {
+        val land = when (landkode?.trim()) {
             "FI" -> "FI"
             "SE" -> "SE"
             "PL" -> "PL"
             else -> {
-                logger.error("Ikke gyldig landkode: $landkode")
+                logger.warn("Ikke gyldig landkode: $landkode")
                 return null
             }
         }
