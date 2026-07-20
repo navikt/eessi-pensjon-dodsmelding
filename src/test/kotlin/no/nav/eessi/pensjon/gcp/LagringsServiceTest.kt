@@ -12,6 +12,12 @@ import io.mockk.verify
 import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
+import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -82,4 +88,80 @@ class LagringsServiceTest {
         assertNotEquals(hash1, hash2, hash3)
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = ["FI", "SE", "PL"])
+    fun `hentBrukerILand returnerer korrekt path for gyldig landkode`(landkode: String) {
+        val result = lagringsService.hentBrukerILand(landkode, "12345678901")
+
+        assertNotNull(result)
+        assertTrue(result!!.startsWith("$landkode/"))
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "' FI', FI",
+        "'FI ', FI",
+        "'  SE  ', SE",
+        "'F I', FI",
+        "'P  L', PL",
+        "'  S  E  ', SE"
+    )
+    fun `hentBrukerILand handterer landkode med whitespace`(input: String, expectedPrefix: String) {
+        val result = lagringsService.hentBrukerILand(input, "12345678901")
+
+        assertNotNull(result)
+        assertTrue(result!!.startsWith("$expectedPrefix/"))
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["NO", ""])
+    fun `hentBrukerILand returnerer null for ugyldig eller tom landkode`(landkode: String) {
+        val result = lagringsService.hentBrukerILand(landkode, "12345678901")
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `hentBrukerILand returnerer null for null landkode`() {
+        val result = lagringsService.hentBrukerILand(null, "12345678901")
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `hentBrukerILand returnerer null for whitespace only`() {
+        val result = lagringsService.hentBrukerILand("   ", "12345678901")
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `hentBrukerILand genererer hashet fnr i path`() {
+        val fnr = "12345678901"
+        val result = lagringsService.hentBrukerILand("FI", fnr)
+
+        assertNotNull(result)
+        val pathParts = result!!.split("/")
+        assertEquals(2, pathParts.size)
+        assertEquals("FI", pathParts[0])
+        assertTrue(pathParts[1].length > 0)
+        assertNotEquals(fnr, pathParts[1])
+    }
+
+    @Test
+    fun `hentBrukerILand samme fnr genererer samme hash`() {
+        val fnr = "12345678901"
+        val result1 = lagringsService.hentBrukerILand("FI", fnr)
+        val result2 = lagringsService.hentBrukerILand("FI", fnr)
+
+        assertEquals(result1, result2)
+    }
+
+    @Test
+    fun `hentBrukerILand ulike fnr genererer ulike hash`() {
+        val result1 = lagringsService.hentBrukerILand("FI", "12345678901")
+        val result2 = lagringsService.hentBrukerILand("FI", "98765432101")
+
+        assertNotEquals(result1, result2)
+    }
 }
