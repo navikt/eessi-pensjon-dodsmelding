@@ -25,7 +25,13 @@ class GcpLagretInnhold (
                 .count()
         }.onSuccess { count ->
             logger.info(
-                "Bucket {} har {} personer",
+                """
+                ************************************************************
+                GCP bucket summary:
+                - bucket: {}
+                - antall lagrede personer: {}
+                ************************************************************
+                """.trimIndent(),
                 bucketName,
                 count
             )
