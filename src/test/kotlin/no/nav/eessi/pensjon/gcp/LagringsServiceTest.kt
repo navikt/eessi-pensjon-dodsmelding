@@ -6,11 +6,20 @@ import com.google.cloud.storage.Blob
 import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.Storage
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
+import no.nav.eessi.pensjon.eux.model.SedType
+import no.nav.eessi.pensjon.eux.model.sed.H070
+import no.nav.eessi.pensjon.eux.model.sed.HBruker
+import no.nav.eessi.pensjon.eux.model.sed.HNav
+import no.nav.eessi.pensjon.eux.model.sed.Person
+import no.nav.eessi.pensjon.eux.model.sed.PinItem
 import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -21,6 +30,7 @@ import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import java.nio.ByteBuffer
 
 class LagringsServiceTest {
 
@@ -163,5 +173,51 @@ class LagringsServiceTest {
         val result2 = lagringsService.hentBrukerILand("FI", "98765432101")
 
         assertNotEquals(result1, result2)
+    }
+
+    @Test
+    fun `lagreH070 skal obfuskere pin og lagre json i H070_LAGRET path`() {
+        val writeChannel = mockk<WriteChannel>(relaxed = true)
+        val blobInfoSlot = slot<BlobInfo>()
+        val writtenPayload = StringBuilder()
+
+        every { gcpStorage.writer(capture(blobInfoSlot)) } returns writeChannel
+        every { writeChannel.write(any()) } answers {
+            val buffer = firstArg<ByteBuffer>().duplicate()
+            val bytes = ByteArray(buffer.remaining())
+            buffer.get(bytes)
+            writtenPayload.append(String(bytes, Charsets.UTF_8))
+            bytes.size
+        }
+
+        val norskPin = "12345678901"
+        val utenlandskPin = "SE1234567890"
+        val h070 = H070(
+            type = SedType.H070,
+            hnav = HNav(
+                bruker = HBruker(
+                    person = Person(
+                        pin = listOf(
+                            PinItem(identifikator = norskPin, land = "NOR"),
+                            PinItem(identifikator = utenlandskPin, land = "SWE")
+                        )
+                    )
+                )
+            )
+        )
+
+        lagringsService.lagreH070(h070)
+
+        assertEquals("h070_opprettetBucket", blobInfoSlot.captured.blobId.bucket)
+        assertTrue(blobInfoSlot.captured.blobId.name.startsWith("H070_LAGRET/"))
+        assertTrue(blobInfoSlot.captured.blobId.name.endsWith(".json"))
+        val root = ObjectMapper().readTree(writtenPayload.toString())
+        val lagretIdentifikatorer = root.findParents("person")
+            .mapNotNull { it.get("person")?.get("pin") }
+            .flatMap { pinArray -> pinArray.map { it.path("identifikator").asText() } }
+
+        assertTrue(lagretIdentifikatorer.contains(lagringsService.hashedValue(norskPin)))
+        assertTrue(lagretIdentifikatorer.contains(lagringsService.hashedValue(utenlandskPin)))
+        assertTrue(lagretIdentifikatorer.none { it == norskPin || it == utenlandskPin })
     }
 }

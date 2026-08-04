@@ -75,8 +75,7 @@ class MeldingFraPdlListenerTest {
             "123",
         )
         every { euxService.sendSed(any(), any()) } returns false
-//        var argumentCaptor = slot<ILoggingEvent>()
-
+        justRun{ lagringsService.lagreH070(any()) }
     }
 
     @Test

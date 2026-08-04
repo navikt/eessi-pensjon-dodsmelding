@@ -3,17 +3,23 @@ package no.nav.eessi.pensjon.gcp
 import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.Storage
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ArrayNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
+import no.nav.eessi.pensjon.eux.model.sed.H070
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
 import no.nav.eessi.pensjon.utils.toJson
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.nio.ByteBuffer
+import java.time.Instant
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 private const val HASH_PRESET = "HashedUsers"
+private const val H070_LAGRET_PREFIX = "H070_LAGRET"
 
 @Service
 class LagringsService (
@@ -216,10 +222,47 @@ class LagringsService (
     }
 
     fun hashedValue(input: String?): String {
+        return hashedValueInternal(input)
+            .also { logger.debug("Hashet verdi for input $input: $it") }
+    }
+
+    private fun hashedValueInternal(input: String?): String {
         val mac = Mac.getInstance("HmacSHA256").apply {
             init(SecretKeySpec(hashSecretKey.toByteArray(), "HmacSHA256"))
         }
         return mac.doFinal(input?.toByteArray() ?: ByteArray(0))
-            .joinToString("") { "%02x".format(it) }.also { logger.debug("Hashet verdi for input $input: $it") }
+            .joinToString("") { "%02x".format(it) }
+    }
+
+    fun lagreH070(h070: H070) {
+        val storageKey = "$H070_LAGRET_PREFIX/${Instant.now().toEpochMilli()}.json"
+        val obfuskertH070 = obfuskerPinIdentifikator(h070.toJson())
+        val blobInfo = BlobInfo.newBuilder(BlobId.of(h070_opprettetBucket, storageKey))
+            .setContentType("application/json")
+            .build()
+
+        kotlin.runCatching {
+            gcpStorage.writer(blobInfo).use { it.write(ByteBuffer.wrap(obfuskertH070.toByteArray())) }
+        }.onFailure { e ->
+            logger.error("Feilet med å lagre obfuskert H070 med id: ${blobInfo.blobId.name}", e)
+        }.onSuccess {
+            logger.info("Lagret obfuskert H070 til bucket: ${blobInfo.blobId.bucket}, path: ${blobInfo.blobId.name}")
+        }
+    }
+
+    private fun obfuskerPinIdentifikator(json: String): String {
+        val objectMapper = ObjectMapper()
+        val root = objectMapper.readTree(json)
+        root.findParents("person")
+            .mapNotNull { it.get("person")?.get("pin") as? ArrayNode }
+            .forEach { pin ->
+                pin.forEach { pinItem ->
+                    val identifikator = pinItem.path("identifikator").asText()
+                    if (identifikator.isNotBlank() && pinItem is ObjectNode) {
+                        pinItem.put("identifikator", hashedValueInternal(identifikator))
+                    }
+                }
+            }
+        return objectMapper.writeValueAsString(root)
     }
 }

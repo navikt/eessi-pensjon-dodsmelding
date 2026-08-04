@@ -60,6 +60,7 @@ class DodsmeldingBehandlerTest {
         every { euxService.sendSed(any(), any()) } returns mockk(relaxed = true)
 //        every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
         every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
+        every { lagringsService.lagreH070(any()) } returns mockk(relaxed = true)
     }
 
     @Test
