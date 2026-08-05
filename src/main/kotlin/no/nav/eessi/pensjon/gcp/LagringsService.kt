@@ -129,7 +129,7 @@ class LagringsService (
 
     fun hent(storageKey: String): String? {
         val filIS3 =  gcpStorage.get(BlobId.of(utenlandkYtelseBucket, storageKey))
-        logger.debug("Henter fila $filIS3")
+        logger.debug("Henter fila {}", filIS3)
 
         if(filIS3!= null && filIS3.exists()){
             return String(filIS3.getContent(), Charsets.UTF_8)
@@ -139,13 +139,21 @@ class LagringsService (
 
     fun filLiggerIS3() {
         logger.info("sjekker om filen ligger i bucket")
-        val listeOverFiler = list("EdifactFil/", utenlandkYtelseBucket)
 
-        listeOverFiler.forEach { filNavn ->
+        var totaltLagtTil = 0
+        var totaltAlleredeLagret = 0
+
+        list("EdifactFil/", utenlandkYtelseBucket).forEach { filNavn ->
             logger.info("sjekker: $filNavn")
 
-            val innholdIBlob = hent(filNavn).also { logger.debug("Hentet innhold fra blob: $it") }
-            val dokumenter = vurderSveFinEdifactDokument.splittTilDokumenter(innholdIBlob)
+            var lagtTilIFil = 0
+            var alleredeLagretIFil = 0
+
+            val dokumenter = hent(filNavn)
+                .also { logger.debug("Hentet innhold fra blob: $it") }
+                ?.let(vurderSveFinEdifactDokument::splittTilDokumenter)
+                .orEmpty()
+
             logger.info("Fant ${dokumenter.size} dokumenter i filen $filNavn")
 
             dokumenter.forEach { dokument ->
@@ -157,23 +165,33 @@ class LagringsService (
                 val avsenderLand = edidok?.avsenderLand
                 if (norskIdent == null || avsenderLand == null) return@forEach
 
-                val blobben = list(avsenderLand, utenlandkYtelseBucket)
                 val hasha = hashedValue(norskIdent)
-
-                if (blobben.contains(hasha)) {
+                if (list(avsenderLand, utenlandkYtelseBucket).contains(hasha)) {
                     logger.debug("Denne brukeren finnes fra før av i bucket")
+                    alleredeLagretIFil++
+                    totaltAlleredeLagret++
                     return@forEach
                 }
 
-                val landkode = hentBrukerILand(avsenderLand, norskIdent)
-                if (landkode.isNullOrBlank()) {
-                    logger.warn("************* manglende landkode **************")
-                } else {
-                    lagre(landkode, utenlandkYtelseBucket)
-                    logger.info("Lagret hashet fnr til s3")
-                }
+                hentBrukerILand(avsenderLand, norskIdent)
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let {
+                        lagre(it, utenlandkYtelseBucket)
+                        lagtTilIFil++
+                        totaltLagtTil++
+                        logger.info("Lagret hashet fnr til s3")
+                    }
+                    ?: logger.warn("************* manglende landkode **************")
             }
+
+            logger.info(
+                "Oppsummering for $filNavn: $lagtTilIFil lagt til, $alleredeLagretIFil allerede lagret"
+            )
         }
+
+        logger.info(
+            "Oppsummering totalt: $totaltLagtTil lagt til, $totaltAlleredeLagret allerede lagret"
+        )
     }
     fun eksisterer(land: String?, fnr: String?, bucketNavn: String): Boolean {
         logger.debug("sjekker om $land finnes i bucket: $bucketNavn")
