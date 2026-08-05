@@ -32,20 +32,20 @@ class LagringsService (
 
     private val logger = LoggerFactory.getLogger(LagringsService::class.java)
 
-    fun lagreFnrIS3(fnr: String?, landkode: String?) {
-        kanHendelsenOpprettes(fnr, landkode)
-        val path = hentBrukerILand(landkode, fnr!!)
-
-        try {
-            logger.debug("Hasha : ${hashedValue(fnr)}")
-            if (path != null) {
-                lagre(path, utenlandkYtelseBucket)
-            }
-            else logger.warn("Fant ikke path")
-        } catch (ex: Exception) {
-            logger.error("Feiler ved lagring av data: $path $ex")
-        }
-    }
+//    fun lagreFnrIS3(fnr: String?, landkode: String?) {
+//        kanHendelsenOpprettes(fnr, landkode)
+//        val path = hentBrukerILand(landkode, fnr!!)
+//
+//        try {
+//            logger.debug("Hasha : ${hashedValue(fnr)}")
+//            if (path != null) {
+//                lagre(path, utenlandkYtelseBucket)
+//            }
+//            else logger.warn("Fant ikke path")
+//        } catch (ex: Exception) {
+//            logger.error("Feiler ved lagring av data: $path $ex")
+//        }
+//    }
 
     fun lagreFnrForBruker(fnr: String): Boolean {
         val hashafnr = hashedValue(fnr)
@@ -166,20 +166,19 @@ class LagringsService (
                 if (norskIdent == null || avsenderLand == null) return@forEach
 
                 val hasha = hashedValue(norskIdent)
-                if (list(avsenderLand, utenlandkYtelseBucket).contains(hasha)) {
+                if (list(avsenderLand, utenlandkYtelseBucket).contains("$avsenderLand/$hasha")) {
                     logger.debug("Denne brukeren finnes fra før av i bucket")
                     alleredeLagretIFil++
                     totaltAlleredeLagret++
                     return@forEach
                 }
 
-                hentBrukerILand(avsenderLand, norskIdent)
-                    ?.takeIf { it.isNotBlank() }
-                    ?.let {
-                        lagre(it, utenlandkYtelseBucket)
+                landOgIdent(avsenderLand, norskIdent)
+                    ?.takeIf { landMedIdent -> landMedIdent.isNotBlank() }
+                    ?.let { landMedIdent ->
+                        lagre(landMedIdent, utenlandkYtelseBucket)
                         lagtTilIFil++
                         totaltLagtTil++
-                        logger.info("Lagret hashet fnr til s3")
                     }
                     ?: logger.warn("************* manglende landkode **************")
             }
@@ -195,7 +194,7 @@ class LagringsService (
     }
     fun eksisterer(land: String?, fnr: String?, bucketNavn: String): Boolean {
         logger.debug("sjekker om $land finnes i bucket: $bucketNavn")
-        val path = hentBrukerILand(land, fnr!!) ?: return false
+        val path = landOgIdent(land, fnr!!) ?: return false
 
         kotlin.runCatching {
             gcpStorage.get(BlobId.of(bucketNavn, path)).exists()
@@ -212,7 +211,7 @@ class LagringsService (
         return gcpStorage.list(bucket , Storage.BlobListOption.prefix(keyPrefix))?.values?.map { v -> v.name}  ?:  emptyList()
     }
 
-    fun hentBrukerILand(landkode: String?, fnr: String): String? {
+    fun landOgIdent(landkode: String?, fnr: String): String? {
         val land = when (landkode?.trim()?.replace(" ", "")) {
             "FI" -> "FI"
             "SE" -> "SE"

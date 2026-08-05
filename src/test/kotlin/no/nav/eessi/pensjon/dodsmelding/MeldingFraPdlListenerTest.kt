@@ -68,7 +68,7 @@ class MeldingFraPdlListenerTest {
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
         every { lagringsService.finnesDoedsmeldingAlleredeForBruker(any()) } returns mockk(relaxed = true )
         every { lagringsService.lagreFnrForBruker(any()) } returns mockk(relaxed = true )
-        every { lagringsService.lagreFnrIS3(any(), any()) } just Runs
+//        every { lagringsService.lagreFnrIS3(any(), any()) } just Runs
         every { pesysKlient.hentPensjonSaklist(any()) } returns emptyList()
         every { euxService.opprettH070(any(), any()) } returns EuxService.SaksDetaljer(
             "123",

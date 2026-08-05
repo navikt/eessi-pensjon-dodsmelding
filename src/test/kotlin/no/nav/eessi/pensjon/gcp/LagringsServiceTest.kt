@@ -17,9 +17,9 @@ import no.nav.eessi.pensjon.eux.model.sed.HBruker
 import no.nav.eessi.pensjon.eux.model.sed.HNav
 import no.nav.eessi.pensjon.eux.model.sed.Person
 import no.nav.eessi.pensjon.eux.model.sed.PinItem
+import no.nav.eessi.pensjon.dodsmelding.EdifactDokument
 import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -49,7 +49,7 @@ class LagringsServiceTest {
         mockGcpListeSok(fnr)
         every { gcpStorage.writer(any(), any(), any(), any(), any(), any()) } returns mockk<WriteChannel>(relaxed = true)
 
-        lagringsService.lagreFnrIS3(fnr, "FI")
+//        lagringsService.lagreFnrIS3(fnr, "FI")
 
 //        verify { gcpStorage.writer(BlobInfo.newBuilder(BlobId.of("dod", "FI/254aa248acb47dd654ca3ea53f48c2c26d641d23d7e2e93a1ec56258df7674c4")).setContentType("application/json").build()) }
     }
@@ -71,7 +71,7 @@ class LagringsServiceTest {
         mockGcpListeSok(fnr)
         every { gcpStorage.writer(any(), any(), any(), any(), any(), any()) } returns mockk<WriteChannel>(relaxed = true)
 
-        val result = lagringsService.lagreFnrIS3(fnr, "FI")
+//        val result = lagringsService.lagreFnrIS3(fnr, "FI")
 
         verify (exactly = 1) { gcpStorage.writer(BlobInfo.newBuilder(BlobId.of("dod", "FI/12345678901")).setContentType("application/json").build()) }
     }
@@ -101,7 +101,7 @@ class LagringsServiceTest {
     @ParameterizedTest
     @ValueSource(strings = ["FI", "SE", "PL"])
     fun `hentBrukerILand returnerer korrekt path for gyldig landkode`(landkode: String) {
-        val result = lagringsService.hentBrukerILand(landkode, "12345678901")
+        val result = lagringsService.landOgIdent(landkode, "12345678901")
 
         assertNotNull(result)
         assertTrue(result!!.startsWith("$landkode/"))
@@ -117,7 +117,7 @@ class LagringsServiceTest {
         "'  S  E  ', SE"
     )
     fun `hentBrukerILand handterer landkode med whitespace`(input: String, expectedPrefix: String) {
-        val result = lagringsService.hentBrukerILand(input, "12345678901")
+        val result = lagringsService.landOgIdent(input, "12345678901")
 
         assertNotNull(result)
         assertTrue(result!!.startsWith("$expectedPrefix/"))
@@ -126,21 +126,21 @@ class LagringsServiceTest {
     @ParameterizedTest
     @ValueSource(strings = ["NO", ""])
     fun `hentBrukerILand returnerer null for ugyldig eller tom landkode`(landkode: String) {
-        val result = lagringsService.hentBrukerILand(landkode, "12345678901")
+        val result = lagringsService.landOgIdent(landkode, "12345678901")
 
         assertNull(result)
     }
 
     @Test
     fun `hentBrukerILand returnerer null for null landkode`() {
-        val result = lagringsService.hentBrukerILand(null, "12345678901")
+        val result = lagringsService.landOgIdent(null, "12345678901")
 
         assertNull(result)
     }
 
     @Test
     fun `hentBrukerILand returnerer null for whitespace only`() {
-        val result = lagringsService.hentBrukerILand("   ", "12345678901")
+        val result = lagringsService.landOgIdent("   ", "12345678901")
 
         assertNull(result)
     }
@@ -148,7 +148,7 @@ class LagringsServiceTest {
     @Test
     fun `hentBrukerILand genererer hashet fnr i path`() {
         val fnr = "12345678901"
-        val result = lagringsService.hentBrukerILand("FI", fnr)
+        val result = lagringsService.landOgIdent("FI", fnr)
 
         assertNotNull(result)
         val pathParts = result!!.split("/")
@@ -161,16 +161,16 @@ class LagringsServiceTest {
     @Test
     fun `hentBrukerILand samme fnr genererer samme hash`() {
         val fnr = "12345678901"
-        val result1 = lagringsService.hentBrukerILand("FI", fnr)
-        val result2 = lagringsService.hentBrukerILand("FI", fnr)
+        val result1 = lagringsService.landOgIdent("FI", fnr)
+        val result2 = lagringsService.landOgIdent("FI", fnr)
 
         assertEquals(result1, result2)
     }
 
     @Test
     fun `hentBrukerILand ulike fnr genererer ulike hash`() {
-        val result1 = lagringsService.hentBrukerILand("FI", "12345678901")
-        val result2 = lagringsService.hentBrukerILand("FI", "98765432101")
+        val result1 = lagringsService.landOgIdent("FI", "12345678901")
+        val result2 = lagringsService.landOgIdent("FI", "98765432101")
 
         assertNotEquals(result1, result2)
     }
@@ -219,5 +219,43 @@ class LagringsServiceTest {
         assertTrue(lagretIdentifikatorer.contains(lagringsService.hashedValue(norskPin)))
         assertTrue(lagretIdentifikatorer.contains(lagringsService.hashedValue(utenlandskPin)))
         assertTrue(lagretIdentifikatorer.none { it == norskPin || it == utenlandskPin })
+    }
+
+    @Test
+    fun `filLiggerIS3 lagrer ikke identifikator som allerede finnes i bucket`() {
+        val fnr = "12345678901"
+        val avsenderLand = "FI"
+        val hash = lagringsService.hashedValue(fnr)
+
+        val inputBlob = mockk<Blob>(relaxed = true)
+        every { inputBlob.exists() } returns true
+        every { inputBlob.getContent() } returns "UNH+1+H070'BGM+1'NO'GIR+1+$fnr'NAD+FR++++++$avsenderLand'UNT+4+1'".toByteArray()
+
+        val existingBlob = mockk<Blob>(relaxed = true)
+        every { existingBlob.name } returns "$avsenderLand/$hash"
+
+        val firstPage = mockk<Page<Blob>>(relaxed = true)
+        every { firstPage.values } returns listOf(mockk<Blob>(relaxed = true).also { every { it.name } returns "EdifactFil/test.txt" })
+
+        val secondPage = mockk<Page<Blob>>(relaxed = true)
+        every { secondPage.values } returns listOf(existingBlob)
+
+        every { gcpStorage.list(any<String>(), *anyVararg()) } returnsMany listOf(firstPage, secondPage)
+        every { gcpStorage.get(any<BlobId>()) } returns inputBlob
+        every { vurderSveFinEdifactDokument.splittTilDokumenter(any()) } returns listOf("doc")
+        every { vurderSveFinEdifactDokument.vurderEditfactDokument(any()) } returns EdifactDokument(
+            avsender = null,
+            mottaker = null,
+            meldingstype = null,
+            norskIdent = fnr,
+            avsenderLand = avsenderLand,
+            mottakerLand = null,
+            fodselsdato = null,
+            erSveFin = false
+        )
+
+        lagringsService.filLiggerIS3()
+
+        verify(exactly = 0) { gcpStorage.writer(any<BlobInfo>()) }
     }
 }
