@@ -222,6 +222,28 @@ class LagringsServiceTest {
     }
 
     @Test
+    fun `finnesDoedsmeldingAlleredeForBruker finner treff selv om det ikke er forste element i lista`() {
+        // Regresjonstest: metoden brukte "forEach { ... return ... }", som terminerer
+        // (non-local return) etter aa ha vurdert KUN det forste elementet i lista.
+        // Dersom bucket-listingen noensinne returnerer flere elementer og treffet ikke
+        // ligger forst, vil brukeren feilaktig bli behandlet som "ikke lagret fra for"
+        // - med fare for at H070 opprettes paa nytt for en bruker som allerede har fatt en.
+        val fnr = "12345678901"
+        val hasha = lagringsService.hashedValue(fnr)
+
+        val page = mockk<Page<Blob>>(relaxed = true)
+        every { page.values } returns listOf(
+            mockk<Blob>(relaxed = true).also { every { it.name } returns "HashedUsers/uannet-element" },
+            mockk<Blob>(relaxed = true).also { every { it.name } returns "HashedUsers/$hasha" }
+        )
+        every { gcpStorage.list(any<String>(), *anyVararg()) } returns page
+
+        val resultat = lagringsService.finnesDoedsmeldingAlleredeForBruker(fnr)
+
+        assertTrue(resultat, "Skal finne treff selv om det korrekte elementet ikke ligger forst i lista")
+    }
+
+    @Test
     fun `filLiggerIS3 lagrer ikke identifikator som allerede finnes i bucket`() {
         val fnr = "12345678901"
         val avsenderLand = "FI"
@@ -249,6 +271,48 @@ class LagringsServiceTest {
             meldingstype = null,
             norskIdent = fnr,
             avsenderLand = avsenderLand,
+            mottakerLand = null,
+            fodselsdato = null,
+            erSveFin = false
+        )
+
+        lagringsService.filLiggerIS3()
+
+        verify(exactly = 0) { gcpStorage.writer(any<BlobInfo>()) }
+    }
+
+    @Test
+    fun `filLiggerIS3 lagrer ikke identifikator paa nytt naar avsenderLand har whitespace`() {
+        // Regresjonstest: avsenderLand hentet fra EDIFACT-parsing kan ha whitespace (f.eks. "FI "),
+        // mens allerede lagrede identer alltid ligger under den normaliserte, trimmede landkoden.
+        // Eksisterer-sjekken må derfor normalisere avsenderLand på samme måte som ved lagring,
+        // ellers vil samme bruker bli forsøkt lagret på nytt i hver kjøring av batchen.
+        val fnr = "12345678901"
+        val avsenderLandMedWhitespace = "FI "
+        val hash = lagringsService.hashedValue(fnr)
+
+        val inputBlob = mockk<Blob>(relaxed = true)
+        every { inputBlob.exists() } returns true
+        every { inputBlob.getContent() } returns "UNH+1+H070'BGM+1'NO'GIR+1+$fnr'NAD+FR++++++FI'UNT+4+1'".toByteArray()
+
+        val existingBlob = mockk<Blob>(relaxed = true)
+        every { existingBlob.name } returns "FI/$hash"
+
+        val firstPage = mockk<Page<Blob>>(relaxed = true)
+        every { firstPage.values } returns listOf(mockk<Blob>(relaxed = true).also { every { it.name } returns "EdifactFil/test.txt" })
+
+        val secondPage = mockk<Page<Blob>>(relaxed = true)
+        every { secondPage.values } returns listOf(existingBlob)
+
+        every { gcpStorage.list(any<String>(), *anyVararg()) } returnsMany listOf(firstPage, secondPage)
+        every { gcpStorage.get(any<BlobId>()) } returns inputBlob
+        every { vurderSveFinEdifactDokument.splittTilDokumenter(any()) } returns listOf("doc")
+        every { vurderSveFinEdifactDokument.vurderEditfactDokument(any()) } returns EdifactDokument(
+            avsender = null,
+            mottaker = null,
+            meldingstype = null,
+            norskIdent = fnr,
+            avsenderLand = avsenderLandMedWhitespace,
             mottakerLand = null,
             fodselsdato = null,
             erSveFin = false

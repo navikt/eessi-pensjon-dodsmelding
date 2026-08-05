@@ -114,17 +114,15 @@ class LagringsService (
         logger.debug("sjekker om fnr allerede ligger inne med dodsmelding i bucket")
         val hasha = hashedValue(fnr)
         val listeOverFnrIBucket = list("$HASH_PRESET/$hasha", h070_opprettetBucket)
-        listeOverFnrIBucket.forEach { fnrIBucket ->
-            logger.debug("Sjekker om fnr finnes i bucket for bruker: $hasha")
-            return if (fnrIBucket.contains(hasha)) {
-                logger.debug("Denne brukeren finnes i bucket. H070 er allerede sendt ut")
-                true
-            } else {
-                logger.info("Bruker finnes ikke i bucket, H070 kan opprettes på bruker.")
-                false
-            }
+        logger.debug("Sjekker om fnr finnes i bucket for bruker: $hasha")
+
+        val finnesFraFor = listeOverFnrIBucket.any { fnrIBucket -> fnrIBucket.contains(hasha) }
+        if (finnesFraFor) {
+            logger.debug("Denne brukeren finnes i bucket. H070 er allerede sendt ut")
+        } else {
+            logger.info("Bruker finnes ikke i bucket, H070 kan opprettes på bruker.")
         }
-        return false
+        return finnesFraFor
     }
 
     fun hent(storageKey: String): String? {
@@ -165,22 +163,26 @@ class LagringsService (
                 val avsenderLand = edidok?.avsenderLand
                 if (norskIdent == null || avsenderLand == null) return@forEach
 
-                val hasha = hashedValue(norskIdent)
-                if (list(avsenderLand, utenlandkYtelseBucket).contains("$avsenderLand/$hasha")) {
+                // Bruker samme normaliserte land+hash-path her som ved lagring, slik at
+                // eksisterer-sjekken og selve lagringen aldri kan komme ut av synk
+                // (f.eks. pga. whitespace i avsenderLand fra EDIFACT-parsingen).
+                val landMedIdent = landOgIdent(avsenderLand, norskIdent)
+                if (landMedIdent.isNullOrBlank()) {
+                    logger.warn("************* manglende landkode **************")
+                    return@forEach
+                }
+
+                val landPrefix = landMedIdent.substringBefore("/")
+                if (list("$landPrefix/", utenlandkYtelseBucket).contains(landMedIdent)) {
                     logger.debug("Denne brukeren finnes fra før av i bucket")
                     alleredeLagretIFil++
                     totaltAlleredeLagret++
                     return@forEach
                 }
 
-                landOgIdent(avsenderLand, norskIdent)
-                    ?.takeIf { landMedIdent -> landMedIdent.isNotBlank() }
-                    ?.let { landMedIdent ->
-                        lagre(landMedIdent, utenlandkYtelseBucket)
-                        lagtTilIFil++
-                        totaltLagtTil++
-                    }
-                    ?: logger.warn("************* manglende landkode **************")
+                lagre(landMedIdent, utenlandkYtelseBucket)
+                lagtTilIFil++
+                totaltLagtTil++
             }
 
             logger.info(
