@@ -12,12 +12,12 @@ import org.springframework.stereotype.Service
 @Service
 @EnableScheduling
 class KjorFil (
-//    @param:Value("\${GCP_BUCKET_UTL_YTELSE}") var utenlandkYtelseBucket: String,
+    @param:Value("\${GCP_BUCKET_UTL_YTELSE}") var utenlandkYtelseBucket: String,
     private val lagringsService: LagringsService
 ) {
     private val logger: Logger by lazy { LoggerFactory.getLogger(KjorFil::class.java) }
 
-        @Scheduled(cron = "0 30 13 * * *")
+        @Scheduled(cron = "0 15 09 * * *")
     fun lesFilOgLagreTilS3() {
         logger.info("Starter lesing av fil for å legge fnr til S3 ")
         try {
