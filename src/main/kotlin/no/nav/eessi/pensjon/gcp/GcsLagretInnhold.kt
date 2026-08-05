@@ -24,9 +24,17 @@ class GcpLagretInnhold (
                 .iterateAll()
                 .count()
         }.onSuccess { count ->
-            logger.info("************************************************************")
-            logger.info("GCP bucket summary: bucket={}, antall lagrede personer={}", bucketName, count)
-            logger.info("************************************************************")
+            logger.info(
+                """
+                ************************************************************
+                GCP bucket summary:
+                - bucket: {}
+                - antall lagrede personer: {}
+                ************************************************************
+                """.trimIndent(),
+                bucketName,
+                count
+            )
         }.onFailure { error ->
             logger.error(
                 "Error under henting av info fra $bucketName {}",
