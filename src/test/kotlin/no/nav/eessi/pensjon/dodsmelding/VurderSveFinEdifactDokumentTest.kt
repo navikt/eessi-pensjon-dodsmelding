@@ -3,9 +3,7 @@ package no.nav.eessi.pensjon.dodsmelding
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.nio.file.Files
-import java.nio.file.Paths
-import kotlin.random.Random
+import java.nio.charset.StandardCharsets.ISO_8859_1
 
 class VurderSveFinEdifactDokumentTest {
 
@@ -25,26 +23,10 @@ class VurderSveFinEdifactDokumentTest {
         assertTrue(resultat?.erSveFin == true)
     }
 
-    @Test
-    fun `Finn fnr i edifact fil og lagre den i s3`() {
-        val resultat = tolk.vurderEditfactDokument(edifactDokForSveFin())
-
-        assertEquals("SESFAE5PC", resultat?.avsender)
-        assertEquals("NORTVE5LA", resultat?.mottaker)
-        assertEquals("512", resultat?.meldingstype)
-        assertEquals("445566778833", resultat?.norskIdent)
-        assertEquals("SE", resultat?.avsenderLand)
-        assertEquals("NO", resultat?.mottakerLand)
-        assertEquals("19350951", resultat?.fodselsdato)
-        assertTrue(resultat?.erSveFin == true)
-    }
-
 
     @Test
     fun `splittTilDokumenter behandler anonymisert testfil med 5 dokumenter`() {
-        val filInnhold = Files.readString(
-            Paths.get("src/test/resources/FIETK.NORTV.TEST5DOCS.DEFF")
-        )
+        val filInnhold = lesAnonymisertEdifactFil()
         val dokumenter = tolk.splittTilDokumenter(filInnhold)
 
         assertEquals(5, dokumenter.size, "Skal finne nøyaktig 5 dokumenter")
@@ -77,4 +59,11 @@ class VurderSveFinEdifactDokumentTest {
             122225132121'
         """.trimIndent()
     }
+
+    private fun lesAnonymisertEdifactFil(): String =
+        requireNotNull(javaClass.getResourceAsStream("/FIETK.NORTV.TEST5DOCS.DEFF")) {
+            "Fant ikke testfil: FIETK.NORTV.TEST5DOCS.DEFF"
+        }
+            .bufferedReader(ISO_8859_1)
+            .use { it.readText() }
 }

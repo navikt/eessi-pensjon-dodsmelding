@@ -36,7 +36,7 @@ class VurderSveFinEdifactDokument {
             mottakerLand = mottakerLand,
             fodselsdato = hentDatoFraDtm(dtm329),
             erSveFin = listOf(avsenderLand, mottakerLand).any { it in sveFin }
-        ).also { println( "Tolkning av EDIFACT: ${it.toJson()}") }
+        )
     }
 
     fun splittTilDokumenter(filInnhold: String?): List<String> {
