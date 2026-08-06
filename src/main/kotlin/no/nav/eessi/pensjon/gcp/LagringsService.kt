@@ -156,7 +156,6 @@ class LagringsService (
             dokumenter.forEach { dokument ->
                 val edidok = vurderSveFinEdifactDokument
                     .vurderEditfactDokument(dokument)
-                    .also { logger.debug("Tolket dokument: ${it?.toJson()}") }
 
                 val norskIdent = edidok?.norskIdent
                 val avsenderLand = edidok?.avsenderLand
@@ -184,9 +183,7 @@ class LagringsService (
                 totaltLagtTil++
             }
 
-            logger.info(
-                "Oppsummering for $filNavn: $lagtTilIFil lagt til, $alleredeLagretIFil allerede lagret"
-            )
+            logger.info("Oppsummering for $filNavn: $lagtTilIFil lagt til, $alleredeLagretIFil allerede lagret")
         }
 
         logger.info(
