@@ -19,6 +19,7 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 private const val HASH_PRESET = "HashedUsers"
+private const val EDIFACT_FIL_PREFIX = "EdifactFil/"
 
 @Service
 class LagringsService (
@@ -134,13 +135,23 @@ class LagringsService (
         return null
     }
 
-    fun filLiggerIS3() {
+    fun hentIdenterFraEdifact() {
         logger.info("sjekker om filen ligger i bucket")
 
         var totaltLagtTil = 0
         var totaltAlleredeLagret = 0
 
-        list("EdifactFil/", utenlandkYtelseBucket).forEach { filNavn ->
+        list(EDIFACT_FIL_PREFIX, utenlandkYtelseBucket).forEach { filNavn ->
+            // GCS kan inneholde "mappe-navn" - blobber med navn som er identisk med
+            // prefixet (f.eks. "EdifactFil/") eller som ender pa "/", uten noe reelt filnavn/
+            // innhold etter seg. Disse ma hoppes over, ellers blir de feilaktig behandlet som
+            // en fil uten dokumenter og logger en villedende "0 lagt til, 0 allerede lagret"
+            // for hver kjoring av batchen.
+            if (filNavn == EDIFACT_FIL_PREFIX || filNavn.endsWith("/")) {
+                logger.debug("Hopper over mappe-plassholder: $filNavn")
+                return@forEach
+            }
+
             logger.info("sjekker: $filNavn")
 
             var lagtTilIFil = 0

@@ -17,11 +17,11 @@ class KjorFil (
 ) {
     private val logger: Logger by lazy { LoggerFactory.getLogger(KjorFil::class.java) }
 
-        @Scheduled(cron = "0 39 10 * * *")
-    fun lesFilOgLagreTilS3() {
+        @Scheduled(cron = "0 06 11 * * *")
+    fun hentIdenterFraEdifactBatch() {
         logger.info("Starter lesing av fil for å legge fnr til S3 ")
         try {
-            lagringsService.filLiggerIS3()
+            lagringsService.hentIdenterFraEdifact()
             Thread.sleep(3000)
         } catch (e: Exception) {
             logger.error("Feil ved oppdatering", e)

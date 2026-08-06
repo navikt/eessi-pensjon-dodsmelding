@@ -268,25 +268,30 @@ class LagringsServiceTest {
     }
 
     @Test
-    fun `filLiggerIS3 lagrer ikke identifikator som allerede finnes i bucket`() {
+    fun `filLiggerIS3 hopper over mappe-plassholder og behandler den faktiske fila`() {
+        // Regresjonstest for produksjonsfeil: GCS-bucketen kan inneholde en "mappe-plassholder"
+        // - en blob med navn identisk med prefixet ("EdifactFil/"), uten reelt innhold. Denne
+        // ble tidligere behandlet som en fil, og logget en villedende
+        // "Oppsummering for EdifactFil/: 0 lagt til, 0 allerede lagret" for hver kjoring,
+        // mens den faktiske EDIFACT-fila (med reelt innhold) skal fortsatt behandles normalt.
         val fnr = "12345678901"
         val avsenderLand = "FI"
-        val hash = lagringsService.hashedValue(fnr)
 
         val inputBlob = mockk<Blob>(relaxed = true)
         every { inputBlob.exists() } returns true
         every { inputBlob.getContent() } returns "UNH+1+H070'BGM+1'NO'GIR+1+$fnr'NAD+FR++++++$avsenderLand'UNT+4+1'".toByteArray()
 
-        val existingBlob = mockk<Blob>(relaxed = true)
-        every { existingBlob.name } returns "$avsenderLand/$hash"
+        val mappePlassholder = mockk<Blob>(relaxed = true).also { every { it.name } returns "EdifactFil/" }
+        val ekteFil = mockk<Blob>(relaxed = true).also { every { it.name } returns "EdifactFil/FIETK.NORTV.E512E512.P03122.DEFF" }
 
-        val firstPage = mockk<Page<Blob>>(relaxed = true)
-        every { firstPage.iterateAll() } returns listOf(mockk<Blob>(relaxed = true).also { every { it.name } returns "EdifactFil/test.txt" })
+        val filPage = mockk<Page<Blob>>(relaxed = true)
+        every { filPage.iterateAll() } returns listOf(mappePlassholder, ekteFil)
 
-        val secondPage = mockk<Page<Blob>>(relaxed = true)
-        every { secondPage.iterateAll() } returns listOf(existingBlob)
+        val landPage = mockk<Page<Blob>>(relaxed = true)
+        every { landPage.iterateAll() } returns emptyList()
 
-        every { gcpStorage.list(any<String>(), *anyVararg()) } returnsMany listOf(firstPage, secondPage)
+        every { gcpStorage.list("dod", Storage.BlobListOption.prefix("EdifactFil/")) } returns filPage
+        every { gcpStorage.list("dod", Storage.BlobListOption.prefix("FI/")) } returns landPage
         every { gcpStorage.get(any<BlobId>()) } returns inputBlob
         every { vurderSveFinEdifactDokument.splittTilDokumenter(any()) } returns listOf("doc")
         every { vurderSveFinEdifactDokument.vurderEditfactDokument(any()) } returns EdifactDokument(
@@ -300,7 +305,55 @@ class LagringsServiceTest {
             erSveFin = false
         )
 
-        lagringsService.filLiggerIS3()
+        lagringsService.hentIdenterFraEdifact()
+
+        // Mappe-plassholderen skal aldri hentes/behandles - kun den faktiske fila.
+        verify(exactly = 0) { gcpStorage.get(BlobId.of("dod", "EdifactFil/")) }
+        verify(exactly = 1) { gcpStorage.get(BlobId.of("dod", "EdifactFil/FIETK.NORTV.E512E512.P03122.DEFF")) }
+        verify(exactly = 1) { gcpStorage.writer(any<BlobInfo>()) }
+    }
+
+    @Test
+    fun `filLiggerIS3 lagrer ikke identifikator som allerede finnes i bucket`() {
+        val fnr = "12345678901"
+        val avsenderLand = "FI"
+        val hash = lagringsService.hashedValue(fnr)
+
+        val inputBlob = mockk<Blob>(relaxed = true)
+        every { inputBlob.exists() } returns true
+        every { inputBlob.getContent() } returns "UNH+1+H070'BGM+1'NO'GIR+1+$fnr'NAD+FR++++++$avsenderLand'UNT+4+1'".toByteArray()
+
+        val existingBlob = mockk<Blob>(relaxed = true)
+        every { existingBlob.name } returns "$avsenderLand/$hash"
+
+        val filPage = mockk<Page<Blob>>(relaxed = true)
+        every { filPage.iterateAll() } returns listOf(mockk<Blob>(relaxed = true).also { every { it.name } returns "EdifactFil/test.txt" })
+
+        val landPage = mockk<Page<Blob>>(relaxed = true)
+        every { landPage.iterateAll() } returns listOf(existingBlob)
+
+        // Stubber pa faktisk prefix-argument (ikke rekkefolge/antall kall), slik at oppsettet
+        // gir riktig svar uansett hvor mange ganger hentIdenterFraEdifact() kjores i testen.
+        every { gcpStorage.list("dod", Storage.BlobListOption.prefix("EdifactFil/")) } returns filPage
+        every { gcpStorage.list("dod", Storage.BlobListOption.prefix("FI/")) } returns landPage
+        every { gcpStorage.get(any<BlobId>()) } returns inputBlob
+        every { vurderSveFinEdifactDokument.splittTilDokumenter(any()) } returns listOf("doc")
+        every { vurderSveFinEdifactDokument.vurderEditfactDokument(any()) } returns EdifactDokument(
+            avsender = null,
+            mottaker = null,
+            meldingstype = null,
+            norskIdent = fnr,
+            avsenderLand = avsenderLand,
+            mottakerLand = null,
+            fodselsdato = null,
+            erSveFin = false
+        )
+
+        // Kjorer to ganger for aa simulere flere kjoringer av batchen (f.eks. daglig cron):
+        // andre kjoring skal fortsatt finne den faktiske EDIFACT-fila og korrekt telle den som
+        // allerede lagret, ikke behandle land-prefixet som om det var filnavnet.
+        lagringsService.hentIdenterFraEdifact()
+        lagringsService.hentIdenterFraEdifact()
 
         verify(exactly = 0) { gcpStorage.writer(any<BlobInfo>()) }
     }
@@ -322,13 +375,15 @@ class LagringsServiceTest {
         val existingBlob = mockk<Blob>(relaxed = true)
         every { existingBlob.name } returns "FI/$hash"
 
-        val firstPage = mockk<Page<Blob>>(relaxed = true)
-        every { firstPage.iterateAll() } returns listOf(mockk<Blob>(relaxed = true).also { every { it.name } returns "EdifactFil/test.txt" })
+        val filPage = mockk<Page<Blob>>(relaxed = true)
+        every { filPage.iterateAll() } returns listOf(mockk<Blob>(relaxed = true).also { every { it.name } returns "EdifactFil/test.txt" })
 
-        val secondPage = mockk<Page<Blob>>(relaxed = true)
-        every { secondPage.iterateAll() } returns listOf(existingBlob)
+        val landPage = mockk<Page<Blob>>(relaxed = true)
+        every { landPage.iterateAll() } returns listOf(existingBlob)
 
-        every { gcpStorage.list(any<String>(), *anyVararg()) } returnsMany listOf(firstPage, secondPage)
+        // Stubber pa faktisk prefix-argument, se kommentar i testen over.
+        every { gcpStorage.list("dod", Storage.BlobListOption.prefix("EdifactFil/")) } returns filPage
+        every { gcpStorage.list("dod", Storage.BlobListOption.prefix("FI/")) } returns landPage
         every { gcpStorage.get(any<BlobId>()) } returns inputBlob
         every { vurderSveFinEdifactDokument.splittTilDokumenter(any()) } returns listOf("doc")
         every { vurderSveFinEdifactDokument.vurderEditfactDokument(any()) } returns EdifactDokument(
@@ -342,7 +397,8 @@ class LagringsServiceTest {
             erSveFin = false
         )
 
-        lagringsService.filLiggerIS3()
+        lagringsService.hentIdenterFraEdifact()
+        lagringsService.hentIdenterFraEdifact()
 
         verify(exactly = 0) { gcpStorage.writer(any<BlobInfo>()) }
     }
