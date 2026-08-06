@@ -6,7 +6,6 @@ import io.mockk.spyk
 import io.mockk.verify
 import no.nav.eessi.pensjon.eux.EuxService
 import no.nav.eessi.pensjon.eux.klient.EuxKlientLib
-import no.nav.eessi.pensjon.eux.model.Avsendere
 import no.nav.eessi.pensjon.eux.model.Motparter
 import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
@@ -58,9 +57,8 @@ class DodsmeldingBehandlerTest {
         every { lagringsService.lagreFnrForBruker(any()) } returns mockk(relaxed = true )
         every { euxService.opprettH070(any(), any()) } returns mockk(relaxed = true)
         every { euxService.sendSed(any(), any()) } returns mockk(relaxed = true)
-//        every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
         every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
-        every { lagringsService.lagreH070(any()) } returns mockk(relaxed = true)
+        every { lagringsService.lagreH070(any(), any()) } returns mockk(relaxed = true)
     }
 
     @Test

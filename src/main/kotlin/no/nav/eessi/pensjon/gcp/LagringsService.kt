@@ -19,7 +19,6 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 private const val HASH_PRESET = "HashedUsers"
-private const val H070_LAGRET_PREFIX = "H070_LAGRET"
 
 @Service
 class LagringsService (
@@ -257,8 +256,8 @@ class LagringsService (
             .joinToString("") { "%02x".format(it) }
     }
 
-    fun lagreH070(h070: H070) {
-        val storageKey = "$H070_LAGRET_PREFIX/${Instant.now().toEpochMilli()}.json"
+    fun lagreH070(h070: H070, H070_PREFIX: String) {
+        val storageKey = "$H070_PREFIX/${Instant.now().toEpochMilli()}.json"
         val obfuskertH070 = obfuskerPinIdentifikator(h070.toJson())
         val blobInfo = BlobInfo.newBuilder(BlobId.of(h070_opprettetBucket, storageKey))
             .setContentType("application/json")

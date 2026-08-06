@@ -11,15 +11,16 @@ import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPerson
-import no.nav.eessi.pensjon.saf.BrukerIdType
-import no.nav.eessi.pensjon.saf.Journalpost
-import no.nav.eessi.pensjon.saf.SafClient
 import no.nav.eessi.pensjon.utils.toJson
 import no.nav.person.pdl.leesah.Personhendelse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
+
+
+private const val H070_LAGRET_PREFIX_STANDARD = "H070_STANDARD"
+private const val H070_LAGRET_PREFIX_EDIFACT = "H070_EDIFACT"
 
 @Component
 class DodsmeldingBehandler(
@@ -77,7 +78,7 @@ class DodsmeldingBehandler(
                 .also { logger.info("Sender til institusjon: {}", it) }
             lagringsService.lagreFnrForBruker(identFraPdl.id)
             val h070 = opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra LeveAttestReg: {}, land: $landInstitusjon", it) }
-            lagringsService.lagreH070(h070)
+            lagringsService.lagreH070(h070, H070_LAGRET_PREFIX_EDIFACT)
 //            opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
             return
         }
@@ -105,8 +106,8 @@ class DodsmeldingBehandler(
         }
 
         lagringsService.lagreFnrForBruker(identFraPdl.id)
-        opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra Joark: {}", it) }
-
+        val h070 = opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra Joark: {}", it) }
+        lagringsService.lagreH070(h070, H070_LAGRET_PREFIX_STANDARD)
 //        opprettOgSendH070(h070, mottakerLand)
 //            .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
         logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand")

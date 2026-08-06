@@ -206,10 +206,10 @@ class LagringsServiceTest {
             )
         )
 
-        lagringsService.lagreH070(h070)
+        lagringsService.lagreH070(h070, "H070_LAGRET_PREFIX_STANDARD")
 
         assertEquals("h070_opprettetBucket", blobInfoSlot.captured.blobId.bucket)
-        assertTrue(blobInfoSlot.captured.blobId.name.startsWith("H070_LAGRET/"))
+        assertTrue(blobInfoSlot.captured.blobId.name.startsWith("H070_LAGRET"))
         assertTrue(blobInfoSlot.captured.blobId.name.endsWith(".json"))
         val root = ObjectMapper().readTree(writtenPayload.toString())
         val lagretIdentifikatorer = root.findParents("person")
