@@ -232,7 +232,7 @@ class LagringsServiceTest {
         val hasha = lagringsService.hashedValue(fnr)
 
         val page = mockk<Page<Blob>>(relaxed = true)
-        every { page.values } returns listOf(
+        every { page.iterateAll() } returns listOf(
             mockk<Blob>(relaxed = true).also { every { it.name } returns "HashedUsers/uannet-element" },
             mockk<Blob>(relaxed = true).also { every { it.name } returns "HashedUsers/$hasha" }
         )
@@ -241,6 +241,30 @@ class LagringsServiceTest {
         val resultat = lagringsService.finnesDoedsmeldingAlleredeForBruker(fnr)
 
         assertTrue(resultat, "Skal finne treff selv om det korrekte elementet ikke ligger forst i lista")
+    }
+
+    @Test
+    fun `finnesDoedsmeldingAlleredeForBruker finner treff selv om det ligger paa senere side i listingen`() {
+        // Regresjonstest: Page#values gir kun forste side av en paginert GCS-listing.
+        // Dersom bucketen inneholder flere blobber enn en enkelt side, ma alle sidene
+        // gjennomgas (iterateAll) - ellers vil identer paa senere sider feilaktig bli
+        // behandlet som "ikke lagret fra for" i hver kjoring av batchen.
+        val fnr = "12345678901"
+        val hasha = lagringsService.hashedValue(fnr)
+
+        val page = mockk<Page<Blob>>(relaxed = true)
+        every { page.values } returns listOf(
+            mockk<Blob>(relaxed = true).also { every { it.name } returns "HashedUsers/forste-side-element" }
+        )
+        every { page.iterateAll() } returns listOf(
+            mockk<Blob>(relaxed = true).also { every { it.name } returns "HashedUsers/forste-side-element" },
+            mockk<Blob>(relaxed = true).also { every { it.name } returns "HashedUsers/$hasha" }
+        )
+        every { gcpStorage.list(any<String>(), *anyVararg()) } returns page
+
+        val resultat = lagringsService.finnesDoedsmeldingAlleredeForBruker(fnr)
+
+        assertTrue(resultat, "Skal finne treff selv om elementet ligger paa en senere side enn den forste")
     }
 
     @Test
@@ -257,10 +281,10 @@ class LagringsServiceTest {
         every { existingBlob.name } returns "$avsenderLand/$hash"
 
         val firstPage = mockk<Page<Blob>>(relaxed = true)
-        every { firstPage.values } returns listOf(mockk<Blob>(relaxed = true).also { every { it.name } returns "EdifactFil/test.txt" })
+        every { firstPage.iterateAll() } returns listOf(mockk<Blob>(relaxed = true).also { every { it.name } returns "EdifactFil/test.txt" })
 
         val secondPage = mockk<Page<Blob>>(relaxed = true)
-        every { secondPage.values } returns listOf(existingBlob)
+        every { secondPage.iterateAll() } returns listOf(existingBlob)
 
         every { gcpStorage.list(any<String>(), *anyVararg()) } returnsMany listOf(firstPage, secondPage)
         every { gcpStorage.get(any<BlobId>()) } returns inputBlob
@@ -299,10 +323,10 @@ class LagringsServiceTest {
         every { existingBlob.name } returns "FI/$hash"
 
         val firstPage = mockk<Page<Blob>>(relaxed = true)
-        every { firstPage.values } returns listOf(mockk<Blob>(relaxed = true).also { every { it.name } returns "EdifactFil/test.txt" })
+        every { firstPage.iterateAll() } returns listOf(mockk<Blob>(relaxed = true).also { every { it.name } returns "EdifactFil/test.txt" })
 
         val secondPage = mockk<Page<Blob>>(relaxed = true)
-        every { secondPage.values } returns listOf(existingBlob)
+        every { secondPage.iterateAll() } returns listOf(existingBlob)
 
         every { gcpStorage.list(any<String>(), *anyVararg()) } returnsMany listOf(firstPage, secondPage)
         every { gcpStorage.get(any<BlobId>()) } returns inputBlob

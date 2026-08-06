@@ -210,7 +210,11 @@ class LagringsService (
 
     fun list(keyPrefix: String, bucket: String) : List<String> {
         logger.debug("lister innhold i fila")
-        return gcpStorage.list(bucket , Storage.BlobListOption.prefix(keyPrefix))?.values?.map { v -> v.name}  ?:  emptyList()
+        // Page.values gir kun forste side av resultatet. Bruker iterateAll() slik at alle sider
+        // hentes - ellers vil eksisterer-sjekker feilaktig kunne mislykkes for identer som ligger
+        // pa senere sider naar bucketen inneholder flere blobber enn en enkelt side (default 1000),
+        // med fare for at samme ident lagres pa nytt i hver kjoring av batchen.
+        return gcpStorage.list(bucket , Storage.BlobListOption.prefix(keyPrefix))?.iterateAll()?.map { v -> v.name}  ?:  emptyList()
     }
 
     fun landOgIdent(landkode: String?, fnr: String): String? {
