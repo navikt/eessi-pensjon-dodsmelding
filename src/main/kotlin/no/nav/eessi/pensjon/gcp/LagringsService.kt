@@ -32,21 +32,6 @@ class LagringsService (
 
     private val logger = LoggerFactory.getLogger(LagringsService::class.java)
 
-//    fun lagreFnrIS3(fnr: String?, landkode: String?) {
-//        kanHendelsenOpprettes(fnr, landkode)
-//        val path = hentBrukerILand(landkode, fnr!!)
-//
-//        try {
-//            logger.debug("Hasha : ${hashedValue(fnr)}")
-//            if (path != null) {
-//                lagre(path, utenlandkYtelseBucket)
-//            }
-//            else logger.warn("Fant ikke path")
-//        } catch (ex: Exception) {
-//            logger.error("Feiler ved lagring av data: $path $ex")
-//        }
-//    }
-
     fun lagreFnrForBruker(fnr: String): Boolean {
         val hashafnr = hashedValue(fnr)
         try {
@@ -148,7 +133,7 @@ class LagringsService (
             // en fil uten dokumenter og logger en villedende "0 lagt til, 0 allerede lagret"
             // for hver kjoring av batchen.
             if (filNavn == EDIFACT_FIL_PREFIX || filNavn.endsWith("/")) {
-                logger.debug("Hopper over mappe-plassholder: $filNavn")
+                logger.info("Hopper over mappe-plassholder: $filNavn")
                 return@forEach
             }
 
