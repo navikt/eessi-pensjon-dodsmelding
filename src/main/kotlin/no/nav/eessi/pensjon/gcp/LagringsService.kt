@@ -6,7 +6,6 @@ import com.google.cloud.storage.Storage
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
-import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
 import no.nav.eessi.pensjon.eux.model.sed.H070
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
 import no.nav.eessi.pensjon.utils.toJson
@@ -19,13 +18,11 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 private const val HASH_PRESET = "HashedUsers"
-private const val EDIFACT_FIL_PREFIX = "EdifactFil/"
 
 @Service
 class LagringsService (
     @param:Value("\${GCP_BUCKET_UTL_YTELSE}") var utenlandkYtelseBucket: String,
     @param:Value("\${GCP_H070_OPPRETTET}") var h070_opprettetBucket: String,
-    private val vurderSveFinEdifactDokument: VurderSveFinEdifactDokument,
     private val gcpStorage: Storage,
     @param:Value("\${HASH_SECRET_KEY}") private val hashSecretKey: String
 ) {
@@ -46,8 +43,8 @@ class LagringsService (
     }
 
     fun kanHendelsenOpprettes(fnr: String?, land: String?) : Boolean {
-        logger.debug("liste over obj FI/" + list("FI/", utenlandkYtelseBucket).toString())
-        logger.debug("liste over obj SE/" + list("SE/", utenlandkYtelseBucket).toString())
+        logger.debug("liste over obj FI/" + hentListeFraS3("FI/", utenlandkYtelseBucket).toString())
+        logger.debug("liste over obj SE/" + hentListeFraS3("SE/", utenlandkYtelseBucket).toString())
         return !eksisterer(land, fnr, utenlandkYtelseBucket)
     }
 
@@ -64,7 +61,7 @@ class LagringsService (
 
         val bucketEntries = listOf("FI/", "SE/", "PL/", "DK/")
             .flatMap { prefix ->
-                list(prefix, utenlandkYtelseBucket)
+                hentListeFraS3(prefix, utenlandkYtelseBucket)
             }
 
         val resultat = bucketEntries.firstNotNullOfOrNull { bucketEntry ->
@@ -98,7 +95,7 @@ class LagringsService (
     fun finnesDoedsmeldingAlleredeForBruker(fnr: String): Boolean {
         logger.debug("sjekker om fnr allerede ligger inne med dodsmelding i bucket")
         val hasha = hashedValue(fnr)
-        val listeOverFnrIBucket = list("$HASH_PRESET/$hasha", h070_opprettetBucket)
+        val listeOverFnrIBucket = hentListeFraS3("$HASH_PRESET/$hasha", h070_opprettetBucket)
         logger.debug("Sjekker om fnr finnes i bucket for bruker: $hasha")
 
         val finnesFraFor = listeOverFnrIBucket.any { fnrIBucket -> fnrIBucket.contains(hasha) }
@@ -110,7 +107,7 @@ class LagringsService (
         return finnesFraFor
     }
 
-    fun hent(storageKey: String): String? {
+    fun hentFraGcp(storageKey: String): String? {
         val filIS3 =  gcpStorage.get(BlobId.of(utenlandkYtelseBucket, storageKey))
         logger.debug("Henter fila {}", filIS3)
 
@@ -120,72 +117,6 @@ class LagringsService (
         return null
     }
 
-    fun hentIdenterFraEdifact() {
-        logger.info("sjekker om filen ligger i bucket")
-
-        var totaltLagtTil = 0
-        var totaltAlleredeLagret = 0
-
-        list(EDIFACT_FIL_PREFIX, utenlandkYtelseBucket).forEach { filNavn ->
-            // GCS kan inneholde "mappe-navn" - blobber med navn som er identisk med
-            // prefixet (f.eks. "EdifactFil/") eller som ender pa "/", uten noe reelt filnavn/
-            // innhold etter seg. Disse ma hoppes over, ellers blir de feilaktig behandlet som
-            // en fil uten dokumenter og logger en villedende "0 lagt til, 0 allerede lagret"
-            // for hver kjoring av batchen.
-            if (filNavn == EDIFACT_FIL_PREFIX || filNavn.endsWith("/")) {
-                logger.info("Hopper over mappe-plassholder: $filNavn")
-                return@forEach
-            }
-
-            logger.info("sjekker: $filNavn")
-
-            var lagtTilIFil = 0
-            var alleredeLagretIFil = 0
-
-            val dokumenter = hent(filNavn)
-                .also { logger.debug("Hentet innhold fra blob: $it") }
-                ?.let(vurderSveFinEdifactDokument::splittTilDokumenter)
-                .orEmpty()
-
-            logger.info("Fant ${dokumenter.size} dokumenter i filen $filNavn")
-
-            dokumenter.forEach { dokument ->
-                val edidok = vurderSveFinEdifactDokument
-                    .vurderEditfactDokument(dokument)
-
-                val norskIdent = edidok?.norskIdent
-                val avsenderLand = edidok?.avsenderLand
-                if (norskIdent == null || avsenderLand == null) return@forEach
-
-                // Bruker samme normaliserte land+hash-path her som ved lagring, slik at
-                // eksisterer-sjekken og selve lagringen aldri kan komme ut av synk
-                // (f.eks. pga. whitespace i avsenderLand fra EDIFACT-parsingen).
-                val landMedIdent = landOgIdent(avsenderLand, norskIdent)
-                if (landMedIdent.isNullOrBlank()) {
-                    logger.warn("************* manglende landkode **************")
-                    return@forEach
-                }
-
-                val landPrefix = landMedIdent.substringBefore("/")
-                if (list("$landPrefix/", utenlandkYtelseBucket).contains(landMedIdent)) {
-                    logger.debug("Denne brukeren finnes fra før av i bucket")
-                    alleredeLagretIFil++
-                    totaltAlleredeLagret++
-                    return@forEach
-                }
-
-                lagre(landMedIdent, utenlandkYtelseBucket)
-                lagtTilIFil++
-                totaltLagtTil++
-            }
-
-            logger.info("Oppsummering for $filNavn: $lagtTilIFil lagt til, $alleredeLagretIFil allerede lagret")
-        }
-
-        logger.info(
-            "Oppsummering totalt: $totaltLagtTil lagt til, $totaltAlleredeLagret allerede lagret"
-        )
-    }
     fun eksisterer(land: String?, fnr: String?, bucketNavn: String): Boolean {
         logger.debug("sjekker om $land finnes i bucket: $bucketNavn")
         val path = landOgIdent(land, fnr!!) ?: return false
@@ -200,7 +131,7 @@ class LagringsService (
         return false
     }
 
-    fun list(keyPrefix: String, bucket: String) : List<String> {
+    fun hentListeFraS3(keyPrefix: String, bucket: String) : List<String> {
         logger.debug("lister innhold i fila")
         // Page.values gir kun forste side av resultatet. Bruker iterateAll() slik at alle sider
         // hentes - ellers vil eksisterer-sjekker feilaktig kunne mislykkes for identer som ligger

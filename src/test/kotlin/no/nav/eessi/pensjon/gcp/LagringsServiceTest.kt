@@ -18,6 +18,7 @@ import no.nav.eessi.pensjon.eux.model.sed.HNav
 import no.nav.eessi.pensjon.eux.model.sed.Person
 import no.nav.eessi.pensjon.eux.model.sed.PinItem
 import no.nav.eessi.pensjon.dodsmelding.EdifactDokument
+import no.nav.eessi.pensjon.dodsmelding.IdenterFraEdifactFiler
 import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -37,10 +38,11 @@ class LagringsServiceTest {
     private val gcpStorage =  mockk<Storage>(relaxed = true)
     private val vurderSveFinEdifactDokument =  mockk<VurderSveFinEdifactDokument>(relaxed = true)
     private lateinit var lagringsService: LagringsService
-
+    private lateinit var identerFraGcpFiler: IdenterFraEdifactFiler
     @BeforeEach
     fun setup() {
-        lagringsService = LagringsService("dod", "h070_opprettetBucket", vurderSveFinEdifactDokument, gcpStorage, "eessipensjonn")
+        lagringsService = LagringsService("dod", "h070_opprettetBucket", gcpStorage, "eessipensjonn")
+        identerFraGcpFiler = IdenterFraEdifactFiler("dod", VurderSveFinEdifactDokument(), lagringsService)
     }
 
     @Test
@@ -305,7 +307,7 @@ class LagringsServiceTest {
             erSveFin = false
         )
 
-        lagringsService.hentIdenterFraEdifact()
+        identerFraGcpFiler.hentIdenterFraEdifact()
 
         // Mappe-plassholderen skal aldri hentes/behandles - kun den faktiske fila.
         verify(exactly = 0) { gcpStorage.get(BlobId.of("dod", "EdifactFil/")) }
@@ -352,8 +354,7 @@ class LagringsServiceTest {
         // Kjorer to ganger for aa simulere flere kjoringer av batchen (f.eks. daglig cron):
         // andre kjoring skal fortsatt finne den faktiske EDIFACT-fila og korrekt telle den som
         // allerede lagret, ikke behandle land-prefixet som om det var filnavnet.
-        lagringsService.hentIdenterFraEdifact()
-        lagringsService.hentIdenterFraEdifact()
+        identerFraGcpFiler.hentIdenterFraEdifact()
 
         verify(exactly = 0) { gcpStorage.writer(any<BlobInfo>()) }
     }
@@ -397,8 +398,7 @@ class LagringsServiceTest {
             erSveFin = false
         )
 
-        lagringsService.hentIdenterFraEdifact()
-        lagringsService.hentIdenterFraEdifact()
+        identerFraGcpFiler.hentIdenterFraEdifact()
 
         verify(exactly = 0) { gcpStorage.writer(any<BlobInfo>()) }
     }
