@@ -22,7 +22,7 @@ class IdenterFraEdifactFiler (
 ) {
     private val logger: Logger by lazy { LoggerFactory.getLogger(IdenterFraEdifactFiler::class.java) }
 
-        @Scheduled(cron = "0 55 10 * * *")
+        @Scheduled(cron = "0 15 12 * * *")
     fun hentIdenterFraEdifactBatch() {
         logger.info("Starter lesing av fil for å legge fnr til S3 ")
         try {
@@ -54,6 +54,13 @@ class IdenterFraEdifactFiler (
 
             var lagtTilFraEnkeltFil = 0
             var alleredeLagretIFil = 0
+
+            // Cache av allerede-lagrede identer pr. landprefix. Uten denne ville hver
+            // eneste ident i filen medføre et eget GCS list()-kall (hentListeFraS3), noe
+            // som skalerer svaert dårlig (ca. 10 min pr. 1000 identer på store filer).
+            // Ved å hente lista én gang pr. landkode og heller sjekke medlemskap i et
+            // in-memory Set, unngår vi de repeterte nettverkskallene.
+            val alleredeLagretPerLand = mutableMapOf<String, Set<String>>()
 
             val dokumenter = lagringsService.hentFraGcp(filNavn)
                 .also { logger.debug("Hentet innhold fra blob: $it") }
@@ -87,7 +94,11 @@ class IdenterFraEdifactFiler (
                 }
 
                 val landPrefix = landMedIdent.substringBefore("/")
-                if (lagringsService.hentListeFraS3("$landPrefix/", utenlandkYtelseBucket).contains(landMedIdent)) {
+                val alleredeLagret = alleredeLagretPerLand.getOrPut(landPrefix) {
+                    lagringsService.hentListeFraS3("$landPrefix/", utenlandkYtelseBucket).toHashSet()
+                }
+
+                if (alleredeLagret.contains(landMedIdent)) {
                     logger.debug("Denne brukeren finnes fra før av i bucket")
                     alleredeLagretIFil++
                     totaltAlleredeLagret++
@@ -95,6 +106,9 @@ class IdenterFraEdifactFiler (
                 }
 
                 lagringsService.lagre(landMedIdent, utenlandkYtelseBucket)
+                // Legg til i cachen slik at duplikater senere i samme fil ikke blir
+                // forsøkt lagret på nytt eller feilaktig telt som "ny" flere ganger.
+                (alleredeLagretPerLand[landPrefix] as? HashSet<String>)?.add(landMedIdent)
                 lagtTilFraEnkeltFil++
                 totaltLagtTiLFraAlleFiler++
             }
