@@ -22,7 +22,7 @@ class IdenterFraEdifactFiler (
 ) {
     private val logger: Logger by lazy { LoggerFactory.getLogger(IdenterFraEdifactFiler::class.java) }
 
-        @Scheduled(cron = "0 10 09 * * *")
+        @Scheduled(cron = "0 55 10 * * *")
     fun hentIdenterFraEdifactBatch() {
         logger.info("Starter lesing av fil for å legge fnr til S3 ")
         try {
@@ -36,7 +36,7 @@ class IdenterFraEdifactFiler (
     fun hentIdenterFraEdifact() {
         logger.info("sjekker om filen ligger i bucket")
 
-        var totaltLagtTil = 0
+        var totaltLagtTiLFraAlleFiler = 0
         var totaltAlleredeLagret = 0
 
         lagringsService.hentListeFraS3(EDIFACT_FIL_PREFIX, utenlandkYtelseBucket).forEach { filNavn ->
@@ -52,7 +52,7 @@ class IdenterFraEdifactFiler (
 
             logger.info("sjekker: $filNavn")
 
-            var lagtTilIFil = 0
+            var lagtTilFraEnkeltFil = 0
             var alleredeLagretIFil = 0
 
             val dokumenter = lagringsService.hentFraGcp(filNavn)
@@ -64,7 +64,10 @@ class IdenterFraEdifactFiler (
 
             dokumenter.forEachIndexed { index, dokument ->
                 if ((index + 1) % 1000 == 0) {
-                    logger.info("Behandler dokument ${index + 1} av ${dokumenter.size} i $filNavn")
+                    logger.info(
+                        "Behandler dokument ${index + 1} av ${dokumenter.size} i $filNavn, " +
+                            "nye identer lagt til fra denne filen=$lagtTilFraEnkeltFil"
+                    )
                 }
 
                 val edidok = vurderSveFinEdifactDokument
@@ -92,14 +95,14 @@ class IdenterFraEdifactFiler (
                 }
 
                 lagringsService.lagre(landMedIdent, utenlandkYtelseBucket)
-                lagtTilIFil++
-                totaltLagtTil++
+                lagtTilFraEnkeltFil++
+                totaltLagtTiLFraAlleFiler++
             }
-            logger.info("Oppsummering for $filNavn: $lagtTilIFil lagt til, $alleredeLagretIFil allerede lagret")
+            logger.info("Oppsummering for $filNavn: $lagtTilFraEnkeltFil lagt til, $alleredeLagretIFil allerede lagret")
         }
 
         logger.info(
-            "Oppsummering totalt: $totaltLagtTil lagt til, $totaltAlleredeLagret allerede lagret"
+            "Oppsummering totalt: $totaltLagtTiLFraAlleFiler lagt til, $totaltAlleredeLagret allerede lagret"
         )
     }
 }
