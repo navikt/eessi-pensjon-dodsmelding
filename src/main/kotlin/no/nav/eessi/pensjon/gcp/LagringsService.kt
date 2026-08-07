@@ -28,6 +28,7 @@ class LagringsService (
 ) {
 
     private val logger = LoggerFactory.getLogger(LagringsService::class.java)
+    private val secureLogger = LoggerFactory.getLogger("secureLog")
 
     fun lagreFnrForBruker(fnr: String): Boolean {
         val hashafnr = hashedValue(fnr)
@@ -163,7 +164,7 @@ class LagringsService (
         }.onFailure { e ->
             logger.error("Feilet med å lagre dokument med id: ${blobInfo.blobId.name}", e)
         }.onSuccess {
-            logger.info("Lagret fil med blobid:  ${blobInfo.blobId.name} og bytes: $it")
+            secureLogger.debug("Lagret fil med blobid:  ${blobInfo.blobId.name} og bytes: $it")
         }
     }
 
