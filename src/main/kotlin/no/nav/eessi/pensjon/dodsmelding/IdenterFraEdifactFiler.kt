@@ -22,7 +22,7 @@ class IdenterFraEdifactFiler (
 ) {
     private val logger: Logger by lazy { LoggerFactory.getLogger(IdenterFraEdifactFiler::class.java) }
 
-        @Scheduled(cron = "0 25 13 * * *")
+        @Scheduled(cron = "0 35 13 * * *")
     fun hentIdenterFraEdifactBatch() {
         logger.info("Starter lesing av fil for å legge fnr til S3 ")
         try {
