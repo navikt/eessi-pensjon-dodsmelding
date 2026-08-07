@@ -22,7 +22,7 @@ class IdenterFraEdifactFiler (
 ) {
     private val logger: Logger by lazy { LoggerFactory.getLogger(IdenterFraEdifactFiler::class.java) }
 
-        @Scheduled(cron = "0 32 07 * * *")
+        @Scheduled(cron = "0 57 08 * * *")
     fun hentIdenterFraEdifactBatch() {
         logger.info("Starter lesing av fil for å legge fnr til S3 ")
         try {
@@ -62,13 +62,17 @@ class IdenterFraEdifactFiler (
 
             logger.info("Fant ${dokumenter.size} dokumenter i filen $filNavn")
 
-            dokumenter.forEach { dokument ->
+            dokumenter.forEachIndexed { index, dokument ->
+                if ((index + 1) % 1000 == 0) {
+                    logger.info("Behandler dokument ${index + 1} av ${dokumenter.size} i $filNavn")
+                }
+
                 val edidok = vurderSveFinEdifactDokument
                     .vurderEditfactDokument(dokument)
 
                 val norskIdent = edidok?.norskIdent
                 val avsenderLand = edidok?.avsenderLand
-                if (norskIdent == null || avsenderLand == null) return@forEach
+                if (norskIdent == null || avsenderLand == null) return@forEachIndexed
 
                 // Bruker samme normaliserte land+hash-path her som ved lagring, slik at
                 // eksisterer-sjekken og selve lagringen aldri kan komme ut av synk
@@ -76,7 +80,7 @@ class IdenterFraEdifactFiler (
                 val landMedIdent = lagringsService.landOgIdent(avsenderLand, norskIdent)
                 if (landMedIdent.isNullOrBlank()) {
                     logger.warn("************* manglende landkode **************")
-                    return@forEach
+                    return@forEachIndexed
                 }
 
                 val landPrefix = landMedIdent.substringBefore("/")
@@ -84,7 +88,7 @@ class IdenterFraEdifactFiler (
                     logger.debug("Denne brukeren finnes fra før av i bucket")
                     alleredeLagretIFil++
                     totaltAlleredeLagret++
-                    return@forEach
+                    return@forEachIndexed
                 }
 
                 lagringsService.lagre(landMedIdent, utenlandkYtelseBucket)
