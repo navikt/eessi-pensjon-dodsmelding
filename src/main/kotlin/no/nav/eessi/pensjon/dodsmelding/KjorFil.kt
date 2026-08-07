@@ -17,7 +17,7 @@ class KjorFil (
 ) {
     private val logger: Logger by lazy { LoggerFactory.getLogger(KjorFil::class.java) }
 
-        @Scheduled(cron = "0 45 11 * * *")
+        @Scheduled(cron = "0 32 07 * * *")
     fun hentIdenterFraEdifactBatch() {
         logger.info("Starter lesing av fil for å legge fnr til S3 ")
         try {
