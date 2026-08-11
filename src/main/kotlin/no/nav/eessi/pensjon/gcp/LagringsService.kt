@@ -206,10 +206,19 @@ class LagringsService (
                 pin.forEach { pinItem ->
                     val identifikator = pinItem.path("identifikator").asText()
                     if (identifikator.isNotBlank() && pinItem is ObjectNode) {
-                        pinItem.put("identifikator", hashedValueInternal(identifikator))
+                        pinItem.put("identifikator", obfuskerSiste8Tegn(identifikator))
                     }
                 }
             }
         return objectMapper.writeValueAsString(root)
+    }
+
+    private fun obfuskerSiste8Tegn(identifikator: String): String {
+        val antallTegnSomSkalMaskeres = 8
+        return if (identifikator.length <= antallTegnSomSkalMaskeres) {
+            "*".repeat(identifikator.length)
+        } else {
+            identifikator.dropLast(antallTegnSomSkalMaskeres) + "*".repeat(antallTegnSomSkalMaskeres)
+        }
     }
 }

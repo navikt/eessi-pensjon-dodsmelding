@@ -218,8 +218,8 @@ class LagringsServiceTest {
             .mapNotNull { it.get("person")?.get("pin") }
             .flatMap { pinArray -> pinArray.map { it.path("identifikator").asText() } }
 
-        assertTrue(lagretIdentifikatorer.contains(lagringsService.hashedValue(norskPin)))
-        assertTrue(lagretIdentifikatorer.contains(lagringsService.hashedValue(utenlandskPin)))
+        assertTrue(lagretIdentifikatorer.contains("123********"))
+        assertTrue(lagretIdentifikatorer.contains("SE12********"))
         assertTrue(lagretIdentifikatorer.none { it == norskPin || it == utenlandskPin })
     }
 
