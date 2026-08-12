@@ -73,6 +73,9 @@ class DodsmeldingBehandler(
 
         val brukerILeveAttReg = lagringsService.finnesDodBrukerILeveAttReg(person.identer)
         if (brukerILeveAttReg != null) {
+            require(brukerILeveAttReg.first.isNotEmpty()) { "Finner ikke fnr i leveattestregisteret" }
+            require(brukerILeveAttReg.second in gyldigeUtstederland) { "Bruker finnes i leveattestregisteret, men utstederland er ikke gyldig" }
+
             logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
             val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second)
                 .also { logger.info("Sender til institusjon: {}", it) }
@@ -177,8 +180,8 @@ class DodsmeldingBehandler(
         }
     }
 
-    fun institusjon(fnr: String?, landFraIdentUtland: String): String {
-        val ytelsesInfo = pesysKlient.hentPensjonSaklist(fnr!!).also { logger.debug("Henter pensjonsakliste: {}", it.toJson()) }
+    fun institusjon(fnr: String, landFraIdentUtland: String): String {
+        val ytelsesInfo = pesysKlient.hentPensjonSaklist(fnr).also { logger.debug("Henter pensjonsakliste: {}", it.toJson()) }
         val penytelse = ytelsesInfo.firstOrNull { it.sakType in listOf(UFOREP, GJENLEV, BARNEP, ALDER, OMSORG) }
         val land =
             if (landFraIdentUtland.contains("FI")) "FIN"
