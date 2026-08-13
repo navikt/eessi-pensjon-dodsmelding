@@ -74,7 +74,9 @@ class DodsmeldingBehandler(
         val brukerILeveAttReg = lagringsService.finnesDodBrukerILeveAttReg(person.identer)
         if (brukerILeveAttReg != null) {
             require(brukerILeveAttReg.first.isNotEmpty()) { "Finner ikke fnr i leveattestregisteret" }
-            require(brukerILeveAttReg.second in gyldigeUtstederland) { "Bruker finnes i leveattestregisteret, men utstederland er ikke gyldig" }
+            if (brukerILeveAttReg.second !in gyldigeUtstederland) {
+                logger.info("Bruker finnes i leveattestregisteret, men utstederland (${brukerILeveAttReg.second}) er ikke gyldig")
+            }
 
             logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
             val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second)
