@@ -106,6 +106,7 @@ class MeldingFraPdlListenerTest {
                     every { identifikasjonsnummer } returns "12345678901"
                 }
             )
+            every { bostedsadresse?.utenlandskAdresse } returns mockk(relaxed = true)
             every { kjoenn } returns Kjoenn(KjoennType.KVINNE, metadata = mockMeta())
             every { foedselsdato } returns Foedselsdato(foedselsdato = "1999-10-10", metadata = mockMeta())
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))

@@ -60,6 +60,11 @@ class DodsmeldingBehandler(
             return
         }
 
+        if( Le != null) {
+            logger.info("Bruker har utenlandsk adresse, men ingen utenlandsk identifikasjon. Vi oppretter H070 med kun norsk ident.")
+            return
+        }
+
         val pin = opprettPinListe(person)
         if (pin.isEmpty()) {
             logger.warn("Fant verken norsk eller utenlandsk ident, avbryter opprettelse av H070")
