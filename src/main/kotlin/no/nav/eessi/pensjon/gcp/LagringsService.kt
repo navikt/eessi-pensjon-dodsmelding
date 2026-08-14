@@ -34,7 +34,7 @@ class LagringsService (
         val hashafnr = hashedValue(fnr)
         try {
             if(finnesDoedsmeldingAlleredeForBruker(fnr)) return false.also { logger.error("Bruker finnes i bucket.") }
-            logger.debug("Hasha : $hashafnr")
+            secureLogger.info("hash : $hashafnr")
             lagre("$HASH_PRESET/$hashafnr", h070_opprettetBucket)
             return true
         } catch (ex: Exception) {
