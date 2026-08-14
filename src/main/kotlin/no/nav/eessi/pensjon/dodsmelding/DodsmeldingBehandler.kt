@@ -116,6 +116,8 @@ class DodsmeldingBehandler(
 //        opprettOgSendH070(h070, mottakerLand)
 //            .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
         logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand")
+        secureLogger.info("PersonHendelse for H079: $personhendelse")
+
         //TODO: Sjekk hvilken ytelse bruker har før vi går videre med å preutfylle en H070
         //TODO: Sjekk hvilken institusjon som skal legges til ut i fra hvilket land det er som skal motta H070 fra oss.
 
