@@ -71,7 +71,7 @@ class LagringsService (
                 val hash = hashedValue(ident)
 
                 if (bucketEntry.contains(hash)) {
-                    ident to hentLandFraPrefix(bucketEntry).also { secureLogger.info("Bruker med ident $ident finnes i bucket med landkode ${it}") }
+                    ident to hentLandFraPrefix(bucketEntry).also { secureLogger.info("Bruker med ident $ident finnes i bucket med landkode: $it for hash:$hash") }
                 } else {
                     null
                 }
