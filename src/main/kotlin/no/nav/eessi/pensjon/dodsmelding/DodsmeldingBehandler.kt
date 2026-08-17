@@ -61,7 +61,7 @@ class DodsmeldingBehandler(
         }
 
         if(person.bostedsadresse?.utenlandskAdresse != null) {
-            logger.info("Bruker har utenlandsk adresse, men ingen utenlandsk identifikasjon. Vi oppretter H070 med kun norsk ident.")
+            logger.info("Bruker har utenlandsk adresse. Oppretter dermed ikke H070")
             return
         }
 
