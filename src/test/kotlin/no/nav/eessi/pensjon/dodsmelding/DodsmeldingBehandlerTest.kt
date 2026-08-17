@@ -13,6 +13,7 @@ import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
+import no.nav.eessi.pensjon.personoppslag.pdl.model.UtenlandskAdresse
 import no.nav.eessi.pensjon.personoppslag.pdl.model.UtenlandskIdentifikasjonsnummer
 import no.nav.eessi.pensjon.saf.*
 import no.nav.eessi.pensjon.saf.BrukerIdType.FNR
@@ -31,7 +32,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.exchange
 
-@Disabled
 class DodsmeldingBehandlerTest {
 
     private val safGraphQlOidcRestTemplate: RestTemplate = mockk(relaxed = true)
@@ -124,6 +124,7 @@ class DodsmeldingBehandlerTest {
 
             )
             every { identer } returns emptyList()
+            every { bostedsadresse?.utenlandskAdresse } returns null
         }
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
@@ -174,6 +175,7 @@ class DodsmeldingBehandlerTest {
                     every { identifikasjonsnummer } returns "SE1234567890"
                 }
             )
+            every { bostedsadresse?.utenlandskAdresse } returns null
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
         }
 
@@ -366,6 +368,7 @@ class DodsmeldingBehandlerTest {
                     every { utstederland } returns "SWE"
                     every { identifikasjonsnummer } returns "SE1234567890"
                 }            )
+            every { bostedsadresse?.utenlandskAdresse } returns null
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
         }
         every { safClient.hentDokumentMetadata("12345678901", FNR) } returns mockk {
@@ -429,7 +432,7 @@ class DodsmeldingBehandlerTest {
             every { identer } returns listOf(
                 IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
             )
-            every { bostedsadresse?.utenlandskAdresse } returns mockk(relaxed = true)
+            every { bostedsadresse?.utenlandskAdresse } returns null
 
         }
 
@@ -450,13 +453,13 @@ class DodsmeldingBehandlerTest {
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair(norskIdent, "FI")
         every { personService.hentPerson(ident) } returns mockk {
+            every { bostedsadresse?.utenlandskAdresse } returns null
             every { utenlandskIdentifikasjonsnummer } returns listOf(UtenlandskIdentifikasjonsnummer(
                 identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = mockk())
             )
             every { identer } returns listOf(
                 IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
             )
-            every { bostedsadresse?.utenlandskAdresse } returns mockk(relaxed = true)
         }
 
         dodsmeldingBehandler.behandle(personhendelse)
@@ -483,7 +486,7 @@ class DodsmeldingBehandlerTest {
             every { identer } returns listOf(
                 IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
             )
-            every { bostedsadresse?.utenlandskAdresse } returns mockk(relaxed = true)
+            every { bostedsadresse?.utenlandskAdresse } returns null
 
         }
 
