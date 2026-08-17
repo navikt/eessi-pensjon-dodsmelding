@@ -33,7 +33,7 @@ class LagringsService (
     fun lagreFnrForBruker(fnr: String): Boolean {
         val hashafnr = hashedValue(fnr)
         try {
-            if(finnesDoedsmeldingAlleredeForBruker(fnr)) return false.also { logger.error("Bruker finnes i bucket.") }
+            if(finnesDoedsmeldingAlleredeForBruker(fnr)) return false.also { logger.error("Bruker finnes i bucket. Ingen lagring") }
             secureLogger.info("hash : $hashafnr")
             lagre("$HASH_PRESET/$hashafnr", h070_opprettetBucket)
             return true
@@ -99,13 +99,7 @@ class LagringsService (
         val fnrFratidligereSendteH070 = hentListeFraS3("$HASH_PRESET/$hasha", h070_opprettetBucket)
         logger.debug("Sjekker om fnr finnes i bucket for bruker: $hasha")
 
-        val finnesFraFor = fnrFratidligereSendteH070.any { fnrIBucket -> fnrIBucket.contains(hasha) }
-        if (finnesFraFor) {
-            logger.debug("Denne brukeren finnes i bucket. H070 er allerede sendt ut")
-        } else {
-            logger.info("Bruker finnes ikke i bucket, H070 kan opprettes på bruker.")
-        }
-        return finnesFraFor
+        return fnrFratidligereSendteH070.any { fnrIBucket -> fnrIBucket.contains(hasha) }
     }
 
     fun hentFraGcp(storageKey: String): String? {
