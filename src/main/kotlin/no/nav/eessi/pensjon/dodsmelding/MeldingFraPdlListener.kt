@@ -78,10 +78,6 @@ class MeldingFraPdlListener(
         logger.info("Behandler ${consumerRecords.size} meldinger, firstOffset=${consumerRecords.first().offset()}, lastOffset=${consumerRecords.last().offset()}")
         secureLogger.info("DOEDSFALL_V1: $personhendelse")
 
-        personhendelse.personidenter.firstOrNull()?.let {
-            dodsmeldingBehandler.behandle(personhendelse)
-        }
-
         messureOpplysningstype.addKjent(personhendelse)
 
         when (personhendelse.endringstype) {
