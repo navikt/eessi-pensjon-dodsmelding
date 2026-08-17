@@ -35,7 +35,7 @@ class DodsmeldingBehandler(
     private val logger: Logger = LoggerFactory.getLogger(DodsmeldingBehandler::class.java)
     private val secureLogger = LoggerFactory.getLogger("secureLog")
 
-    val gyldigeUtstederland = listOf("SW", "SWE", "FI", "FIN", "PO", "POL")
+    val gyldigeUtstederland = listOf("SE", "SW", "SWE", "FI", "FIN", "PO", "POL")
 
     fun behandle(personhendelse: Personhendelse) {
         val valgtPersonident = hentAlleNorskeIdenter(personhendelse)
@@ -81,6 +81,7 @@ class DodsmeldingBehandler(
             require(brukerILeveAttReg.first.isNotEmpty()) { "Finner ikke fnr i leveattestregisteret" }
             if (brukerILeveAttReg.second !in gyldigeUtstederland) {
                 logger.info("Bruker finnes i leveattestregisteret, men utstederland (${brukerILeveAttReg.second}) er ikke gyldig")
+                return
             }
 
             logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
@@ -121,7 +122,7 @@ class DodsmeldingBehandler(
 //        opprettOgSendH070(h070, mottakerLand)
 //            .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
         logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand")
-        secureLogger.info("PersonHendelse for H079: $personhendelse")
+        secureLogger.info("PersonHendelse for H070: $personhendelse")
 
         //TODO: Sjekk hvilken ytelse bruker har før vi går videre med å preutfylle en H070
         //TODO: Sjekk hvilken institusjon som skal legges til ut i fra hvilket land det er som skal motta H070 fra oss.

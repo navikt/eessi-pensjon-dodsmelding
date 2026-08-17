@@ -96,10 +96,10 @@ class LagringsService (
     fun finnesDoedsmeldingAlleredeForBruker(fnr: String): Boolean {
         logger.debug("sjekker om fnr allerede ligger inne med dodsmelding i bucket")
         val hasha = hashedValue(fnr)
-        val listeOverFnrIBucket = hentListeFraS3("$HASH_PRESET/$hasha", h070_opprettetBucket)
+        val fnrFratidligereSendteH070 = hentListeFraS3("$HASH_PRESET/$hasha", h070_opprettetBucket)
         logger.debug("Sjekker om fnr finnes i bucket for bruker: $hasha")
 
-        val finnesFraFor = listeOverFnrIBucket.any { fnrIBucket -> fnrIBucket.contains(hasha) }
+        val finnesFraFor = fnrFratidligereSendteH070.any { fnrIBucket -> fnrIBucket.contains(hasha) }
         if (finnesFraFor) {
             logger.debug("Denne brukeren finnes i bucket. H070 er allerede sendt ut")
         } else {
