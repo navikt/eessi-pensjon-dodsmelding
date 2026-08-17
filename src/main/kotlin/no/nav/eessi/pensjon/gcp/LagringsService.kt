@@ -79,9 +79,9 @@ class LagringsService (
         }
 
         if (resultat != null) {
-            logger.debug("Brukeren finnes i bucket. H070 kan sendes ut")
+            logger.info("Brukeren finnes i bucket. H070 skal IKKE sendes ut")
         } else {
-            logger.info("Brukeren finnes ikke i bucket og kan dermed ignoreres")
+            logger.info("Brukeren finnes ikke i bucket. H070 kan sendes ut")
         }
 
         return resultat
