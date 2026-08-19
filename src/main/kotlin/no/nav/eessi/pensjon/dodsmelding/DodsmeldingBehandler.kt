@@ -66,8 +66,8 @@ class DodsmeldingBehandler(
         }
 
         val pin = opprettPinListe(person)
-        if (pin.isEmpty()) {
-            logger.warn("Fant verken norsk eller utenlandsk ident, avbryter opprettelse av H070")
+        if (pin.none { it.land == "NOR" }) {
+            logger.warn("Fant ingen norsk ident; avbryter opprettelse av H070")
             return
         }
 
