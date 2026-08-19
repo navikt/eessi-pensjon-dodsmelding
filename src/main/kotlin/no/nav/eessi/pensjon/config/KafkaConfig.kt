@@ -19,6 +19,7 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.core.*
 import org.springframework.kafka.listener.ContainerProperties
 import org.springframework.kafka.listener.DefaultErrorHandler
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
 import org.springframework.util.backoff.FixedBackOff
 import java.time.Duration
 
@@ -48,7 +49,9 @@ class KafkaConfig(
                 configMap
             )
         )
-        factory.setCommonErrorHandler(kafkaRestartingErrorHandler())
+        // Bruk KafkaStoppingErrorHandler (stopper container og applikasjon) når den finnes
+        // (prod/test-profil), ellers fall tilbake til en enklere restarting-handler lokalt.
+        factory.setCommonErrorHandler(kafkaErrorHandler ?: kafkaRestartingErrorHandler())
         return factory
     }
 
@@ -72,7 +75,12 @@ class KafkaConfig(
                 "basic.auth.user.info" to "$schemaRegistryUser:$schemaRegistryPassword",
                 "specific.avro.reader" to "true",
                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java.name,
-                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java.name,
+                // ErrorHandlingDeserializer delegerer til KafkaAvroDeserializer, men fanger opp
+                // (De)serialiseringsfeil (f.eks. poison-pill meldinger/ugyldig Avro-schema) og lar
+                // disse gå videre til ConcurrentKafkaListenerContainerFactory sin CommonErrorHandler
+                // i stedet for å feile dypt inne i consumer.poll() med en forvirrende IllegalStateException.
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ErrorHandlingDeserializer::class.java.name,
+                ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS to KafkaAvroDeserializer::class.java.name,
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "earliest",
             )
         return consumerConfigs.also { logger.debug("Kafka consumer configs: {}", it) }

@@ -17,5 +17,10 @@ import org.springframework.scheduling.annotation.EnableScheduling
 class EessiDodsmeldingApplication
 
 fun main(args: Array<String>) {
+    // Nyere versjoner av Avro begrenser hvilke klasser som kan brukes ved (de)serialisering
+    // av Avro-schemaer (org.apache.avro.util.ClassSecurityValidator). Uten dette blir
+    // "no.nav.person.pdl.leesah.Personhendelse" avvist med en SecurityException, som igjen
+    // fører til at kafka-konsumeringen krasjer på hver eneste melding.
+    System.setProperty("org.apache.avro.SERIALIZABLE_PACKAGES", "no.nav.person.pdl.leesah")
     runApplication<EessiDodsmeldingApplication>(*args)
 }
