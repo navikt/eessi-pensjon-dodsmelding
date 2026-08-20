@@ -88,7 +88,7 @@ class DodsmeldingBehandler(
             val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second)
                 .also { logger.info("Sender til institusjon: {}", it) }
             lagringsService.lagreFnrForBruker(identFraPdl.id)
-            val h070 = opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra LeveAttestReg: {}, land: $landInstitusjon", it) }
+            val h070 = opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra LeveAttestReg / edifact: $it, land: $landInstitusjon") }
             lagringsService.lagreH070(h070, H070_LAGRET_PREFIX_EDIFACT)
 //            opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
             return
@@ -117,7 +117,8 @@ class DodsmeldingBehandler(
         }
 
         lagringsService.lagreFnrForBruker(identFraPdl.id)
-        val h070 = opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra Joark: {}", it) }
+        val landInstitusjon = institusjon(identFraPdl.id, mottakerLand).also { logger.info("Sender til institusjon: {}", it) }
+        val h070 = opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra Joark/P6000: $it , land:$landInstitusjon") }
         lagringsService.lagreH070(h070, H070_LAGRET_PREFIX_STANDARD)
 //        opprettOgSendH070(h070, mottakerLand)
 //            .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
@@ -191,7 +192,7 @@ class DodsmeldingBehandler(
     }
 
     fun institusjon(fnr: String, landFraIdentUtland: String): String {
-        val ytelsesInfo = pesysKlient.hentPensjonSaklist(fnr).also { logger.debug("Henter pensjonsakliste: {}", it.toJson()) }
+        val ytelsesInfo = pesysKlient.hentPensjonSaklist(fnr).also { logger.info("Henter pensjonsakliste: {}", it.toJson()) }
         val penytelse = ytelsesInfo.firstOrNull { it.sakType in listOf(UFOREP, GJENLEV, BARNEP, ALDER, OMSORG) }
         val land =
             if (landFraIdentUtland.contains("FI")) "FIN"
