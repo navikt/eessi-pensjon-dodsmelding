@@ -79,9 +79,9 @@ class LagringsService (
         }
 
         if (resultat != null) {
-            logger.info("Brukeren finnes i bucket. H070 skal IKKE sendes ut")
+            logger.info("Brukeren finnes i leveattestregisteret")
         } else {
-            logger.info("Brukeren finnes ikke i bucket. H070 kan sendes ut")
+            logger.info("Brukeren finnes ikke i leveattestregisteret")
         }
 
         return resultat
