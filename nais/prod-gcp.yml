@@ -42,9 +42,7 @@ spec:
   gcp:
     buckets:
       - name: eessi-pensjon-dodsmelding
-        uniformBucketLevelAccess: true
       - name: eessi-pensjon-opprettet-h070
-        uniformBucketLevelAccess: true
 
   webproxy: true
   kafka:
