@@ -54,7 +54,7 @@ class DodsmeldingBehandler(
         }
 
         val person = personService.hentPerson(identFraPdl).also { logger.debug("Henter person: {}", it) }
-
+        secureLogger.info("Personhendelse for H070: ${person?.doedsfall?.toJson()}")
         if (person == null) {
             logger.warn("Fant ingen personident")
             return
@@ -64,6 +64,7 @@ class DodsmeldingBehandler(
             logger.info("Bruker har utenlandsk adresse. Oppretter dermed ikke H070")
             return
         }
+        secureLogger.info("Personhendelse for H070: ${person.bostedsadresse?.toJson()}")
 
         val pin = opprettPinListe(person)
         if (pin.none { it.land == "NOR" }) {
