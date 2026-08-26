@@ -64,7 +64,8 @@ class DodsmeldingBehandler(
             logger.info("Bruker har utenlandsk adresse. Oppretter dermed ikke H070")
             return
         }
-        secureLogger.info("Personhendelse for H070: ${person.bostedsadresse?.toJson()}")
+        secureLogger.info("bostedsadresse for H070: ${person.bostedsadresse?.toJson()}")
+        secureLogger.info("oppholdsadresse for H070: ${person.oppholdsadresse?.toJson()}")
 
         val pin = opprettPinListe(person)
         if (pin.none { it.land == "NOR" }) {
