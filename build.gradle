@@ -79,7 +79,7 @@ dependencies {
     implementation('no.nav.pensjon:pensjon-pdl-avro-schema:2025.08.14-08.26-800400e1dc81')
     implementation("org.apache.avro:avro:1.12.1")
 
-    implementation("no.nav.eessi.pensjon:ep-eux:3.0.85")
+    implementation("no.nav.eessi.pensjon:ep-eux:3.0.91")
     implementation("no.nav.eessi.pensjon:ep-metrics:3.0.39")
     implementation("no.nav.eessi.pensjon:ep-logging:3.0.58")
     implementation("no.nav.eessi.pensjon:ep-routing:3.0.31")
