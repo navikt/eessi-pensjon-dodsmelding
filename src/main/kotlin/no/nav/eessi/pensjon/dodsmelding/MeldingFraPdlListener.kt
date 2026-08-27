@@ -1,11 +1,8 @@
 package no.nav.eessi.pensjon.dodsmelding
 
 import io.micrometer.core.instrument.Metrics
-import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.metrics.MetricsHelper
-import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
-import no.nav.eessi.pensjon.personoppslag.pdl.model.Folkeregistermetadata
 import no.nav.person.pdl.leesah.Endringstype
 import no.nav.person.pdl.leesah.Personhendelse
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -44,13 +41,14 @@ class MeldingFraPdlListener(
     fun mottaLeesahMelding(consumerRecords: List<ConsumerRecord<String, Personhendelse>>, ack: Acknowledgment) {
         try {
 //            logger.info("Behandler ${consumerRecords.size} meldinger, firstOffset=${consumerRecords.first().offset()}, lastOffset=${consumerRecords.last().offset()}")
+            var recordCount = 0
             consumerRecords.forEach { record ->
                 leesahKafkaListenerMetric.measure {
                     val personhendelse = record.value()
                     MDC.put("x_request_id", UUID.randomUUID().toString())
                     try {
                         when (personhendelse.opplysningstype) {
-                            "DOEDSFALL_V1" -> behandleDoedsfall(personhendelse, consumerRecords)
+                            "DOEDSFALL_V1" -> behandleDoedsfall(personhendelse, consumerRecords, recordCount++)
                             "BOSTEDSADRESSE_V1", "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1" ->
                                 messureOpplysningstype.addKjent(personhendelse)
                             else -> messureOpplysningstype.addUkjent(personhendelse)
@@ -73,12 +71,11 @@ class MeldingFraPdlListener(
 
     private fun behandleDoedsfall(
         personhendelse: Personhendelse,
-        consumerRecords: List<ConsumerRecord<String, Personhendelse>>
+        consumerRecords: List<ConsumerRecord<String, Personhendelse>>,
+        recordCount: Int
     ) {
-        logger.info("Behandler ${consumerRecords.size} meldinger, firstOffset=${consumerRecords.first().offset()}, lastOffset=${consumerRecords.last().offset()}")
+        logger.info("Behandler $recordCount av ${consumerRecords.size} meldinger, firstOffset=${consumerRecords.first().offset()}, lastOffset=${consumerRecords.last().offset()}")
         secureLogger.info("DOEDSFALL_V1: $personhendelse")
-
-        messureOpplysningstype.addKjent(personhendelse)
 
         when (personhendelse.endringstype) {
             Endringstype.OPPRETTET ->
