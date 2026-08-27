@@ -197,6 +197,13 @@ class DodsmeldingBehandler(
     fun institusjon(fnr: String, landFraIdentUtland: String): String {
         val ytelsesInfo = pesysKlient.hentPensjonSaklist(fnr).also { logger.info("Henter pensjonsakliste: {}", it.toJson()) }
         val penytelse = ytelsesInfo.firstOrNull { it.sakType in listOf(UFOREP, GJENLEV, BARNEP, ALDER, OMSORG) }
+
+        if(penytelse != null) {
+            logger.info("Fant ytelse for bruker: ${penytelse.sakType} med sakId: ${penytelse.sakId}")
+        } else {
+            logger.info("Fant ingen ytelse for bruker")
+        }
+
         val land =
             if (landFraIdentUtland.contains("FI")) "FIN"
             else if (landFraIdentUtland.contains("SE")) "SWE"
