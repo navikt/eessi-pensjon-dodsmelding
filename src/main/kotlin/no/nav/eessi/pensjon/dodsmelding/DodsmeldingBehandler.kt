@@ -67,6 +67,7 @@ class DodsmeldingBehandler(
         }
         secureLogger.info("oppholdsadresse for H070: ${person.oppholdsadresse?.toJson()}")
         secureLogger.info("kontaktadresse for H070: ${person.kontaktadresse?.toJson()}")
+        secureLogger.info("kontaktadresse for H070: ${person.geografiskTilknytning?.toJson()}")
 
         val pin = opprettPinListe(person)
         if (pin.none { it.land == "NOR" }) {

@@ -134,6 +134,7 @@ class DodsmeldingBehandlerTest {
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
             every { kontaktadresse } returns mockk(relaxed = true)
+            every { geografiskTilknytning } returns mockk(relaxed = true)
 
         }
 
@@ -191,6 +192,7 @@ class DodsmeldingBehandlerTest {
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
             every { kontaktadresse } returns mockk(relaxed = true)
+            every { geografiskTilknytning } returns mockk(relaxed = true)
 
         }
 
@@ -402,6 +404,7 @@ class DodsmeldingBehandlerTest {
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
             every { kontaktadresse } returns mockk(relaxed = true)
+            every { geografiskTilknytning } returns mockk(relaxed = true)
 
         }
         every { safClient.hentDokumentMetadata("12345678901", FNR) } returns mockk {
@@ -474,6 +477,7 @@ class DodsmeldingBehandlerTest {
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
             every { kontaktadresse } returns mockk(relaxed = true)
+            every { geografiskTilknytning } returns mockk(relaxed = true)
         }
 
         dodsmeldingBehandler.behandle(personhendelse)
@@ -504,7 +508,7 @@ class DodsmeldingBehandlerTest {
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
             every { kontaktadresse } returns mockk(relaxed = true)
-
+            every { geografiskTilknytning } returns mockk(relaxed = true)
         }
 
         dodsmeldingBehandler.behandle(personhendelse)
@@ -535,6 +539,7 @@ class DodsmeldingBehandlerTest {
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
             every { kontaktadresse } returns mockk(relaxed = true)
+            every { geografiskTilknytning } returns mockk(relaxed = true)
         }
 
         val tilleggsopplysninger = """
