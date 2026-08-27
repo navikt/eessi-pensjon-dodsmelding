@@ -89,7 +89,12 @@ class DodsmeldingBehandler(
             }
 
             logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
-            val landInstitusjon = institusjon(brukerILeveAttReg.first, brukerILeveAttReg.second)
+            val fnr = person.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
+            if (fnr == null) {
+                logger.warn("Fant ingen norsk ident; avbryter opprettelse av H070")
+                return
+            }
+            val landInstitusjon = institusjon(fnr, brukerILeveAttReg.second)
                 .also { logger.info("Sender til institusjon: {}", it) }
             lagringsService.lagreFnrForBruker(identFraPdl.id)
             val h070 = opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra LeveAttestReg / edifact: $it, land: $landInstitusjon") }
