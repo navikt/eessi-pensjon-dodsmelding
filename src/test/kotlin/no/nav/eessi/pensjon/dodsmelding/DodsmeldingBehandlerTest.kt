@@ -133,6 +133,8 @@ class DodsmeldingBehandlerTest {
             every { utenlandskIdentifikasjonsnummer} returns emptyList()
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
+            every { kontaktadresse } returns mockk(relaxed = true)
+
         }
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
@@ -188,6 +190,8 @@ class DodsmeldingBehandlerTest {
             every { utenlandskIdentifikasjonsnummer} returns emptyList()
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
+            every { kontaktadresse } returns mockk(relaxed = true)
+
         }
 
         every {
@@ -397,6 +401,8 @@ class DodsmeldingBehandlerTest {
             every { utenlandskIdentifikasjonsnummer} returns emptyList()
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
+            every { kontaktadresse } returns mockk(relaxed = true)
+
         }
         every { safClient.hentDokumentMetadata("12345678901", FNR) } returns mockk {
             every { data } returns mockk {
@@ -467,6 +473,7 @@ class DodsmeldingBehandlerTest {
             every { utenlandskIdentifikasjonsnummer} returns emptyList()
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
+            every { kontaktadresse } returns mockk(relaxed = true)
         }
 
         dodsmeldingBehandler.behandle(personhendelse)
@@ -496,6 +503,8 @@ class DodsmeldingBehandlerTest {
             every { bostedsadresse} returns null
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
+            every { kontaktadresse } returns mockk(relaxed = true)
+
         }
 
         dodsmeldingBehandler.behandle(personhendelse)
@@ -525,6 +534,7 @@ class DodsmeldingBehandlerTest {
             every { bostedsadresse?.utenlandskAdresse } returns null
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
+            every { kontaktadresse } returns mockk(relaxed = true)
         }
 
         val tilleggsopplysninger = """
