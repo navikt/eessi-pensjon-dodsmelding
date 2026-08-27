@@ -67,7 +67,10 @@ class DodsmeldingBehandler(
         }
         secureLogger.info("oppholdsadresse for H070: ${person.oppholdsadresse?.toJson()}")
         secureLogger.info("kontaktadresse for H070: ${person.kontaktadresse?.toJson()}")
-        secureLogger.info("geografiskTilknytning for H070: ${person.geografiskTilknytning?.toJson()}")
+        secureLogger.info("innflytting for H070: ${person.innflyttingTilNorge?.toJson()}")
+        secureLogger.info("utflytting for H070: ${person.utflyttingFraNorge?.toJson()}")
+
+//        secureLogger.info("geografiskTilknytning for H070: ${person.geografiskTilknytning?.toJson()}")
 
         val pin = opprettPinListe(person)
         if (pin.none { it.land == "NOR" }) {
