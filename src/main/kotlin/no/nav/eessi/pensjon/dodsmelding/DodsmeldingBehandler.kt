@@ -65,6 +65,7 @@ class DodsmeldingBehandler(
             logger.info("Bruker har utenlandsk adresse. Oppretter dermed ikke H070")
             return
         }
+        secureLogger.info("bostedsadresseInklHistoriske for H070: ${person.bostedsadresseInklHistoriske?.toJson()}")
         secureLogger.info("oppholdsadresse for H070: ${person.oppholdsadresse?.toJson()}")
         secureLogger.info("kontaktadresse for H070: ${person.kontaktadresse?.toJson()}")
         secureLogger.info("innflytting for H070: ${person.innflyttingTilNorge?.toJson()}")

@@ -137,6 +137,7 @@ class DodsmeldingBehandlerTest {
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
+            every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
         }
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
@@ -196,6 +197,7 @@ class DodsmeldingBehandlerTest {
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
+            every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
         }
 
         every {
@@ -409,6 +411,7 @@ class DodsmeldingBehandlerTest {
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
+            every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
 
         }
         every { safClient.hentDokumentMetadata("12345678901", FNR) } returns mockk {
@@ -484,6 +487,7 @@ class DodsmeldingBehandlerTest {
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
+            every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
         }
 
         dodsmeldingBehandler.behandle(personhendelse)
@@ -517,6 +521,8 @@ class DodsmeldingBehandlerTest {
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
+            every { bostedsadresse?.utenlandskAdresse } returns null
+            every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
         }
 
         dodsmeldingBehandler.behandle(personhendelse)
@@ -550,6 +556,7 @@ class DodsmeldingBehandlerTest {
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
+            every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
         }
 
         val tilleggsopplysninger = """

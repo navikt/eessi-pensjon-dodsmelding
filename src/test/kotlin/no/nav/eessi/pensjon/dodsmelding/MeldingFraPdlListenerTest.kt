@@ -238,6 +238,7 @@ class MeldingFraPdlListenerTest {
         emptyList(),
         null,
         null,
+        null,
         listOf(
             Statsborgerskap(
                 "NOR",
