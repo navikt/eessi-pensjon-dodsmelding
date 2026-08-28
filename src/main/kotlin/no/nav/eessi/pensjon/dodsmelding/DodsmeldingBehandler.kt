@@ -205,6 +205,7 @@ class DodsmeldingBehandler(
     }
 
     fun institusjon(fnr: String, landFraIdentUtland: String): String {
+        secureLogger.info("Institusjoner $fnr,+$landFraIdentUtland")
         val ytelsesInfo = pesysKlient.hentPensjonSaklist(fnr).also { logger.info("Henter pensjonsakliste: {}", it.toJson()) }
         val penytelse = ytelsesInfo.firstOrNull { it.sakType in listOf(UFOREP, GJENLEV, BARNEP, ALDER, OMSORG) }
 
