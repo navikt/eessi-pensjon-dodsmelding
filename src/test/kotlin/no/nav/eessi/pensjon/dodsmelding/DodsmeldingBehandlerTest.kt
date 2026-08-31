@@ -80,7 +80,7 @@ class DodsmeldingBehandlerTest {
             every { personidenter } returns listOf("12345678901")
         }
         val ident = Ident.bestemIdent("12345678901")
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns emptyList()
             every { identer } returns emptyList()
             every { bostedsadresse } returns mockk(relaxed = true) {
@@ -93,7 +93,7 @@ class DodsmeldingBehandlerTest {
 
         dodsmeldingBehandler.behandle(personhendelse)
 
-        verify(exactly = 1) { personService.hentPerson(ident) }
+        verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
@@ -103,14 +103,14 @@ class DodsmeldingBehandlerTest {
             every { personidenter } returns listOf("12345678901")
         }
         val ident = Ident.bestemIdent("12345678901")
-        every { personService.hentPerson(ident) } returns null
+        every { personService.hentPersonUtvidet(ident) } returns null
         every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
         every { lagringsService.finnesDoedsmeldingAlleredeForBruker(any()) } returns mockk(relaxed = true )
 
 
         dodsmeldingBehandler.behandle(personhendelse)
 
-        verify(exactly = 1) { personService.hentPerson(ident) }
+        verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
@@ -120,7 +120,7 @@ class DodsmeldingBehandlerTest {
             every { personidenter } returns listOf("12345678901")
         }
         val ident = Ident.bestemIdent("12345678901")
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
                 mockk {
                     every { utstederland } returns "DEU"
@@ -144,7 +144,7 @@ class DodsmeldingBehandlerTest {
 
         dodsmeldingBehandler.behandle(personhendelse)
 
-        verify(exactly = 1) { personService.hentPerson(ident) }
+        verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
@@ -156,7 +156,7 @@ class DodsmeldingBehandlerTest {
             every { personidenter } returns listOf("12345678901")
         }
         val ident = Ident.bestemIdent("12345678901")
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
                 mockk { every { utstederland } returns land }
             )
@@ -181,7 +181,7 @@ class DodsmeldingBehandlerTest {
             every { personidenter } returns listOf("12345678901")
         }
         val ident = Ident.bestemIdent("12345678901")
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
                 mockk {
                     every { utstederland } returns "SWE"
@@ -263,7 +263,7 @@ class DodsmeldingBehandlerTest {
             every { personidenter } returns listOf("12345678901")
         }
         val ident = Ident.bestemIdent("12345678901")
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
                 mockk {
                     every { utstederland } returns "DEU"
@@ -301,7 +301,7 @@ class DodsmeldingBehandlerTest {
             every { personidenter } returns listOf("12345678901")
         }
         val ident = Ident.bestemIdent("12345678901")
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
                 mockk {
                     every { utstederland } returns "SWE"
@@ -352,7 +352,7 @@ class DodsmeldingBehandlerTest {
             every { personidenter } returns listOf("12345678901")
         }
         val ident = Ident.bestemIdent("12345678901")
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
                 mockk {
                     every { utstederland } returns "SWE"
@@ -396,7 +396,7 @@ class DodsmeldingBehandlerTest {
             every { personidenter } returns listOf("12345678901")
         }
         val ident = Ident.bestemIdent("12345678901")
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
                 mockk {
                     every { utstederland } returns "SWE"
@@ -445,7 +445,7 @@ class DodsmeldingBehandlerTest {
         val ident = Ident.bestemIdent("12345678901")
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns emptyList()
             every { identer } returns listOf(
                 IdentInformasjon("ugyldig", IdentGruppe.FOLKEREGISTERIDENT),
@@ -460,7 +460,7 @@ class DodsmeldingBehandlerTest {
 
         dodsmeldingBehandler.behandle(personhendelse)
 
-        verify(exactly = 1) { personService.hentPerson(ident) }
+        verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
     }
 
     @Test
@@ -472,7 +472,7 @@ class DodsmeldingBehandlerTest {
         val ident = Ident.bestemIdent(norskIdent)
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(UtenlandskIdentifikasjonsnummer(
                 identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = mockk())
             )
@@ -492,7 +492,7 @@ class DodsmeldingBehandlerTest {
 
         dodsmeldingBehandler.behandle(personhendelse)
 
-        verify(exactly = 1) { personService.hentPerson(ident) }
+        verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any(), any()) }
 //        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
@@ -506,7 +506,7 @@ class DodsmeldingBehandlerTest {
         val ident = Ident.bestemIdent(norskIdent)
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair(norskIdent, "FI")
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { bostedsadresse?.utenlandskAdresse } returns mockk(relaxed = true)
             every { utenlandskIdentifikasjonsnummer } returns listOf(UtenlandskIdentifikasjonsnummer(
                 identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = mockk())
@@ -527,7 +527,7 @@ class DodsmeldingBehandlerTest {
 
         dodsmeldingBehandler.behandle(personhendelse)
 
-        verify(exactly = 1) { personService.hentPerson(ident) }
+        verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any(), any()) }
 //        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
@@ -542,7 +542,7 @@ class DodsmeldingBehandlerTest {
         val ident = Ident.bestemIdent(norskIdent)
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns null
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(UtenlandskIdentifikasjonsnummer(
                 identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = mockk())
             )
@@ -595,7 +595,7 @@ class DodsmeldingBehandlerTest {
 
         dodsmeldingBehandler.behandle(personhendelse)
 
-        verify(exactly = 1) { personService.hentPerson(ident) }
+        verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         verify(exactly = 1) { euxService.hentAvsenderLand(bucid) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any(), any()) }
         //TODO: kan kommenteres inn etter prodsetting av sende ut H070 sed

@@ -41,14 +41,13 @@ class MeldingFraPdlListener(
     fun mottaLeesahMelding(consumerRecords: List<ConsumerRecord<String, Personhendelse>>, ack: Acknowledgment) {
         try {
 //            logger.info("Behandler ${consumerRecords.size} meldinger, firstOffset=${consumerRecords.first().offset()}, lastOffset=${consumerRecords.last().offset()}")
-            var recordCount = 0
-            consumerRecords.forEach { record ->
+            consumerRecords.forEachIndexed { recordCount, record ->
                 leesahKafkaListenerMetric.measure {
                     val personhendelse = record.value()
                     MDC.put("x_request_id", UUID.randomUUID().toString())
                     try {
                         when (personhendelse.opplysningstype) {
-                            "DOEDSFALL_V1" -> behandleDoedsfall(personhendelse, consumerRecords, recordCount++)
+                            "DOEDSFALL_V1" -> behandleDoedsfall(personhendelse, consumerRecords, recordCount)
                             "BOSTEDSADRESSE_V1", "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1" ->
                                 messureOpplysningstype.addKjent(personhendelse)
                             else -> messureOpplysningstype.addUkjent(personhendelse)

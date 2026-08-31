@@ -4,6 +4,7 @@ import no.nav.eessi.pensjon.eux.model.SedType
 import no.nav.eessi.pensjon.eux.model.sed.H070
 import no.nav.eessi.pensjon.eux.model.sed.PinItem
 import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPerson
+import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet
 import no.nav.person.pdl.leesah.Personhendelse
 import org.springframework.stereotype.Component
 import java.time.LocalDate
@@ -12,7 +13,7 @@ import java.time.format.DateTimeFormatter
 @Component
 class OpprettH070  {
 
-    fun preutFyltH070(personhendelse: Personhendelse, pdlPerson: PdlPerson, pin: List<PinItem>): H070 {
+    fun preutFyltH070(personhendelse: Personhendelse, pdlPerson: PdlPersonUtvidet, pin: List<PinItem>): H070 {
         val person = Person(
             //1.1 Personnummer
             //1.1.7.1 Personnummer

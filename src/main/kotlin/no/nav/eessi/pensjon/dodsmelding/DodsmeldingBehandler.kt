@@ -11,6 +11,7 @@ import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPerson
+import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet
 import no.nav.eessi.pensjon.utils.toJson
 import no.nav.person.pdl.leesah.Personhendelse
 import org.slf4j.Logger
@@ -53,7 +54,7 @@ class DodsmeldingBehandler(
             return
         }
 
-        val person = personService.hentPerson(identFraPdl).also { logger.debug("Henter person: {}", it) }
+        val person = personService.hentPersonUtvidet(identFraPdl).also { logger.debug("Henter person: {}", it) }
         secureLogger.info("Personhendelse for H070: ${person?.doedsfall?.toJson()}")
         if (person == null) {
             logger.warn("Fant ingen personident")
@@ -159,7 +160,7 @@ class DodsmeldingBehandler(
 //    }
 
 
-    private fun opprettPinListe(person: PdlPerson): List<PinItem> {
+    private fun opprettPinListe(person: PdlPersonUtvidet): List<PinItem> {
         val norskIdent = person.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
         val utenlandskIdent = person.utenlandskIdentifikasjonsnummer.firstOrNull()
 

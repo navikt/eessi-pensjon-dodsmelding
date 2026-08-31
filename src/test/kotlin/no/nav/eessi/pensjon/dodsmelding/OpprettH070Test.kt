@@ -43,6 +43,9 @@ class OpprettH070Test {
             forelderBarnRelasjon = emptyList(),
             sivilstand = emptyList(),
         )
+        val pdlPersonUtvidet = PdlPersonUtvidet(
+            pdlPerson = pdlPerson
+        )
 
         val personhendelse = mockk<Personhendelse> {
             every { personidenter } returns listOf(identNorge)
@@ -59,7 +62,7 @@ class OpprettH070Test {
             )
         )
 
-        val response = opprettH070.preutFyltH070(personhendelse, pdlPerson, pin)
+        val response = opprettH070.preutFyltH070(personhendelse, pdlPersonUtvidet, pin)
 
         assertEquals("2024-05-01", response.hnav?.bruker?.doedsfall?.doedsdato)
 

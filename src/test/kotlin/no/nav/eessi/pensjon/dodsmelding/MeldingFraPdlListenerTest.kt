@@ -88,7 +88,7 @@ class MeldingFraPdlListenerTest {
         val hendelse1 = hentHendelsefraFil("/leesha/leesha_doedsfall_hendelse1.json")
 
         val ident = Ident.bestemIdent("1000016953359")
-        every { personService.hentPerson(ident) } returns null
+        every { personService.hentPersonUtvidet(ident) } returns null
 
         listener.mottaLeesahMelding(mockConsumerRecord(listOf(hendelse1)), mockAck)
 
@@ -99,22 +99,26 @@ class MeldingFraPdlListenerTest {
     fun `mottaLeesahMelding på dødsfall med gyldig utenlandsk ident henter dokumentmetadata`() {
 
         val ident = Ident.bestemIdent("12345678901")
-        every { personService.hentPerson(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
                 mockk {
                     every { utstederland } returns "SWE"
                     every { identifikasjonsnummer } returns "12345678901"
                 }
             )
-            every { bostedsadresse } returns mockk(relaxed = true) {
-                every { utenlandskAdresse } returns mockk(relaxed = true)
-            }
+            every { bostedsadresse?.utenlandskAdresse } returns mockk(relaxed = true)
             every { kjoenn } returns Kjoenn(KjoennType.KVINNE, metadata = mockMeta())
             every { foedselsdato } returns Foedselsdato(foedselsdato = "1999-10-10", metadata = mockMeta())
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
             every { navn } returns Navn(fornavn = "Karen", etternavn = "Nordmann", metadata = mockMeta())
-            every { doedsfall } returns null
-            every { oppholdsadresse } returns mockk(relaxed = true)
+            every { utenlandskIdentifikasjonsnummer } returns listOf(
+                mockk {
+                    every { utstederland } returns "SWE"
+                    every { identifikasjonsnummer } returns "12345678901"
+                    every { doedsfall } returns mockk(relaxed = true)
+                }
+            )
+            every { bostedsadresse } returns mockk(relaxed = true)
         }
 
         every { safClient.hentDokumentMetadata("12345678901", FNR) } returns mockk {
@@ -236,7 +240,6 @@ class MeldingFraPdlListenerTest {
         listOf(IdentInformasjon(fnr, IdentGruppe.AKTORID)),
         Navn(fornavn, null, etternavn, null, null, null, mockMeta()),
         emptyList(),
-        null,
         null,
         null,
         listOf(
