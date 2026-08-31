@@ -10,6 +10,7 @@ import no.nav.eessi.pensjon.eux.model.Motparter
 import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
+import no.nav.eessi.pensjon.personoppslag.pdl.model.Bostedsadresse
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
@@ -47,6 +48,15 @@ class DodsmeldingBehandlerTest {
 
     private lateinit var dodsmeldingBehandler: DodsmeldingBehandler
 
+    private fun bostedsadresseMedUtenlandskAdresse(utenlandskAdresse: UtenlandskAdresse? = null): Bostedsadresse =
+        mockk(relaxed = true) {
+            every { this@mockk.utenlandskAdresse } returns utenlandskAdresse
+            every { gyldigFraOgMed } returns null
+            every { gyldigTilOgMed } returns null
+            every { vegadresse } returns null
+            every { metadata } returns mockk(relaxed = true)
+        }
+
     @BeforeEach
     fun setup() {
         dodsmeldingBehandler = DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, safService, lagringsService, "q2")
@@ -83,9 +93,7 @@ class DodsmeldingBehandlerTest {
         every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns emptyList()
             every { identer } returns emptyList()
-            every { bostedsadresse } returns mockk(relaxed = true) {
-                every { utenlandskAdresse } returns mockk(relaxed = true)
-            }
+            every { bostedsadresse } returns bostedsadresseMedUtenlandskAdresse(mockk(relaxed = true))
             every { utenlandskIdentifikasjonsnummer} returns emptyList()
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
@@ -129,6 +137,7 @@ class DodsmeldingBehandlerTest {
 
             )
             every { identer } returns emptyList()
+            every { bostedsadresse } returns null
             every { bostedsadresse?.utenlandskAdresse } returns null
             every { utenlandskIdentifikasjonsnummer} returns emptyList()
             every { doedsfall } returns null
@@ -188,6 +197,7 @@ class DodsmeldingBehandlerTest {
                     every { identifikasjonsnummer } returns "SE1234567890"
                 }
             )
+            every { bostedsadresse } returns null
             every { bostedsadresse?.utenlandskAdresse } returns null
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
             every { utenlandskIdentifikasjonsnummer} returns emptyList()
@@ -276,9 +286,7 @@ class DodsmeldingBehandlerTest {
             )
             every { utenlandskIdentifikasjonsnummer} returns emptyList()
             every { doedsfall } returns null
-            every { bostedsadresse } returns mockk(relaxed = true) {
-                every { utenlandskAdresse } returns mockk(relaxed = true)
-            }
+            every { bostedsadresse } returns bostedsadresseMedUtenlandskAdresse(mockk(relaxed = true))
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
             every { oppholdsadresse } returns mockk(relaxed = true)
         }
@@ -309,9 +317,7 @@ class DodsmeldingBehandlerTest {
                 }
             )
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
-            every { bostedsadresse } returns mockk(relaxed = true) {
-                every { utenlandskAdresse } returns mockk(relaxed = true)
-            }
+            every { bostedsadresse } returns bostedsadresseMedUtenlandskAdresse(mockk(relaxed = true))
             every { utenlandskIdentifikasjonsnummer} returns emptyList()
             every { doedsfall } returns null
         }
@@ -360,9 +366,7 @@ class DodsmeldingBehandlerTest {
                 }
             )
             every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
-            every { bostedsadresse } returns mockk(relaxed = true) {
-                every { utenlandskAdresse } returns mockk(relaxed = true)
-            }
+            every { bostedsadresse } returns bostedsadresseMedUtenlandskAdresse(mockk(relaxed = true))
             every { utenlandskIdentifikasjonsnummer} returns emptyList()
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
@@ -451,9 +455,7 @@ class DodsmeldingBehandlerTest {
                 IdentInformasjon("ugyldig", IdentGruppe.FOLKEREGISTERIDENT),
                 IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT),
                 IdentInformasjon("98765432100", IdentGruppe.FOLKEREGISTERIDENT))
-            every { bostedsadresse } returns mockk(relaxed = true) {
-                every { utenlandskAdresse } returns mockk(relaxed = true)
-            }
+            every { bostedsadresse } returns bostedsadresseMedUtenlandskAdresse(mockk(relaxed = true))
             every { utenlandskIdentifikasjonsnummer} returns emptyList()
             every { doedsfall } returns null
         }
@@ -479,6 +481,7 @@ class DodsmeldingBehandlerTest {
             every { identer } returns listOf(
                 IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
             )
+            every { bostedsadresse } returns null
             every { bostedsadresse?.utenlandskAdresse } returns null
             every { utenlandskIdentifikasjonsnummer} returns emptyList()
             every { doedsfall } returns null
@@ -507,21 +510,20 @@ class DodsmeldingBehandlerTest {
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair(norskIdent, "FI")
         every { personService.hentPersonUtvidet(ident) } returns mockk {
-            every { bostedsadresse?.utenlandskAdresse } returns mockk(relaxed = true)
+            every { bostedsadresse } returns null
+            every { bostedsadresse?.utenlandskAdresse } returns null
             every { utenlandskIdentifikasjonsnummer } returns listOf(UtenlandskIdentifikasjonsnummer(
                 identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = mockk())
             )
             every { identer } returns listOf(
                 IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
             )
-            every { bostedsadresse} returns null
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
             every { kontaktadresse } returns mockk(relaxed = true)
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
-            every { bostedsadresse?.utenlandskAdresse } returns null
             every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
         }
 

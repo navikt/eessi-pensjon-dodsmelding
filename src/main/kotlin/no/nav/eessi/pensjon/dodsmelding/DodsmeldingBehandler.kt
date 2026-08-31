@@ -36,6 +36,15 @@ class DodsmeldingBehandler(
     private val logger: Logger = LoggerFactory.getLogger(DodsmeldingBehandler::class.java)
     private val secureLogger = LoggerFactory.getLogger("secureLog")
 
+    private fun logJsonValue(label: String, value: (() -> Any?)?) {
+        try {
+            val resolvedValue = value?.invoke()
+            secureLogger.info("$label: ${resolvedValue?.toJson() ?: "null"}")
+        } catch (_: Exception) {
+            secureLogger.info("$label: <not available>")
+        }
+    }
+
     val gyldigeUtstederland = listOf("SE", "SW", "SWE", "FI", "FIN", "PO", "POL")
 
     fun behandle(personhendelse: Personhendelse) {
@@ -62,15 +71,28 @@ class DodsmeldingBehandler(
         }
 
         if(person.bostedsadresse?.utenlandskAdresse != null) {
-            secureLogger.info("bostedsadresse for H070: ${person.bostedsadresse?.toJson()}")
+            logJsonValue("bostedsadresse for H070") { person.bostedsadresse?.utenlandskAdresse }
             logger.info("Bruker har utenlandsk adresse. Oppretter dermed ikke H070")
             return
         }
-        secureLogger.info("bostedsadresseInklHistoriske for H070: ${person.bostedsadresseInklHistoriske?.toJson()}")
-        secureLogger.info("oppholdsadresse for H070: ${person.oppholdsadresse?.toJson()}")
-        secureLogger.info("kontaktadresse for H070: ${person.kontaktadresse?.toJson()}")
-        secureLogger.info("innflytting for H070: ${person.innflyttingTilNorge?.toJson()}")
-        secureLogger.info("utflytting for H070: ${person.utflyttingFraNorge?.toJson()}")
+        logJsonValue("oppholdsadresse for H070") { person.oppholdsadresse?.utenlandskAdresse }
+        logJsonValue("kontaktadresse for H070") {
+            person.kontaktadresse?.utenlandskAdresse
+                ?: person.kontaktadresse?.utenlandskAdresseIFrittFormat
+                ?: person.kontaktadresse?.postadresseIFrittFormat
+        }
+        logJsonValue("bostedsadresse for H070") { person.bostedsadresse?.utenlandskAdresse }
+
+        logJsonValue("bostedsadresseInklHistoriske for H070") { person.bostedsadresseInklHistoriske?.utenlandskAdresse }
+        logJsonValue("kontaktadresseInklHistoriske for H070") {
+            person.kontaktadresseInklHistoriske?.utenlandskAdresse
+                ?: person.kontaktadresseInklHistoriske?.utenlandskAdresseIFrittFormat
+                ?: person.kontaktadresseInklHistoriske?.postadresseIFrittFormat
+        }
+        logJsonValue("oppholdsadresseInklHistoriske for H070") { person.oppholdsadresseInklHistoriske?.utenlandskAdresse }
+
+        logJsonValue("innflytting for H070") { person.innflyttingTilNorge }
+        logJsonValue("utflytting for H070") { person.utflyttingFraNorge }
 
 //        secureLogger.info("geografiskTilknytning for H070: ${person.geografiskTilknytning?.toJson()}")
 
