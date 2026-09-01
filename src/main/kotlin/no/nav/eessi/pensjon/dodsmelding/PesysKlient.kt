@@ -35,7 +35,7 @@ class PesysKlient(private val pesysClientRestTemplate: RestTemplate) {
                 String::class.java).body
             responsebody.orEmpty().also { logger.debug("Response body fra fagmodul: $it") }
         } catch(ex: Exception) {
-            logger.error("En feil oppstod under henting av pensjonsakliste ex: $ex", ex)
+            logger.warn("En feil oppstod under henting av pensjonsakliste ex: $ex", ex)
             return emptyList<SakInformasjon>()
         }
 
