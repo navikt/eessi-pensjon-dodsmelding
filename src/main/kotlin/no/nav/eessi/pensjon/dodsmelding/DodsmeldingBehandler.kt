@@ -36,15 +36,6 @@ class DodsmeldingBehandler(
     private val logger: Logger = LoggerFactory.getLogger(DodsmeldingBehandler::class.java)
     private val secureLogger = LoggerFactory.getLogger("secureLog")
 
-    private fun logJsonValue(label: String, value: (() -> Any?)?) {
-        try {
-            val resolvedValue = value?.invoke()
-            secureLogger.info("$label: ${resolvedValue?.toJson() ?: "null"}")
-        } catch (_: Exception) {
-            secureLogger.info("$label: <not available>")
-        }
-    }
-
     val gyldigeUtstederland = listOf("SE", "SW", "SWE", "FI", "FIN", "PO", "POL")
 
     fun behandle(personhendelse: Personhendelse) {
@@ -70,37 +61,11 @@ class DodsmeldingBehandler(
             return
         }
 
-        if(person.bostedsadresse?.utenlandskAdresse != null) {
-            logJsonValue("bostedsadresse for H070") { person.bostedsadresse?.utenlandskAdresse }
-            logger.info("Bruker har utenlandsk adresse. Oppretter dermed ikke H070")
+        val land = hentLandFraKontaktadresse(person)
+        if(land == null || land !in gyldigeUtstederland) {
+            logger.info("Bruker har utenlandsk adresse, men utstederland ($land) er ikke gyldig for opprettelse av H070")
             return
         }
-        logJsonValue("oppholdsadresse for H070") { person.oppholdsadresse?.utenlandskAdresse }
-        when {
-            person.kontaktadresse?.utenlandskAdresse != null ->
-                logJsonValue("kontaktadresse for H070 (utenlandskAdresse)") { person.kontaktadresse?.utenlandskAdresse }
-            person.kontaktadresse?.utenlandskAdresseIFrittFormat != null ->
-                logJsonValue("kontaktadresse for H070 (utenlandskAdresseIFrittFormat)") { person.kontaktadresse?.utenlandskAdresseIFrittFormat }
-            person.kontaktadresse?.postadresseIFrittFormat != null ->
-                logJsonValue("kontaktadresse for H070 (postadresseIFrittFormat)") { person.kontaktadresse?.postadresseIFrittFormat }
-        }
-        logJsonValue("bostedsadresse for H070") { person.bostedsadresse?.utenlandskAdresse }
-
-        logJsonValue("bostedsadresseInklHistoriske for H070") { person.bostedsadresseInklHistoriske?.utenlandskAdresse }
-        when {
-            person.kontaktadresseInklHistoriske?.utenlandskAdresse != null ->
-                logJsonValue("kontaktadresseInklHistoriske for H070 (utenlandskAdresse)") { person.kontaktadresseInklHistoriske?.utenlandskAdresse }
-            person.kontaktadresseInklHistoriske?.utenlandskAdresseIFrittFormat != null ->
-                logJsonValue("kontaktadresseInklHistoriske for H070 (utenlandskAdresseIFrittFormat)") { person.kontaktadresseInklHistoriske?.utenlandskAdresseIFrittFormat }
-            person.kontaktadresseInklHistoriske?.postadresseIFrittFormat != null ->
-                logJsonValue("kontaktadresseInklHistoriske for H070 (postadresseIFrittFormat)") { person.kontaktadresseInklHistoriske?.postadresseIFrittFormat }
-        }
-        logJsonValue("oppholdsadresseInklHistoriske for H070") { person.oppholdsadresseInklHistoriske?.utenlandskAdresse }
-
-        logJsonValue("innflytting for H070") { person.innflyttingTilNorge }
-        logJsonValue("utflytting for H070") { person.utflyttingFraNorge }
-
-//        secureLogger.info("geografiskTilknytning for H070: ${person.geografiskTilknytning?.toJson()}")
 
         val pin = opprettPinListe(person)
         if (pin.none { it.land == "NOR" }) {
@@ -261,6 +226,38 @@ class DodsmeldingBehandler(
             "FI", "FIN" -> "FI:0200000010"
             "PL", "POL" -> "PL:PL390050ER"
             else -> throw IllegalArgumentException("Ugyldig land. $land er ikke en av de gyldige landene for opprettelse av H070")
+        }
+    }
+
+    private fun hentLandFraKontaktadresse(person: PdlPersonUtvidet): String? {
+        val kontaktadresse = person.kontaktadresseInklHistoriske
+        val utenlandskAdresse = kontaktadresse?.utenlandskAdresse
+        val utenlandskAdresseIFrittFormat = kontaktadresse?.utenlandskAdresseIFrittFormat
+
+        return when {
+            utenlandskAdresse != null -> {
+                logJsonValue("kontaktadresseInklHistoriske for H070 (utenlandskAdresse)") { utenlandskAdresse }
+                utenlandskAdresse.landkode
+            }
+
+            utenlandskAdresseIFrittFormat != null -> {
+                logJsonValue("kontaktadresseInklHistoriske for H070 (utenlandskAdresseIFrittFormat)") { utenlandskAdresseIFrittFormat }
+                utenlandskAdresseIFrittFormat.landkode
+            }
+
+            else -> {
+                logJsonValue("kontaktadresseInklHistoriske for H070 (ingen utenlandsk adresse)") { kontaktadresse }
+                null
+            }
+        }
+    }
+
+    private fun logJsonValue(label: String, value: (() -> Any?)?) {
+        try {
+            val resolvedValue = value?.invoke()
+            secureLogger.info("$label: ${resolvedValue?.toJson() ?: "null"}")
+        } catch (_: Exception) {
+            secureLogger.info("$label: <not available>")
         }
     }
 

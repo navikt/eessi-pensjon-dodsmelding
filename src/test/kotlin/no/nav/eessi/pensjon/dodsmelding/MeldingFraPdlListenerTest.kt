@@ -106,6 +106,12 @@ class MeldingFraPdlListenerTest {
                     every { identifikasjonsnummer } returns "12345678901"
                 }
             )
+            every { kontaktadresseInklHistoriske } returns mockk(relaxed = true) {
+                every { utenlandskAdresse } returns mockk(relaxed = true) {
+                    every { landkode } returns "SWE"
+                }
+                every { utenlandskAdresseIFrittFormat } returns null
+            }
             every { bostedsadresse?.utenlandskAdresse } returns mockk(relaxed = true)
             every { kjoenn } returns Kjoenn(KjoennType.KVINNE, metadata = mockMeta())
             every { foedselsdato } returns Foedselsdato(foedselsdato = "1999-10-10", metadata = mockMeta())
