@@ -76,10 +76,13 @@ class DodsmeldingBehandler(
             return
         }
         logJsonValue("oppholdsadresse for H070") { person.oppholdsadresse?.utenlandskAdresse }
-        logJsonValue("kontaktadresse for H070") {
-            person.kontaktadresse?.utenlandskAdresse
-                ?: person.kontaktadresse?.utenlandskAdresseIFrittFormat
-                ?: person.kontaktadresse?.postadresseIFrittFormat
+        when {
+            person.kontaktadresse?.utenlandskAdresse != null ->
+                logJsonValue("kontaktadresse for H070 (utenlandskAdresse)") { person.kontaktadresse?.utenlandskAdresse }
+            person.kontaktadresse?.utenlandskAdresseIFrittFormat != null ->
+                logJsonValue("kontaktadresse for H070 (utenlandskAdresseIFrittFormat)") { person.kontaktadresse?.utenlandskAdresseIFrittFormat }
+            person.kontaktadresse?.postadresseIFrittFormat != null ->
+                logJsonValue("kontaktadresse for H070 (postadresseIFrittFormat)") { person.kontaktadresse?.postadresseIFrittFormat }
         }
         logJsonValue("bostedsadresse for H070") { person.bostedsadresse?.utenlandskAdresse }
 
