@@ -62,8 +62,13 @@ class DodsmeldingBehandler(
         }
 
         val land = hentLandFraKontaktadresse(person)
-        if(land == null || land !in gyldigeUtstederland) {
-            logger.info("Bruker har utenlandsk adresse, men utstederland ($land) er ikke gyldig for opprettelse av H070")
+        if (land == null) {
+            logger.info("Bruker har ingen gyldig utenlandsk kontaktadresse; avbryter opprettelse av H070")
+            return
+        }
+
+        if (land !in gyldigeUtstederland) {
+            logger.info("Bruker har utenlandsk kontaktadresse, men utstederland ($land) er ikke gyldig for opprettelse av H070")
             return
         }
 
