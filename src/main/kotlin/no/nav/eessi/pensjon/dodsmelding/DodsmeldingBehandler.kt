@@ -65,6 +65,9 @@ class DodsmeldingBehandler(
         }
 
         val person = personService.hentPersonUtvidet(identFraPdl).also { logger.debug("Henter person: {}", it) }
+
+        person?.let { logPerson(it) }
+
         secureLogger.info("Personhendelse for H070: ${person?.doedsfall?.toJson()}")
         if (person == null) {
             logger.warn("Fant ingen personident")
@@ -151,6 +154,23 @@ class DodsmeldingBehandler(
             //TODO: Sjekk hvilken institusjon som skal legges til ut i fra hvilket land det er som skal motta H070 fra oss.
         }
 
+    }
+
+    private fun logPerson(person: PdlPersonUtvidet) {
+        if(person.bostedsadresseInklHistoriske != null) {
+            logJsonValue("bostedsadresse for H070") { person.bostedsadresseInklHistoriske }
+        }
+
+        if(person.oppholdsadresseInklHistoriske != null) {
+            logJsonValue("kontaktadresse for H070") { person.oppholdsadresseInklHistoriske }
+        }
+
+        if(person.kontaktadresseInklHistoriske != null) {
+            logJsonValue("kontaktadresseInklHistoriske for H070") { person.kontaktadresseInklHistoriske }
+        }
+
+        logJsonValue("innflytting for H070") { person.innflyttingTilNorge }
+        logJsonValue("utflytting for H070") { person.utflyttingFraNorge }
     }
 
 //    private fun brukerRinasakIdFraJoark(valgtPersonident: String): String? {

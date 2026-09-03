@@ -99,7 +99,7 @@ class MeldingFraPdlListenerTest {
     fun `mottaLeesahMelding på dødsfall med gyldig utenlandsk ident henter dokumentmetadata`() {
 
         val ident = Ident.bestemIdent("12345678901")
-        every { personService.hentPersonUtvidet(ident) } returns mockk {
+        every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
                 mockk {
                     every { utstederland } returns "SWE"
@@ -112,6 +112,8 @@ class MeldingFraPdlListenerTest {
                 }
                 every { utenlandskAdresseIFrittFormat } returns null
             }
+            every { oppholdsadresseInklHistoriske } returns null
+            every { bostedsadresseInklHistoriske } returns null
             every { bostedsadresse?.utenlandskAdresse } returns mockk(relaxed = true)
             every { kjoenn } returns Kjoenn(KjoennType.KVINNE, metadata = mockMeta())
             every { foedselsdato } returns Foedselsdato(foedselsdato = "1999-10-10", metadata = mockMeta())
