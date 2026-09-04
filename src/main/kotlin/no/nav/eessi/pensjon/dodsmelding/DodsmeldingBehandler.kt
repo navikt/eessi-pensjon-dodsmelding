@@ -66,11 +66,8 @@ class DodsmeldingBehandler(
         val person = personService.hentPersonUtvidet(identFraPdl).also { logger.debug("Henter person: {}", it) }
 
         val brukerILeveAttReg = lagringsService.finnesDodBrukerILeveAttReg(person?.identer)
+        val rinaSakId = if (brukerILeveAttReg == null) safService.brukerRinasakIdFraJoark(valgtPersonident) else null
 
-        var rinaSakId: String? = null
-        if(brukerILeveAttReg == null) {
-             rinaSakId = safService.brukerRinasakIdFraJoark(valgtPersonident)
-        }
         person?.let { logPerson(it, brukerILeveAttReg, rinaSakId) }
 
         secureLogger.info("Personhendelse for H070: ${person?.doedsfall?.toJson()}")
@@ -96,66 +93,80 @@ class DodsmeldingBehandler(
             return
         }
 
-        // sjekker ident mot leveattestregisteret.
         if (brukerILeveAttReg != null) {
-            require(brukerILeveAttReg.first.isNotEmpty()) { "Finner ikke fnr i leveattestregisteret" }
-            if (brukerILeveAttReg.second !in gyldigeUtstederland) {
-                logger.info("Bruker finnes i leveattestregisteret, men utstederland (${brukerILeveAttReg.second}) er ikke gyldig")
-                return
-            }
-
-            logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
-            val fnr = person.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
-            if (fnr == null) {
-                logger.warn("Fant ingen norsk ident; avbryter opprettelse av H070")
-                return
-            }
-            val landInstitusjon = institusjon(fnr, brukerILeveAttReg.second).also { logger.info("Sender til institusjon: {}", it) }
-
-            lagringsService.lagreFnrForBruker(identFraPdl.id)
-            val h070 = opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra LeveAttestReg / edifact: $it, land: $landInstitusjon") }
-            lagringsService.lagreH070(h070, H070_LAGRET_PREFIX_EDIFACT)
-//            opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
+            behandleLeveattest(personhendelse, person, pin, identFraPdl, brukerILeveAttReg)
             return
         }
 
-        // Sjekker ident i joark, om det finnes en P6000 som har avsender fra SE, PL, DK eller FI
-        else {
+        behandleJoark(personhendelse, person, pin, identFraPdl, rinaSakId)
+    }
 
-            if (rinaSakId.isNullOrBlank()) {
-                logger.info("Mangler rinaSakId fra Joark, avbryter")
-                return
-            }
-
-            val motparter = euxService.hentAvsenderLand(rinaSakId).also { logger.info("AvsenderLand: {}", it) }
-            if (motparter.isNullOrEmpty()) {
-                logger.warn("Mangler land, avbryter")
-                return
-            }
-
-            val mottakerLand = motparter
-                .mapNotNull { it.motpartLand?.trim() }
-                .firstOrNull { it in setOf("SE", "FI", "PL", "DK") }
-
-            if (mottakerLand.isNullOrBlank()) {
-                logger.warn("Mangler mottaker land, avbryter")
-                return
-            }
-
-            lagringsService.lagreFnrForBruker(identFraPdl.id)
-            val landInstitusjon = institusjon(identFraPdl.id, mottakerLand).also { logger.info("Sender til institusjon: {}", it) }
-            val h070 = opprettH070.preutFyltH070(personhendelse, person, pin)
-                .also { secureLogger.info("preutfylt h070 fra Joark/P6000: $it , land:$landInstitusjon") }
-            lagringsService.lagreH070(h070, H070_LAGRET_PREFIX_STANDARD)
-//        opprettOgSendH070(h070, mottakerLand)
-//            .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
-            logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand")
-            secureLogger.info("PersonHendelse for H070: $personhendelse")
-
-            //TODO: Sjekk hvilken ytelse bruker har før vi går videre med å preutfylle en H070
-            //TODO: Sjekk hvilken institusjon som skal legges til ut i fra hvilket land det er som skal motta H070 fra oss.
+    private fun behandleLeveattest(
+        personhendelse: Personhendelse,
+        person: PdlPersonUtvidet,
+        pin: List<PinItem>,
+        identFraPdl: Ident,
+        brukerILeveAttReg: Pair<String, String>
+    ) {
+        require(brukerILeveAttReg.first.isNotEmpty()) { "Finner ikke fnr i leveattestregisteret" }
+        if (brukerILeveAttReg.second !in gyldigeUtstederland) {
+            logger.info("Bruker finnes i leveattestregisteret, men utstederland (${brukerILeveAttReg.second}) er ikke gyldig")
+            return
         }
 
+        logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
+        val fnr = person.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
+        if (fnr == null) {
+            logger.warn("Fant ingen norsk ident; avbryter opprettelse av H070")
+            return
+        }
+        val landInstitusjon = institusjon(fnr, brukerILeveAttReg.second).also { logger.info("Sender til institusjon: {}", it) }
+
+        lagringsService.lagreFnrForBruker(identFraPdl.id)
+        val h070 = opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra LeveAttestReg / edifact: $it, land: $landInstitusjon") }
+        lagringsService.lagreH070(h070, H070_LAGRET_PREFIX_EDIFACT)
+//        opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
+    }
+
+    private fun behandleJoark(
+        personhendelse: Personhendelse,
+        person: PdlPersonUtvidet,
+        pin: List<PinItem>,
+        identFraPdl: Ident,
+        rinaSakId: String?
+    ) {
+        if (rinaSakId.isNullOrBlank()) {
+            logger.info("Mangler rinaSakId fra Joark, avbryter")
+            return
+        }
+
+        val motparter = euxService.hentAvsenderLand(rinaSakId).also { logger.info("AvsenderLand: {}", it) }
+        if (motparter.isNullOrEmpty()) {
+            logger.warn("Mangler land, avbryter")
+            return
+        }
+
+        val mottakerLand = motparter
+            .mapNotNull { it.motpartLand?.trim() }
+            .firstOrNull { it in setOf("SE", "FI", "PL", "DK") }
+
+        if (mottakerLand.isNullOrBlank()) {
+            logger.warn("Mangler mottaker land, avbryter")
+            return
+        }
+
+        lagringsService.lagreFnrForBruker(identFraPdl.id)
+        val landInstitusjon = institusjon(identFraPdl.id, mottakerLand).also { logger.info("Sender til institusjon: {}", it) }
+        val h070 = opprettH070.preutFyltH070(personhendelse, person, pin)
+            .also { secureLogger.info("preutfylt h070 fra Joark/P6000: $it , land:$landInstitusjon") }
+        lagringsService.lagreH070(h070, H070_LAGRET_PREFIX_STANDARD)
+//        opprettOgSendH070(h070, mottakerLand)
+//            .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
+        logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand")
+        secureLogger.info("PersonHendelse for H070: $personhendelse")
+
+        //TODO: Sjekk hvilken ytelse bruker har før vi går videre med å preutfylle en H070
+        //TODO: Sjekk hvilken institusjon som skal legges til ut i fra hvilket land det er som skal motta H070 fra oss.
     }
 
     private fun logPerson(person: PdlPersonUtvidet, brukerILeveAttReg: Pair<String, String>?, rinaSakId: String?) {
