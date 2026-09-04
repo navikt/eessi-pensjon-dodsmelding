@@ -10,7 +10,6 @@ import no.nav.eessi.pensjon.oppgaverouting.SakInformasjon
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
-import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPerson
 import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet
 import no.nav.eessi.pensjon.utils.toJson
 import no.nav.person.pdl.leesah.Personhendelse
@@ -66,7 +65,13 @@ class DodsmeldingBehandler(
 
         val person = personService.hentPersonUtvidet(identFraPdl).also { logger.debug("Henter person: {}", it) }
 
-        person?.let { logPerson(it) }
+        val brukerILeveAttReg = lagringsService.finnesDodBrukerILeveAttReg(person?.identer)
+
+        var rinaSakId: String? = null
+        if(brukerILeveAttReg == null) {
+             rinaSakId = safService.brukerRinasakIdFraJoark(valgtPersonident)
+        }
+        person?.let { logPerson(it, brukerILeveAttReg, rinaSakId) }
 
         secureLogger.info("Personhendelse for H070: ${person?.doedsfall?.toJson()}")
         if (person == null) {
@@ -92,7 +97,6 @@ class DodsmeldingBehandler(
         }
 
         // sjekker ident mot leveattestregisteret.
-        val brukerILeveAttReg = lagringsService.finnesDodBrukerILeveAttReg(person.identer)
         if (brukerILeveAttReg != null) {
             require(brukerILeveAttReg.first.isNotEmpty()) { "Finner ikke fnr i leveattestregisteret" }
             if (brukerILeveAttReg.second !in gyldigeUtstederland) {
@@ -117,8 +121,6 @@ class DodsmeldingBehandler(
 
         // Sjekker ident i joark, om det finnes en P6000 som har avsender fra SE, PL, DK eller FI
         else {
-
-            val rinaSakId = safService.brukerRinasakIdFraJoark(valgtPersonident)
 
             if (rinaSakId.isNullOrBlank()) {
                 logger.info("Mangler rinaSakId fra Joark, avbryter")
@@ -156,17 +158,17 @@ class DodsmeldingBehandler(
 
     }
 
-    private fun logPerson(person: PdlPersonUtvidet) {
+    private fun logPerson(person: PdlPersonUtvidet, brukerILeveAttReg: Pair<String, String>?, rinaSakId: String?) {
         if(person.bostedsadresseInklHistoriske != null) {
-            logJsonValue("bostedsadresse for H070") { person.bostedsadresseInklHistoriske }
+            logJsonValue("bruker i levattest: ${brukerILeveAttReg != null}, joark: $rinaSakId, bostedsadresse for H070") { person.bostedsadresseInklHistoriske }
         }
 
         if(person.oppholdsadresseInklHistoriske != null) {
-            logJsonValue("kontaktadresse for H070") { person.oppholdsadresseInklHistoriske }
+            logJsonValue("bruker i levattest: ${brukerILeveAttReg != null}, joark: $rinaSakId, kontaktadresse for H070") { person.oppholdsadresseInklHistoriske }
         }
 
         if(person.kontaktadresseInklHistoriske != null) {
-            logJsonValue("kontaktadresseInklHistoriske for H070") { person.kontaktadresseInklHistoriske }
+            logJsonValue("bruker i levattest: ${brukerILeveAttReg != null}, joark: $rinaSakId, kontaktadresseInklHistoriske for H070") { person.kontaktadresseInklHistoriske }
         }
 
         logJsonValue("innflytting for H070") { person.innflyttingTilNorge }
