@@ -17,6 +17,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
+import java.time.LocalDate
 
 
 private const val H070_LAGRET_PREFIX_STANDARD = "H070_STANDARD"
@@ -77,12 +78,13 @@ class DodsmeldingBehandler(
         }
 
         val land = hentLandFraKontaktadresse(person)
-        if (land == null) {
-            logger.info("Bruker har ingen gyldig utenlandsk kontaktadresse; avbryter opprettelse av H070")
-            return
-        }
+        val norskAdresse = harAktivNorskAdresse(person, personhendelse.doedsfall.doedsdato)
+//        if (land == null) {
+//            logger.info("Bruker har ingen gyldig utenlandsk kontaktadresse; avbryter opprettelse av H070")
+//            return
+//        }
 
-        if (land !in gyldigeUtstederland) {
+        if (!norskAdresse && land !in gyldigeUtstederland) {
             logger.info("Bruker har utenlandsk kontaktadresse, men utstederland ($land) er ikke gyldig for opprettelse av H070")
             return
         }
@@ -278,6 +280,13 @@ class DodsmeldingBehandler(
         }
     }
 
+    fun harAktivNorskAdresse(person: PdlPersonUtvidet, doedsdato: LocalDate): Boolean {
+        val bostedsadresse = person.bostedsadresseInklHistoriske ?: return false
+        if (bostedsadresse.vegadresse == null) return false
+        val gyldigTilOgMed = bostedsadresse.gyldigTilOgMed
+        return gyldigTilOgMed == null || gyldigTilOgMed.isAfter(doedsdato.atStartOfDay())
+    }
+
     private fun hentLandFraKontaktadresse(person: PdlPersonUtvidet): String? {
         val kontaktadresse = person.kontaktadresseInklHistoriske
         val utenlandskAdresse = kontaktadresse?.utenlandskAdresse
@@ -290,7 +299,7 @@ class DodsmeldingBehandler(
             }
 
             utenlandskAdresseIFrittFormat != null -> {
-                logJsonValue("kontaktadresseInklHistoriske for H070 (utenlandskAdresseIFrittFormat)") { utenlandskAdresseIFrittFormat }
+                logJsonValue("kontaktadresseInklHistoriske for H070 (utenlandskAdresseIFrittFormat)") { kontaktadresse }
                 utenlandskAdresseIFrittFormat.landkode
             }
 

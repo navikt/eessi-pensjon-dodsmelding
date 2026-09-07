@@ -6,7 +6,6 @@ import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
 import no.nav.eessi.pensjon.eux.EuxService
-import no.nav.eessi.pensjon.eux.klient.EuxKlientLib
 import no.nav.eessi.pensjon.eux.model.Motparter
 import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
@@ -33,6 +32,7 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.exchange
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 class DodsmeldingBehandlerTest {
@@ -45,7 +45,6 @@ class DodsmeldingBehandlerTest {
     private val opprettH070 = mockk<OpprettH070>()
     private val pesysKlient = mockk<PesysKlient>()
     private val euxService = mockk<EuxService>()
-    private val euxKlient = mockk<EuxKlientLib>()
     private val lagringsService = mockk<LagringsService>()
 
     private lateinit var dodsmeldingBehandler: DodsmeldingBehandler
@@ -55,6 +54,13 @@ class DodsmeldingBehandlerTest {
         every { gyldigFraOgMed } returns LocalDateTime.now()
         every { gyldigTilOgMed } returns null
         every { vegadresse } returns null
+    }
+
+    private fun personhendelseMock(vararg identer: String): Personhendelse = mockk {
+        every { personidenter } returns identer.toList()
+        every { doedsfall } returns mockk {
+            every { doedsdato } returns LocalDate.now()
+        }
     }
 
     @BeforeEach
@@ -75,9 +81,7 @@ class DodsmeldingBehandlerTest {
 
     @Test
     fun `behandle returnerer tidlig naar personhendelse har tom liste med identer`() {
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns emptyList()
-        }
+        val personhendelse = personhendelseMock()
 
         dodsmeldingBehandler.behandle(personhendelse)
 
@@ -87,9 +91,7 @@ class DodsmeldingBehandlerTest {
 
     @Test
     fun `behandle henter ikke dokumentmetadata naar person ikke har utenlandskIdentifikasjonsnummer`() {
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf("12345678901")
-        }
+        val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns emptyList()
@@ -116,9 +118,7 @@ class DodsmeldingBehandlerTest {
 
     @Test
     fun `behandle henter ikke dokumentmetadata naar person er null`() {
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf("12345678901")
-        }
+        val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns null
         every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
@@ -133,9 +133,7 @@ class DodsmeldingBehandlerTest {
 
     @Test
     fun `behandle henter ikke dokumentmetadata naar utstederland ikke er i gyldigeUtstederland`() {
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf("12345678901")
-        }
+        val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
@@ -178,9 +176,7 @@ class DodsmeldingBehandlerTest {
     @ParameterizedTest
     @CsvSource("SWE", "FIN", "POL")
     fun `behandle henter dokumentmetadata naar utstederland er `(land: String) {
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf("12345678901")
-        }
+        val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns mockk {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
@@ -209,9 +205,7 @@ class DodsmeldingBehandlerTest {
 
     @Test
     fun `behandle henter dokumentmetadata skal fungere uten tema`() {
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf("12345678901")
-        }
+        val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
@@ -306,9 +300,7 @@ class DodsmeldingBehandlerTest {
 
     @Test
     fun `behandle henter dokumentmetadata naar minst ett utstederland er gyldig blant flere`() {
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf("12345678901")
-        }
+        val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
@@ -350,9 +342,7 @@ class DodsmeldingBehandlerTest {
 
     @Test
     fun `behandle henter dokumentinnhold for journalposter med dokumenter`() {
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf("12345678901")
-        }
+        val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
@@ -411,9 +401,7 @@ class DodsmeldingBehandlerTest {
 
     @Test
     fun `behandle henter ikke dokumentinnhold naar journalpost har ingen dokumenter`() {
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf("12345678901")
-        }
+        val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
@@ -460,9 +448,7 @@ class DodsmeldingBehandlerTest {
 
     @Test
     fun `behandle henter ikke dokumentinnhold naar dokumenter har tom liste`() {
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf("12345678901")
-        }
+        val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
@@ -509,10 +495,8 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
-    fun `behandle velger første gyldige ident fra listen`() {
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf("ugyldig", "12345678901", "98765432100")
-        }
+    fun `behandle velger forste gyldige ident fra listen`() {
+        val personhendelse = personhendelseMock("ugyldig", "12345678901", "98765432100")
         val ident = Ident.bestemIdent("12345678901")
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
@@ -534,11 +518,9 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
-    fun `Når det kommer inn er dødsmelding på pdl køen saa skal det sjekkes om den ligger i bucket Dersom ja saa sendes det ut en H070 til utlandet`() {
+    fun `Nar det kommer inn er dodsmelding pa pdl koen saa skal det sjekkes om den ligger i bucket Dersom ja saa sendes det ut en H070 til utlandet`() {
         val norskIdent = "12345678901"
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf(norskIdent)
-        }
+        val personhendelse = personhendelseMock(norskIdent)
         val ident = Ident.bestemIdent(norskIdent)
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
@@ -576,11 +558,9 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
-    fun `Når det kommer inn er dødsmelding på pdl køen saa skal det sjekkes om den finnes i buvket eller joark Dersom ja saa sendes det ut en H070 til utlandet`() {
+    fun `Nar det kommer inn er dodsmelding pa pdl koen saa skal det sjekkes om den finnes i buvket eller joark Dersom ja saa sendes det ut en H070 til utlandet`() {
         val norskIdent = "12345678901"
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf(norskIdent)
-        }
+        val personhendelse = personhendelseMock(norskIdent)
         val ident = Ident.bestemIdent(norskIdent)
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair(norskIdent, "FI")
@@ -617,12 +597,10 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
-    fun `Når det kommer inn er dødsmelding på pdl køen saa skal det sjekkes om den finnes joark Dersom ja saa sendes det ut en H070 til utlandet`() {
+    fun `Nar det kommer inn er dodsmelding pa pdl koen saa skal det sjekkes om den finnes joark Dersom ja saa sendes det ut en H070 til utlandet`() {
         val norskIdent = "12345678901"
         val bucid = "1455350"
-        val personhendelse = mockk<Personhendelse> {
-            every { personidenter } returns listOf(norskIdent)
-        }
+        val personhendelse = personhendelseMock(norskIdent)
         val ident = Ident.bestemIdent(norskIdent)
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns null
