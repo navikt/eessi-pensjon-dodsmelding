@@ -284,8 +284,9 @@ class DodsmeldingBehandler(
         val bostedsadresse = person.bostedsadresseInklHistoriske ?: return false
         if (bostedsadresse.vegadresse == null) return false
         val gyldigTilOgMed = bostedsadresse.gyldigTilOgMed
-        logger.info("Har aktiv norsk adresse: ${gyldigTilOgMed == null || gyldigTilOgMed.isAfter(doedsdato.atStartOfDay())}")
-        return gyldigTilOgMed == null || gyldigTilOgMed.isAfter(doedsdato.atStartOfDay())
+        val harAktivNorskAdresse = gyldigTilOgMed == null || gyldigTilOgMed.isAfter(doedsdato.atStartOfDay())
+        logger.info("Har aktiv norsk adresse: $harAktivNorskAdresse")
+        return harAktivNorskAdresse
     }
 
     private fun hentLandFraKontaktadresse(person: PdlPersonUtvidet): String? {
