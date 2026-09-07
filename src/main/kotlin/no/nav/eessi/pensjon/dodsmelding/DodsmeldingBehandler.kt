@@ -84,7 +84,12 @@ class DodsmeldingBehandler(
 //            return
 //        }
 
-        if (!norskAdresse && land !in gyldigeUtstederland) {
+        if(norskAdresse.not() ) {
+            logger.info("Bruker har ingen gyldig norsk adresse; avbryter opprettelse av H070")
+            return
+        }
+
+        if (land !in gyldigeUtstederland) {
             logger.info("Bruker har utenlandsk kontaktadresse, men utstederland ($land) er ikke gyldig for opprettelse av H070")
             return
         }

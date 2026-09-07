@@ -56,6 +56,12 @@ class DodsmeldingBehandlerTest {
         every { vegadresse } returns null
     }
 
+    private fun aktivNorskAdresseMock() = mockk<Bostedsadresse>(relaxed = true) {
+        every { gyldigFraOgMed } returns LocalDateTime.now()
+        every { gyldigTilOgMed } returns null
+        every { vegadresse } returns mockk(relaxed = true)
+    }
+
     private fun personhendelseMock(vararg identer: String): Personhendelse = mockk {
         every { personidenter } returns identer.toList()
         every { doedsfall } returns mockk {
@@ -161,7 +167,7 @@ class DodsmeldingBehandlerTest {
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
-            every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
+            every { bostedsadresseInklHistoriske } returns aktivNorskAdresseMock()
         }
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
@@ -238,7 +244,7 @@ class DodsmeldingBehandlerTest {
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
-            every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
+            every { bostedsadresseInklHistoriske } returns aktivNorskAdresseMock()
         }
 
         every {
@@ -468,7 +474,7 @@ class DodsmeldingBehandlerTest {
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
-            every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
+            every { bostedsadresseInklHistoriske } returns aktivNorskAdresseMock()
 
         }
         every { safClient.hentDokumentMetadata("12345678901", FNR) } returns mockk {
@@ -547,7 +553,7 @@ class DodsmeldingBehandlerTest {
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
-            every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
+            every { bostedsadresseInklHistoriske } returns aktivNorskAdresseMock()
         }
 
         dodsmeldingBehandler.behandle(personhendelse)
@@ -586,7 +592,7 @@ class DodsmeldingBehandlerTest {
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
-            every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
+            every { bostedsadresseInklHistoriske } returns aktivNorskAdresseMock()
         }
 
         dodsmeldingBehandler.behandle(personhendelse)
@@ -625,7 +631,7 @@ class DodsmeldingBehandlerTest {
             every { geografiskTilknytning } returns mockk(relaxed = true)
             every { innflyttingTilNorge} returns mockk(relaxed = true)
             every { utflyttingFraNorge } returns mockk(relaxed = true)
-            every { bostedsadresseInklHistoriske } returns mockk(relaxed = true)
+            every { bostedsadresseInklHistoriske } returns aktivNorskAdresseMock()
         }
 
         val tilleggsopplysninger = """
