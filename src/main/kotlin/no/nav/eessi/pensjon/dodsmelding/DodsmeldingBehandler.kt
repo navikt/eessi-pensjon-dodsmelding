@@ -290,7 +290,13 @@ class DodsmeldingBehandler(
         if (bostedsadresse.vegadresse == null) return false
         val gyldigTilOgMed = bostedsadresse.gyldigTilOgMed
         val harAktivNorskAdresse = gyldigTilOgMed == null || gyldigTilOgMed.isAfter(doedsdato.atStartOfDay())
-        logger.info("Har aktiv norsk adresse: $harAktivNorskAdresse")
+        logger.info(
+            "Har aktiv norsk adresse: Adressevurdering: doedsdato={}, gyldigFraOgMed={}, gyldigTilOgMed={}, harAktivNorskAdresse={}",
+            doedsdato,
+            bostedsadresse.gyldigFraOgMed,
+            gyldigTilOgMed,
+            harAktivNorskAdresse
+        )
         return harAktivNorskAdresse
     }
 
