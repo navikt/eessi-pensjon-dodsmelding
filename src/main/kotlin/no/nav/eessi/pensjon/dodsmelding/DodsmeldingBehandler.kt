@@ -77,18 +77,19 @@ class DodsmeldingBehandler(
             return
         }
 
-        val land = hentLandFraKontaktadresse(person)
-        val norskAdresse = harAktivNorskAdresse(person, personhendelse.doedsfall.doedsdato)
-//        if (land == null) {
-//            logger.info("Bruker har ingen gyldig utenlandsk kontaktadresse; avbryter opprettelse av H070")
-//            return
-//        }
+        val utenlandskAdresse = harAktivUtenlandskAdresse(person, personhendelse.doedsfall.doedsdato)
+        if (utenlandskAdresse) {
+            logger.info("Bruker har aktiv utenlandsk adresse; avbryter opprettelse av H070")
+            return
+        }
 
-        if(norskAdresse.not() ) {
+        val norskAdresse = harAktivNorskAdresse(person, personhendelse.doedsfall.doedsdato)
+        if (norskAdresse.not()) {
             logger.info("Bruker har ingen gyldig norsk adresse; avbryter opprettelse av H070")
             return
         }
 
+        val land = hentLandFraKontaktadresse(person)
         if (land !in gyldigeUtstederland) {
             logger.info("Bruker har utenlandsk kontaktadresse, men utstederland ($land) er ikke gyldig for opprettelse av H070")
             return
@@ -127,10 +128,12 @@ class DodsmeldingBehandler(
             logger.warn("Fant ingen norsk ident; avbryter opprettelse av H070")
             return
         }
-        val landInstitusjon = institusjon(fnr, brukerILeveAttReg.second).also { logger.info("Sender til institusjon: {}", it) }
+        val landInstitusjon =
+            institusjon(fnr, brukerILeveAttReg.second).also { logger.info("Sender til institusjon: {}", it) }
 
         lagringsService.lagreFnrForBruker(identFraPdl.id)
-        val h070 = opprettH070.preutFyltH070(personhendelse, person, pin).also { secureLogger.info("preutfylt h070 fra LeveAttestReg / edifact: $it, land: $landInstitusjon") }
+        val h070 = opprettH070.preutFyltH070(personhendelse, person, pin)
+            .also { secureLogger.info("preutfylt h070 fra LeveAttestReg / edifact: $it, land: $landInstitusjon") }
         lagringsService.lagreH070(h070, H070_LAGRET_PREFIX_EDIFACT)
 //        opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til ${brukerILeveAttReg.second}") }
     }
@@ -163,10 +166,12 @@ class DodsmeldingBehandler(
         }
 
         lagringsService.lagreFnrForBruker(identFraPdl.id)
-        val landInstitusjon = institusjon(identFraPdl.id, mottakerLand).also { logger.info("Sender til institusjon: {}", it) }
+        val landInstitusjon =
+            institusjon(identFraPdl.id, mottakerLand).also { logger.info("Sender til institusjon: {}", it) }
         val h070 = opprettH070.preutFyltH070(personhendelse, person, pin)
             .also { secureLogger.info("preutfylt h070 fra Joark/P6000: $it , land:$landInstitusjon") }
         lagringsService.lagreH070(h070, H070_LAGRET_PREFIX_STANDARD)
+
 //        opprettOgSendH070(h070, mottakerLand)
 //            .also { logger.info("Oppretter og sender ut H070 for Joark bruker til $mottakerLand") }
         logger.info("I dette tilfellet ville vi opprettet H070 og sendt den ut til $mottakerLand")
@@ -177,15 +182,15 @@ class DodsmeldingBehandler(
     }
 
     private fun logPerson(person: PdlPersonUtvidet, brukerILeveAttReg: Pair<String, String>?, rinaSakId: String?) {
-        if(person.bostedsadresseInklHistoriske != null) {
+        if (person.bostedsadresseInklHistoriske != null) {
             logJsonValue("bruker i levattest: ${brukerILeveAttReg != null}, joark: $rinaSakId, bostedsadresse for H070") { person.bostedsadresseInklHistoriske }
         }
 
-        if(person.oppholdsadresseInklHistoriske != null) {
+        if (person.oppholdsadresseInklHistoriske != null) {
             logJsonValue("bruker i levattest: ${brukerILeveAttReg != null}, joark: $rinaSakId, kontaktadresse for H070") { person.oppholdsadresseInklHistoriske }
         }
 
-        if(person.kontaktadresseInklHistoriske != null) {
+        if (person.kontaktadresseInklHistoriske != null) {
             logJsonValue("bruker i levattest: ${brukerILeveAttReg != null}, joark: $rinaSakId, kontaktadresseInklHistoriske for H070") { person.kontaktadresseInklHistoriske }
         }
 
@@ -256,10 +261,11 @@ class DodsmeldingBehandler(
 
     fun institusjon(fnr: String, landFraIdentUtland: String): String {
         secureLogger.info("Institusjoner $fnr,+$landFraIdentUtland")
-        val ytelsesInfo = pesysKlient.hentPensjonSaklist(fnr).also { logger.info("Henter pensjonsakliste: {}", it.toJson()) }
+        val ytelsesInfo =
+            pesysKlient.hentPensjonSaklist(fnr).also { logger.info("Henter pensjonsakliste: {}", it.toJson()) }
         val penytelse = ytelsesInfo.firstOrNull { it.sakType in listOf(UFOREP, GJENLEV, BARNEP, ALDER, OMSORG) }
 
-        if(penytelse != null) {
+        if (penytelse != null) {
             logger.info("Fant ytelse for bruker: ${penytelse.sakType} med sakId: ${penytelse.sakId}")
         } else {
             logger.info("Fant ingen ytelse for bruker")
@@ -292,9 +298,10 @@ class DodsmeldingBehandler(
     fun harAktivNorskAdresse(person: PdlPersonUtvidet, doedsdato: LocalDate): Boolean {
         val bostedsadresse = person.bostedsadresseInklHistoriske ?: return false
         if (bostedsadresse.vegadresse == null) return false
-        val gyldigTilOgMed = bostedsadresse.gyldigTilOgMed
         val toUkerFoerDoedsdato = doedsdato.minusWeeks(2).atStartOfDay()
-        val harAktivNorskAdresse = gyldigTilOgMed == null || gyldigTilOgMed.isAfter(toUkerFoerDoedsdato)
+        val gyldigTilOgMed = bostedsadresse.gyldigTilOgMed
+        val harAktivNorskAdresse = gyldigTilOgMed?.isAfter(toUkerFoerDoedsdato) != false
+
         logger.info(
             "Har aktiv norsk adresse: Adressevurdering: doedsdato={}, gyldigFraOgMed={}, gyldigTilOgMed={}, harAktivNorskAdresse={}",
             doedsdato,
@@ -304,6 +311,17 @@ class DodsmeldingBehandler(
         )
         return harAktivNorskAdresse
     }
+
+    fun harAktivUtenlandskAdresse(person: PdlPersonUtvidet, doedsdato: LocalDate): Boolean {
+        val kontaktadresse = person.kontaktadresseInklHistoriske ?: return false
+        val toUkerFoerDoedsdato = doedsdato.minusWeeks(2).atStartOfDay()
+
+        val gyldigAdresse = (kontaktadresse.gyldigTilOgMed == null) || (kontaktadresse.gyldigTilOgMed?.isAfter(toUkerFoerDoedsdato) != false)
+        val harAdresse = kontaktadresse.utenlandskAdresse != null || kontaktadresse.utenlandskAdresseIFrittFormat != null
+
+        return gyldigAdresse && harAdresse
+    }
+
 
     private fun hentLandFraKontaktadresse(person: PdlPersonUtvidet): String? {
         val kontaktadresse = person.kontaktadresseInklHistoriske
