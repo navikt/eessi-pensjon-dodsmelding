@@ -285,11 +285,16 @@ class DodsmeldingBehandler(
         }
     }
 
+    /**
+     * Sjekker om bruker har en aktiv norsk adresse i PDL.
+     * En norsk adresse anses som aktiv dersom gyldigTilOgMed er null eller etter doedsdato minus 2 uker.
+     */
     fun harAktivNorskAdresse(person: PdlPersonUtvidet, doedsdato: LocalDate): Boolean {
         val bostedsadresse = person.bostedsadresseInklHistoriske ?: return false
         if (bostedsadresse.vegadresse == null) return false
         val gyldigTilOgMed = bostedsadresse.gyldigTilOgMed
-        val harAktivNorskAdresse = gyldigTilOgMed == null || gyldigTilOgMed.isAfter(doedsdato.atStartOfDay())
+        val toUkerFoerDoedsdato = doedsdato.minusWeeks(2).atStartOfDay()
+        val harAktivNorskAdresse = gyldigTilOgMed == null || gyldigTilOgMed.isAfter(toUkerFoerDoedsdato)
         logger.info(
             "Har aktiv norsk adresse: Adressevurdering: doedsdato={}, gyldigFraOgMed={}, gyldigTilOgMed={}, harAktivNorskAdresse={}",
             doedsdato,

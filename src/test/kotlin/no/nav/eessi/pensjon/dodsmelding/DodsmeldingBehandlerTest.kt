@@ -21,6 +21,8 @@ import no.nav.eessi.pensjon.saf.BrukerIdType.FNR
 import no.nav.eessi.pensjon.utils.mapJsonToAny
 import no.nav.person.pdl.leesah.Personhendelse
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -83,6 +85,38 @@ class DodsmeldingBehandlerTest {
         every { euxService.sendSed(any(), any()) } returns mockk(relaxed = true)
         every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
         every { lagringsService.lagreH070(any(), any()) } returns mockk(relaxed = true)
+    }
+
+    @Test
+    fun `harAktivNorskAdresse er true naar gyldigTilOgMed er nyere enn to uker foer doedsdato`() {
+        val doedsdato = LocalDate.of(2026, 9, 1)
+        val bostedsadresse = mockk<Bostedsadresse>(relaxed = true) {
+            every { vegadresse } returns mockk(relaxed = true)
+            every { gyldigTilOgMed } returns doedsdato.minusDays(13).atStartOfDay()
+        }
+        val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
+            every { bostedsadresseInklHistoriske } returns bostedsadresse
+        }
+
+        val resultat = dodsmeldingBehandler.harAktivNorskAdresse(person, doedsdato)
+
+        assertTrue(resultat)
+    }
+
+    @Test
+    fun `harAktivNorskAdresse er false naar gyldigTilOgMed er eldre enn to uker foer doedsdato`() {
+        val doedsdato = LocalDate.of(2026, 9, 1)
+        val bostedsadresse = mockk<Bostedsadresse>(relaxed = true) {
+            every { vegadresse } returns mockk(relaxed = true)
+            every { gyldigTilOgMed } returns doedsdato.minusDays(15).atStartOfDay()
+        }
+        val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
+            every { bostedsadresseInklHistoriske } returns bostedsadresse
+        }
+
+        val resultat = dodsmeldingBehandler.harAktivNorskAdresse(person, doedsdato)
+
+        assertFalse(resultat)
     }
 
     @Test
