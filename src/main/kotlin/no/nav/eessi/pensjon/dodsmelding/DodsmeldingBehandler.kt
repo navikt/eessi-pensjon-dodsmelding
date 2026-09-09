@@ -319,7 +319,18 @@ class DodsmeldingBehandler(
         val gyldigAdresse = (kontaktadresse.gyldigTilOgMed == null) || (kontaktadresse.gyldigTilOgMed?.isAfter(toUkerFoerDoedsdato) != false)
         val harAdresse = kontaktadresse.utenlandskAdresse != null || kontaktadresse.utenlandskAdresseIFrittFormat != null
 
-        return (gyldigAdresse && harAdresse).also { if (it) secureLogger.info("Aktiv utenlandsk adresse funnet for person: ${kontaktadresse.toJson()}") }
+        val harAktivUtenlandskAdresse = gyldigAdresse && harAdresse
+
+        logger.info(
+            "Har aktiv utenlandsk adresse: Adressevurdering: doedsdato={}, gyldigFraOgMed={}, gyldigTilOgMed={}, gyldigAdresse={}, harAdresse={}",
+            doedsdato,
+            kontaktadresse.gyldigFraOgMed,
+            kontaktadresse.gyldigTilOgMed ,
+            gyldigAdresse,
+            harAdresse
+        )
+
+        return harAktivUtenlandskAdresse
     }
 
 
