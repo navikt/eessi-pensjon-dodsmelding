@@ -319,7 +319,7 @@ class DodsmeldingBehandler(
         val gyldigAdresse = (kontaktadresse.gyldigTilOgMed == null) || (kontaktadresse.gyldigTilOgMed?.isAfter(toUkerFoerDoedsdato) != false)
         val harAdresse = kontaktadresse.utenlandskAdresse != null || kontaktadresse.utenlandskAdresseIFrittFormat != null
 
-        return gyldigAdresse && harAdresse
+        return (gyldigAdresse && harAdresse).also { if (it) secureLogger.info("Aktiv utenlandsk adresse funnet for person: ${kontaktadresse.toJson()}") }
     }
 
 
