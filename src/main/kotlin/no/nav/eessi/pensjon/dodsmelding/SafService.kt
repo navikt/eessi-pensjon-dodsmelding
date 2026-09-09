@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component
 class SafService (
     private val safClient: SafClient,
 ){
-    private val logger: Logger = LoggerFactory.getLogger(DodsmeldingBehandler::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(SafService::class.java)
 
 
     fun brukerRinasakIdFraJoark(valgtPersonident: String): String? =
