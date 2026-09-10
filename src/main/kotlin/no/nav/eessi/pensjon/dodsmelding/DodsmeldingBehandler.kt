@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 
 private const val H070_LAGRET_PREFIX_STANDARD = "H070_STANDARD"
@@ -298,9 +299,8 @@ class DodsmeldingBehandler(
     fun harAktivNorskAdresse(person: PdlPersonUtvidet, doedsdato: LocalDate): Boolean {
         val bostedsadresse = person.bostedsadresseInklHistoriske ?: return false
         if (bostedsadresse.vegadresse == null) return false
-        val toUkerFoerDoedsdato = doedsdato.minusWeeks(2).atStartOfDay()
         val gyldigTilOgMed = bostedsadresse.gyldigTilOgMed
-        val harAktivNorskAdresse = gyldigTilOgMed?.isAfter(toUkerFoerDoedsdato) != false
+        val harAktivNorskAdresse = erGyldigPaaDoedsdato(gyldigTilOgMed, doedsdato)
 
         logger.info(
             "Har aktiv norsk adresse: Adressevurdering: doedsdato={}, gyldigFraOgMed={}, gyldigTilOgMed={}, harAktivNorskAdresse={}",
@@ -314,9 +314,8 @@ class DodsmeldingBehandler(
 
     fun harAktivUtenlandskAdresse(person: PdlPersonUtvidet, doedsdato: LocalDate): Boolean {
         val kontaktadresse = person.kontaktadresseInklHistoriske ?: return false
-        val toUkerFoerDoedsdato = doedsdato.minusWeeks(2).atStartOfDay()
 
-        val gyldigAdresse = (kontaktadresse.gyldigTilOgMed == null) || (kontaktadresse.gyldigTilOgMed?.isAfter(toUkerFoerDoedsdato) != false)
+        val gyldigAdresse = erGyldigPaaDoedsdato(kontaktadresse.gyldigTilOgMed, doedsdato)
         val harAdresse = kontaktadresse.utenlandskAdresse != null || kontaktadresse.utenlandskAdresseIFrittFormat != null
 
         val harAktivUtenlandskAdresse = gyldigAdresse && harAdresse
@@ -331,6 +330,15 @@ class DodsmeldingBehandler(
         )
 
         return harAktivUtenlandskAdresse
+    }
+
+    /**
+     * En adresse anses som gyldig på dødsdato dersom gyldigTilOgMed er null,
+     * eller ligger etter doedsdato minus 2 uker.
+     */
+    private fun erGyldigPaaDoedsdato(gyldigTilOgMed: LocalDateTime?, doedsdato: LocalDate): Boolean {
+        val toUkerFoerDoedsdato = doedsdato.minusWeeks(2).atStartOfDay()
+        return gyldigTilOgMed?.isAfter(toUkerFoerDoedsdato) != false
     }
 
 
