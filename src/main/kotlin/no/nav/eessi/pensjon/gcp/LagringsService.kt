@@ -49,6 +49,11 @@ class LagringsService (
         return !eksisterer(land, fnr, utenlandkYtelseBucket)
     }
 
+    /**
+     * Sjekker om bruker finnes i leveattestregisteret
+     * @param fnr Liste over identifikatorer fra PDL
+     * @return Pair med ident og landkode hvis bruker finnes i registeret, ellers null
+     */
     fun finnesDodBrukerILeveAttReg(
         fnr: List<IdentInformasjon>?
     ): Pair<String, String>? {
