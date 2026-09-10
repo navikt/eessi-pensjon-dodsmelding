@@ -130,7 +130,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato)
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato, null)
 
         assertFalse(resultat)
     }
@@ -148,7 +148,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato)
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato, null)
 
         assertTrue(resultat)
     }
@@ -164,7 +164,19 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato)
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato, null)
+
+        assertFalse(resultat)
+    }
+
+    @Test
+    fun `harAktivUtenlandskAdresse flagger uventet naar identFraRegister finnes men ingen aktiv utenlandsk adresse`() {
+        val doedsdato = LocalDate.of(2026, 9, 1)
+        val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
+            every { kontaktadresseInklHistoriske } returns null
+        }
+
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato, "12345678910")
 
         assertFalse(resultat)
     }

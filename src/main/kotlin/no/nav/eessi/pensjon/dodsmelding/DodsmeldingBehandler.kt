@@ -85,7 +85,7 @@ class DodsmeldingBehandler(
             return
         }
 
-        val utenlandskAdresse = harAktivUtenlandskAdresse(person, personhendelse.doedsfall.doedsdato)
+        val utenlandskAdresse = harAktivUtenlandskAdresse(person, personhendelse.doedsfall.doedsdato, identFraRegister)
         if (utenlandskAdresse) {
             logger.info("Bruker har aktiv utenlandsk adresse; avbryter opprettelse av H070")
             return
@@ -304,8 +304,12 @@ class DodsmeldingBehandler(
         return harAktivNorskAdresse
     }
 
-    fun harAktivUtenlandskAdresse(person: PdlPersonUtvidet, doedsdato: LocalDate): Boolean {
-        val kontaktadresse = person.kontaktadresseInklHistoriske ?: return false.also { logger.info("Bruker har ingen utenlandsk-kontaktadresse i PDL") }
+    fun harAktivUtenlandskAdresse(person: PdlPersonUtvidet, doedsdato: LocalDate, identFraRegister: String?): Boolean {
+        val kontaktadresse = person.kontaktadresseInklHistoriske ?: run {
+            logger.info("Bruker har ingen utenlandsk-kontaktadresse i PDL")
+            flaggManglendeUtenlandskAdresseVedRegisterMatch(identFraRegister, false)
+            return false
+        }
 
         val gyldigAdresse = erGyldigPaaDoedsdato(kontaktadresse.gyldigTilOgMed, doedsdato)
         val harAdresse = kontaktadresse.utenlandskAdresse != null || kontaktadresse.utenlandskAdresseIFrittFormat != null
@@ -321,7 +325,22 @@ class DodsmeldingBehandler(
             harAdresse
         )
 
+        flaggManglendeUtenlandskAdresseVedRegisterMatch(identFraRegister, harAktivUtenlandskAdresse)
+
         return harAktivUtenlandskAdresse
+    }
+
+    /**
+     * Bruker er funnet i leveattestregisteret (Sverige/Finland), som normalt tilsier bosted i utlandet.
+     * Dersom PDL likevel ikke har en aktiv utenlandsk adresse for brukeren er dette en uventet
+     * inkonsistens som bør varsles/undersøkes.
+     */
+    private fun flaggManglendeUtenlandskAdresseVedRegisterMatch(identFraRegister: String?, harAktivUtenlandskAdresse: Boolean) {
+        if (identFraRegister != null && !harAktivUtenlandskAdresse) {
+            logger.warn(
+                "Bruker finnes i leveattestregister (identFraRegister != null), men mangler aktiv utenlandsk adresse i PDL"
+            )
+        }
     }
 
     /**
