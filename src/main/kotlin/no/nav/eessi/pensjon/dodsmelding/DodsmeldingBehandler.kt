@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.concurrent.atomic.AtomicLong
 
 
 private const val H070_LAGRET_PREFIX_STANDARD = "H070_STANDARD"
@@ -36,6 +37,7 @@ class DodsmeldingBehandler(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(DodsmeldingBehandler::class.java)
     private val secureLogger = LoggerFactory.getLogger("secureLog")
+    private val personhendelserForVidereBehandling = AtomicLong(0)
 
     val gyldigeUtstederland = listOf("SE", "SW", "SWE", "FI", "FIN", "PO", "POL")
 
@@ -85,21 +87,21 @@ class DodsmeldingBehandler(
             return
         }
 
+        val norskAdresse = harAktivNorskAdresse(person, personhendelse.doedsfall.doedsdato)
+        if (norskAdresse.not()) {
+            logger.warn("Bruker har ingen gyldig norsk adresse; avbryter opprettelse av H070")
+            return
+        }
+
         val utenlandskAdresse = harAktivUtenlandskAdresse(person, personhendelse.doedsfall.doedsdato, identFraRegister)
         if (utenlandskAdresse) {
             logger.info("Bruker har aktiv utenlandsk adresse; avbryter opprettelse av H070")
             return
         }
 
-        val norskAdresse = harAktivNorskAdresse(person, personhendelse.doedsfall.doedsdato)
-        if (norskAdresse.not()) {
-            logger.info("Bruker har ingen gyldig norsk adresse; avbryter opprettelse av H070")
-            return
-        }
-
         val landFraKontaktadresse = hentLandFraKontaktadresse(person)
         if (landFraKontaktadresse !in gyldigeUtstederland) {
-            logger.info("Bruker har utenlandsk kontaktadresse, men utstederland ($landFraKontaktadresse) er ikke gyldig for opprettelse av H070")
+            logger.warn("Bruker har utenlandsk kontaktadresse, men utstederland ($landFraKontaktadresse) er ikke gyldig for opprettelse av H070")
             return
         }
 
