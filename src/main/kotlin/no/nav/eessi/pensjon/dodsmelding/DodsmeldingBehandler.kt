@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.log
 
 
 private const val H070_LAGRET_PREFIX_STANDARD = "H070_STANDARD"
@@ -93,11 +94,11 @@ class DodsmeldingBehandler(
             return
         }
 
-        val utenlandskAdresse = harAktivUtenlandskAdresse(person, personhendelse.doedsfall.doedsdato, identFraRegister)
-        if (utenlandskAdresse) {
-            logger.info("Bruker har aktiv utenlandsk adresse; avbryter opprettelse av H070")
-            return
-        }
+//        val utenlandskAdresse = harAktivUtenlandskAdresse(person, personhendelse.doedsfall.doedsdato, identFraRegister)
+//        if (utenlandskAdresse) {
+//            logger.info("Bruker har aktiv utenlandsk adresse; avbryter opprettelse av H070")
+//            return
+//        }
 
         val landFraKontaktadresse = hentLandFraKontaktadresse(person)
         if (landFraKontaktadresse !in gyldigeUtstederland) {
@@ -204,14 +205,14 @@ class DodsmeldingBehandler(
         if (person.kontaktadresseInklHistoriske != null) {
             logJsonValue("bruker i levattest: ${identFraRegister != null}, joark: $rinaSakId, kontaktadresseInklHistoriske for H070") { person.kontaktadresseInklHistoriske }
         }
-
+        logJsonValue("geografiskTilknytning for H070") { person.geografiskTilknytning }
         logJsonValue("innflytting for H070") { person.innflyttingTilNorge }
         logJsonValue("utflytting for H070") { person.utflyttingFraNorge }
     }
 
     private fun opprettPinListe(person: PdlPersonUtvidet): List<PinItem> {
         val norskIdent = person.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
-        val utenlandskIdent = person.utenlandskIdentifikasjonsnummer.firstOrNull()
+        val utenlandskIdent = person.utenlandskIdentifikasjonsnummer
 
         return buildList {
             norskIdent?.let {
@@ -223,7 +224,7 @@ class DodsmeldingBehandler(
                 )
             }
 
-            utenlandskIdent?.let {
+            utenlandskIdent.forEach {
                 add(
                     PinItem(
                         identifikator = it.identifikasjonsnummer,
