@@ -12,7 +12,6 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import no.nav.eessi.pensjon.eux.model.SedType
-import no.nav.eessi.pensjon.eux.model.sed.H070
 import no.nav.eessi.pensjon.eux.model.sed.HBruker
 import no.nav.eessi.pensjon.eux.model.sed.HNav
 import no.nav.eessi.pensjon.eux.model.sed.Person
@@ -20,6 +19,7 @@ import no.nav.eessi.pensjon.eux.model.sed.PinItem
 import no.nav.eessi.pensjon.dodsmelding.EdifactDokument
 import no.nav.eessi.pensjon.dodsmelding.IdenterFraEdifactFiler
 import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
+import no.nav.eessi.pensjon.h070.H070Minimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -194,9 +194,9 @@ class LagringsServiceTest {
 
         val norskPin = "12345678901"
         val utenlandskPin = "SE1234567890"
-        val h070 = H070(
+        val h070 = H070Minimal(
             type = SedType.H070,
-            hnav = HNav(
+            nav = HNav(
                 bruker = HBruker(
                     person = Person(
                         pin = listOf(

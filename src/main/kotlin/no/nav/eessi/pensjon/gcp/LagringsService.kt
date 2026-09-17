@@ -6,7 +6,7 @@ import com.google.cloud.storage.Storage
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
-import no.nav.eessi.pensjon.eux.model.sed.H070
+import no.nav.eessi.pensjon.h070.H070Minimal
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
 import no.nav.eessi.pensjon.utils.toJson
 import org.slf4j.LoggerFactory
@@ -180,7 +180,7 @@ class LagringsService (
             .joinToString("") { "%02x".format(it) }
     }
 
-    fun lagreH070(h070: H070, H070_PREFIX: String) {
+    fun lagreH070(h070: H070Minimal, H070_PREFIX: String) {
         val storageKey = "$H070_PREFIX/${Instant.now().toEpochMilli()}.json"
         val obfuskertH070 = obfuskerPinIdentifikator(h070.toJson())
         val blobInfo = BlobInfo.newBuilder(BlobId.of(h070_opprettetBucket, storageKey))

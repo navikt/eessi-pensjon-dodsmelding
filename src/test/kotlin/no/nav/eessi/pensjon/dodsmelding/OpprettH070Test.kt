@@ -1,10 +1,13 @@
 package no.nav.eessi.pensjon.dodsmelding
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.eessi.pensjon.eux.model.sed.PinItem
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.personoppslag.pdl.model.*
+import no.nav.eessi.pensjon.utils.toJson
 import no.nav.person.pdl.leesah.Personhendelse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -63,10 +66,19 @@ class OpprettH070Test {
         )
 
         val response = opprettH070.preutFyltH070(personhendelse, pdlPersonUtvidet, pin)
+        val json = ObjectMapper().readTree(response.toJson())
 
-        assertEquals("2024-05-01", response.hnav?.bruker?.doedsfall?.doedsdato)
-
+        assertEquals("2024-05-01", response.nav?.bruker?.doedsfall?.doedsdato)
+        assertEquals(setOf("sed", "nav"), fieldNames(json))
+        assertEquals(setOf("bruker"), fieldNames(json.get("nav")))
+        assertEquals(setOf("doedsfall", "person"), fieldNames(json.get("nav").get("bruker")))
+        assertEquals(setOf("pin", "etternavn", "fornavn", "foedselsdato", "kjoenn"), fieldNames(json.get("nav").get("bruker").get("person")))
+        assertEquals("H070", json.get("sed").asText())
+        assertEquals("2024-05-01", json.get("nav").get("bruker").get("doedsfall").get("doedsdato").asText())
+        assert(!response.toJson().contains("pensjon"))
     }
+
+    private fun fieldNames(node: JsonNode): Set<String> = node.fieldNames().asSequence().toSet()
 
     internal fun mockMeta(registrert: LocalDateTime = LocalDateTime.of(2010, 4, 2, 10, 14, 12)) : Metadata {
         return Metadata(
