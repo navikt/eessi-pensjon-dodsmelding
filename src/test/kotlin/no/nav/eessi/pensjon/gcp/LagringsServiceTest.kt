@@ -1,36 +1,31 @@
 package no.nav.eessi.pensjon.gcp
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.api.gax.paging.Page
 import com.google.cloud.WriteChannel
 import com.google.cloud.storage.Blob
 import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.Storage
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
-import no.nav.eessi.pensjon.eux.model.SedType
-import no.nav.eessi.pensjon.eux.model.sed.HBruker
-import no.nav.eessi.pensjon.eux.model.sed.HNav
-import no.nav.eessi.pensjon.eux.model.sed.Person
-import no.nav.eessi.pensjon.eux.model.sed.PinItem
 import no.nav.eessi.pensjon.dodsmelding.EdifactDokument
 import no.nav.eessi.pensjon.dodsmelding.IdenterFraEdifactFiler
 import no.nav.eessi.pensjon.dodsmelding.VurderSveFinEdifactDokument
+import no.nav.eessi.pensjon.eux.model.SedType
+import no.nav.eessi.pensjon.eux.model.sed.PinItem
+import no.nav.eessi.pensjon.h070.Bruker
 import no.nav.eessi.pensjon.h070.H070Minimal
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.ValueSource
-import org.junit.jupiter.params.provider.CsvSource
+import no.nav.eessi.pensjon.h070.Nav
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.ValueSource
 import java.nio.ByteBuffer
 
 class LagringsServiceTest {
@@ -196,14 +191,18 @@ class LagringsServiceTest {
         val utenlandskPin = "SE1234567890"
         val h070 = H070Minimal(
             type = SedType.H070,
-            nav = HNav(
-                bruker = HBruker(
-                    person = Person(
+            nav = Nav(
+                bruker = Bruker(
+                    person = no.nav.eessi.pensjon.h070.Person(
                         pin = listOf(
                             PinItem(identifikator = norskPin, land = "NOR"),
                             PinItem(identifikator = utenlandskPin, land = "SWE")
-                        )
-                    )
+                        ),
+                        fornavn = "Ola",
+                        etternavn = "Nordmann",
+                        foedselsdato = "1950-10-10",
+                        kjoenn = "M"
+                    ), doedsfall = no.nav.eessi.pensjon.eux.model.sed.Doedsfall("2024-05-01")
                 )
             )
         )
