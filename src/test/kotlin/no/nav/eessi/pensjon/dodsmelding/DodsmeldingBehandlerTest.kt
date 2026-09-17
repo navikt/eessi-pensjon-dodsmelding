@@ -154,6 +154,24 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
+    fun `harAktivUtenlandskAdresse er true naar gyldigTilOgMed er null`() {
+        val doedsdato = LocalDate.of(2026, 9, 1)
+        val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
+            every { kontaktadresseInklHistoriske } returns mockk(relaxed = true) {
+                every { gyldigTilOgMed } returns null
+                every { utenlandskAdresse } returns mockk(relaxed = true) {
+                    every { landkode } returns "FIN"
+                }
+                every { utenlandskAdresseIFrittFormat } returns null
+            }
+        }
+
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato, null)
+
+        assertTrue(resultat)
+    }
+
+    @Test
     fun `harAktivUtenlandskAdresse er false naar utenlandskAdresse sin gyldigTilOgMed er utgaatt`() {
         val doedsdato = LocalDate.of(2026, 9, 1)
         val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {

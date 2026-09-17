@@ -94,11 +94,11 @@ class DodsmeldingBehandler(
             return
         }
 
-//        val utenlandskAdresse = harAktivUtenlandskAdresse(person, personhendelse.doedsfall.doedsdato, identFraRegister)
-//        if (utenlandskAdresse) {
-//            logger.info("Bruker har aktiv utenlandsk adresse; avbryter opprettelse av H070")
-//            return
-//        }
+        val utenlandskAdresse = harAktivUtenlandskAdresse(person, personhendelse.doedsfall.doedsdato, identFraRegister)
+        if (utenlandskAdresse) {
+            logger.info("Bruker har aktiv utenlandsk adresse; avbryter opprettelse av H070")
+            return
+        }
 
         val landFraKontaktadresse = hentLandFraKontaktadresse(person)
         if (landFraKontaktadresse !in gyldigeUtstederland) {
@@ -351,8 +351,9 @@ class DodsmeldingBehandler(
      * eller ligger etter doedsdato minus 2 uker.
      */
     private fun erGyldigPaaDoedsdato(gyldigTilOgMed: LocalDateTime?, doedsdato: LocalDate): Boolean {
+        if(gyldigTilOgMed == null) return true
         val toUkerFoerDoedsdato = doedsdato.minusWeeks(2).atStartOfDay()
-        return gyldigTilOgMed?.isAfter(toUkerFoerDoedsdato) != false
+        return gyldigTilOgMed.isAfter(toUkerFoerDoedsdato)
     }
 
 
