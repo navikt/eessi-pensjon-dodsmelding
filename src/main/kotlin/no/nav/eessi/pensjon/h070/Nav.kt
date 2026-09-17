@@ -18,11 +18,11 @@ data class Nav(
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class Bruker(
-    val doedsdato: String,
-    val person: Person
+    val doedsfall: Doedsfall,
+    val person: no.nav.eessi.pensjon.h070.Person
 ) {
     fun toSedBruker(): SedBruker = SedBruker(
-        doedsfall = Doedsfall(doedsdato),
+        doedsfall = doedsfall,
         person = person.toSedPerson()
     )
 }

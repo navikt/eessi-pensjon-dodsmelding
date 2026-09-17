@@ -100,6 +100,11 @@ class DodsmeldingBehandler(
             return
         }
 
+        if (erNorskAdresseNyereEnnUtenlandsk(person).not()) {
+            logger.warn("Bruker sin utenlandske adresse er nyere enn norsk adresse; avbryter opprettelse av H070")
+            return
+        }
+
         val landFraKontaktadresse = hentLandFraKontaktadresse(person)
         if (landFraKontaktadresse !in gyldigeUtstederland) {
             logger.warn("Bruker har utenlandsk kontaktadresse, men utstederland ($landFraKontaktadresse) er ikke gyldig for opprettelse av H070")
@@ -344,6 +349,33 @@ class DodsmeldingBehandler(
                 "Bruker finnes i leveattestregister (identFraRegister != null), men mangler aktiv utenlandsk adresse i PDL"
             )
         }
+    }
+
+    /**
+     * Sjekker at norsk bostedsadresse er nyere enn en eventuell utenlandsk kontaktadresse.
+     * Dersom bruker mangler gyldigFraOgMed på enten den norske eller den utenlandske adressen
+     * regnes den norske adressen som nyest.
+     */
+    fun erNorskAdresseNyereEnnUtenlandsk(person: PdlPersonUtvidet): Boolean {
+
+        val norskGyldigFraOgMed = person.bostedsadresseInklHistoriske?.gyldigFraOgMed
+        val utenlandskGyldigFraOgMed = person.kontaktadresseInklHistoriske?.gyldigFraOgMed
+
+        if(norskGyldigFraOgMed == null || utenlandskGyldigFraOgMed == null) {
+            logger.info("En av adressene mangler gyldigFraOgMed, regner norsk adresse som nyest")
+            return true
+        }
+
+        val norskAdresseNyereEnnUtenlandsk = norskGyldigFraOgMed.isAfter(utenlandskGyldigFraOgMed)
+
+        logger.info(
+            "Sammenligner adressers alder: norskGyldigFraOgMed={}, utenlandskGyldigFraOgMed={}, norskAdresseNyereEnnUtenlandsk={}",
+            norskGyldigFraOgMed,
+            utenlandskGyldigFraOgMed,
+            norskAdresseNyereEnnUtenlandsk
+        )
+
+        return norskAdresseNyereEnnUtenlandsk
     }
 
     /**

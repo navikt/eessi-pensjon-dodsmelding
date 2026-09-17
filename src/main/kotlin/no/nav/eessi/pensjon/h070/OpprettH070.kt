@@ -1,6 +1,7 @@
 package no.nav.eessi.pensjon.h070
 
 import no.nav.eessi.pensjon.eux.model.SedType
+import no.nav.eessi.pensjon.eux.model.sed.Doedsfall
 import no.nav.eessi.pensjon.eux.model.sed.PinItem
 import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet
 import no.nav.person.pdl.leesah.Personhendelse
@@ -29,14 +30,14 @@ class OpprettH070  {
         val nav = Nav(
             bruker = Bruker(
                 //2.1 Dødsdato
-                doedsdato = personhendelse.doedsfall.doedsdato.simpleFormat(),
+                doedsfall = Doedsfall(personhendelse.doedsfall.doedsdato.simpleFormat()),
                 person = person
             )
         )
 
         return H070Minimal(
             type = SedType.H070,
-            nav = nav.toSedNav()
+            nav = nav
         )
     }
     fun LocalDate.simpleFormat(): String = DateTimeFormatter.ofPattern("yyyy-MM-dd").format(this)
