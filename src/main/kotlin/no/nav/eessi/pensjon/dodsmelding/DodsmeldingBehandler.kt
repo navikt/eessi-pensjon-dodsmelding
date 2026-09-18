@@ -94,7 +94,8 @@ class DodsmeldingBehandler(
             logger.warn("Bruker har ingen gyldig norsk adresse; avbryter opprettelse av H070")
             return
         }
-
+        val gtLand = person.geografiskTilknytning?.gtLand
+        logger.info("Person har geografisktilknytning: $gtLand")
 //        val utenlandskAdresse = harAktivUtenlandskAdresse(person, personhendelse.doedsfall.doedsdato, identFraRegister)
 //        if (utenlandskAdresse) {
 //            logger.info("Bruker har aktiv utenlandsk adresse; avbryter opprettelse av H070")
@@ -102,6 +103,10 @@ class DodsmeldingBehandler(
 //        }
 
         if (erNorskAdresseNyereEnnUtenlandsk(person).not()) {
+            if(person.geografiskTilknytning?.gtLand != "UTLAND") {
+                logger.warn("Utenlandsk adresse er nyere enn norsk adresse, men geografisk tilknytning er ikke utland: $gtLand")
+                return
+            }
             logger.warn("Bruker sin utenlandske adresse er nyere enn norsk adresse; avbryter opprettelse av H070")
             return
         }
