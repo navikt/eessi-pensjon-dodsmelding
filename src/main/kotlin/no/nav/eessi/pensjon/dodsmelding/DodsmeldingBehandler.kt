@@ -105,6 +105,7 @@ class DodsmeldingBehandler(
             logger.warn("Bruker sin utenlandske adresse er nyere enn norsk adresse; avbryter opprettelse av H070")
             return
         }
+        logger.info("Vurderer land fra kontaktadresse")
 
         val landFraKontaktadresse = hentLandFraKontaktadresse(person)
         if (landFraKontaktadresse !in gyldigeUtstederland) {
