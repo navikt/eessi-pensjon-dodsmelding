@@ -94,11 +94,11 @@ class DodsmeldingBehandler(
             return
         }
 
-        val utenlandskAdresse = harAktivUtenlandskAdresse(person, personhendelse.doedsfall.doedsdato, identFraRegister)
-        if (utenlandskAdresse) {
-            logger.info("Bruker har aktiv utenlandsk adresse; avbryter opprettelse av H070")
-            return
-        }
+//        val utenlandskAdresse = harAktivUtenlandskAdresse(person, personhendelse.doedsfall.doedsdato, identFraRegister)
+//        if (utenlandskAdresse) {
+//            logger.info("Bruker har aktiv utenlandsk adresse; avbryter opprettelse av H070")
+//            return
+//        }
 
         if (erNorskAdresseNyereEnnUtenlandsk(person).not()) {
             logger.warn("Bruker sin utenlandske adresse er nyere enn norsk adresse; avbryter opprettelse av H070")
