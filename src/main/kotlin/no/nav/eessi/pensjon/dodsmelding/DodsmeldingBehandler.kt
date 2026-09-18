@@ -359,7 +359,6 @@ class DodsmeldingBehandler(
      */
     fun erNorskAdresseNyereEnnUtenlandsk(person: PdlPersonUtvidet): Boolean {
 
-        val norskGyldigFraOgMed = person.bostedsadresseInklHistoriske?.gyldigFraOgMed
         val kontaktadresse = person.kontaktadresseInklHistoriske
         val manglerUtenlandskAdresse = kontaktadresse?.utenlandskAdresse == null && kontaktadresse?.utenlandskAdresseIFrittFormat == null
 
@@ -368,6 +367,7 @@ class DodsmeldingBehandler(
             return true
         }
 
+        val norskGyldigFraOgMed = person.bostedsadresseInklHistoriske?.gyldigFraOgMed
         val utenlandskGyldigFraOgMed = person.kontaktadresseInklHistoriske?.gyldigFraOgMed
 
         if(norskGyldigFraOgMed == null || utenlandskGyldigFraOgMed == null) {
