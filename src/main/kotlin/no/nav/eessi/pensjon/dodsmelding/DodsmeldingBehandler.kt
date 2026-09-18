@@ -10,6 +10,7 @@ import no.nav.eessi.pensjon.oppgaverouting.SakInformasjon
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
+import no.nav.eessi.pensjon.personoppslag.pdl.model.KontaktadresseType
 import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet
 import no.nav.eessi.pensjon.utils.toJson
 import no.nav.person.pdl.leesah.Personhendelse
@@ -359,6 +360,14 @@ class DodsmeldingBehandler(
     fun erNorskAdresseNyereEnnUtenlandsk(person: PdlPersonUtvidet): Boolean {
 
         val norskGyldigFraOgMed = person.bostedsadresseInklHistoriske?.gyldigFraOgMed
+        val kontaktadresse = person.kontaktadresseInklHistoriske
+        val manglerUtenlandskAdresse = kontaktadresse?.utenlandskAdresse == null && kontaktadresse?.utenlandskAdresseIFrittFormat == null
+
+        if (kontaktadresse?.type == KontaktadresseType.Innland || manglerUtenlandskAdresse) {
+            logger.info("Bruker har ingen utenlandsk kontaktadresse, regner norsk adresse som nyest")
+            return true
+        }
+
         val utenlandskGyldigFraOgMed = person.kontaktadresseInklHistoriske?.gyldigFraOgMed
 
         if(norskGyldigFraOgMed == null || utenlandskGyldigFraOgMed == null) {
