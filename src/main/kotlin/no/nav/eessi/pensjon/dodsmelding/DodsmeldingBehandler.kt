@@ -208,11 +208,11 @@ class DodsmeldingBehandler(
 
     private fun logPerson(person: PdlPersonUtvidet, identFraRegister: String?, rinaSakId: String?) {
         if (person.bostedsadresseInklHistoriske != null) {
-            logJsonValue("bruker i levattest: ${identFraRegister != null}, joark: $rinaSakId, bostedsadresse for H070") { person.bostedsadresseInklHistoriske }
+            logJsonValue("bruker i levattest: ${identFraRegister != null}, joark: $rinaSakId, bostedsadresseInklHistoriske for H070") { person.bostedsadresseInklHistoriske }
         }
 
         if (person.oppholdsadresseInklHistoriske != null) {
-            logJsonValue("bruker i levattest: ${identFraRegister != null}, joark: $rinaSakId, kontaktadresse for H070") { person.oppholdsadresseInklHistoriske }
+            logJsonValue("bruker i levattest: ${identFraRegister != null}, joark: $rinaSakId, oppholdsadresseInklHistoriske for H070") { person.oppholdsadresseInklHistoriske }
         }
 
         if (person.kontaktadresseInklHistoriske != null) {
