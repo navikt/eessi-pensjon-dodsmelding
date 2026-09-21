@@ -224,6 +224,10 @@ class DodsmeldingBehandler(
     }
 
     private fun logPersonVanlig(person: PdlPerson, identFraRegister: String?, rinaSakId: String?) {
+        if(person.kontaktadresse?.vegadresse != null){
+            logJsonValue("bruker i levattest: ${identFraRegister != null}, joark: $rinaSakId, vegadresse for H070") { person.kontaktadresse?.vegadresse }
+        }
+
         if (person.bostedsadresse != null) {
             logJsonValue("bruker i levattest: ${identFraRegister != null}, joark: $rinaSakId, bostedsadresse for H070") { person.bostedsadresse }
         }
