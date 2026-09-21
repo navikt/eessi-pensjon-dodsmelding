@@ -222,7 +222,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.erNorskAdresseNyereEnnUtenlandsk(person)
+        val resultat = dodsmeldingBehandler.erNorskAdresseNyereEnnUtenlandsk(person, mockk(relaxed = true))
 
         assertEquals(forventet, resultat)
     }

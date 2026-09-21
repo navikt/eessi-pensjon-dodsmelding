@@ -103,7 +103,7 @@ class DodsmeldingBehandler(
 //            return
 //        }
 
-        if (erNorskAdresseNyereEnnUtenlandsk(person).not()) {
+        if (erNorskAdresseNyereEnnUtenlandsk(person, personVanlig).not()) {
             if(person.geografiskTilknytning?.gtLand != "UTLAND") {
                 logger.warn("Utenlandsk adresse er nyere enn norsk adresse, men geografisk tilknytning er ikke utland: $gtLand")
                 return
@@ -394,12 +394,17 @@ class DodsmeldingBehandler(
      * Dersom bruker mangler gyldigFraOgMed på enten den norske eller den utenlandske adressen
      * regnes den norske adressen som nyest.
      */
-    fun erNorskAdresseNyereEnnUtenlandsk(person: PdlPersonUtvidet): Boolean {
+    fun erNorskAdresseNyereEnnUtenlandsk(person: PdlPersonUtvidet, personPdlEnkel: PdlPerson?): Boolean {
 
-        val kontaktadresse = person.kontaktadresseInklHistoriske
-        val manglerUtenlandskAdresse = kontaktadresse?.utenlandskAdresse == null && kontaktadresse?.utenlandskAdresseIFrittFormat == null
+        val kontaktadresse = if (personPdlEnkel?.kontaktadresse != null) {
+            personPdlEnkel.kontaktadresse.also { logger.info("Sjekker nyere kontaktadresse for person: $it") }
+        } else {
+            person.kontaktadresseInklHistoriske.also { logger.info("Sjekker nyere kontaktadresse for person (historisk): $it") }
+        } ?: return false.also { logger.info("Bruker har ingen nyere kontaktadresse i PDL") }
 
-        if (kontaktadresse?.type == KontaktadresseType.Innland || manglerUtenlandskAdresse) {
+        val manglerUtenlandskAdresse = kontaktadresse.utenlandskAdresse == null && kontaktadresse.utenlandskAdresseIFrittFormat == null
+
+        if (kontaktadresse.type == KontaktadresseType.Innland || manglerUtenlandskAdresse) {
             logger.info("Bruker har ingen utenlandsk kontaktadresse, regner norsk adresse som nyest")
             return true
         }
