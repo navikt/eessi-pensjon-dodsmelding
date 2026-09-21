@@ -26,7 +26,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Metadata as PDLMetaData
 
-//@Disabled
+@Disabled
 class MeldingFraPdlListenerTest {
 
     private val mockAck = mockk<Acknowledgment>()

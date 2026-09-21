@@ -11,6 +11,7 @@ import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.KontaktadresseType
+import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPerson
 import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet
 import no.nav.eessi.pensjon.utils.toJson
 import no.nav.person.pdl.leesah.Personhendelse
@@ -70,7 +71,7 @@ class DodsmeldingBehandler(
         }
 
         val person = personService.hentPersonUtvidet(identFraPdl).also { logger.debug("Henter person: {}", it) }
-
+        val personVanlig = personService.hentPerson(identFraPdl).also { logger.debug("Henter person: {}", it) }
         val (identFraRegister, land) = lagringsService.finnesDodBrukerILeveAttReg(person?.identer) ?: (null to null)
 
         val rinaSakId = if (identFraRegister == null) safService.brukerRinasakIdFraJoark(norskIdent) else null
@@ -82,6 +83,7 @@ class DodsmeldingBehandler(
         }
 
         person?.let { logPerson(it, identFraRegister, rinaSakId) }
+        personVanlig?.let {logPersonVanlig(personVanlig, identFraRegister, rinaSakId)}
 
         secureLogger.info("Personhendelse for H070: ${person?.doedsfall?.toJson()}")
         if (person == null) {
@@ -89,7 +91,7 @@ class DodsmeldingBehandler(
             return
         }
 
-        val norskAdresse = harAktivNorskAdresse(person, personhendelse.doedsfall.doedsdato)
+        val norskAdresse = harAktivNorskAdresse(person, personVanlig, personhendelse.doedsfall.doedsdato)
         if (norskAdresse.not()) {
             logger.warn("Bruker har ingen gyldig norsk adresse; avbryter opprettelse av H070")
             return
@@ -222,6 +224,21 @@ class DodsmeldingBehandler(
         logJsonValue("utflytting for H070") { person.utflyttingFraNorge }
     }
 
+    private fun logPersonVanlig(person: PdlPerson, identFraRegister: String?, rinaSakId: String?) {
+        if (person.bostedsadresse != null) {
+            logJsonValue("bruker i levattest: ${identFraRegister != null}, joark: $rinaSakId, bostedsadresse for H070") { person.bostedsadresse }
+        }
+
+        if (person.oppholdsadresse != null) {
+            logJsonValue("bruker i levattest: ${identFraRegister != null}, joark: $rinaSakId, kontaktadresse for H070") { person.oppholdsadresse }
+        }
+
+        if (person.kontaktadresse != null) {
+            logJsonValue("bruker i levattest: ${identFraRegister != null}, joark: $rinaSakId, kontaktadresseInklHistoriske for H070") { person.kontaktadresse }
+        }
+        logJsonValue("geografiskTilknytning for H070") { person.geografiskTilknytning }
+    }
+
     private fun opprettPinListe(person: PdlPersonUtvidet): List<PinItem> {
         val norskIdent = person.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT }?.ident
         val utenlandskIdent = person.utenlandskIdentifikasjonsnummer
@@ -303,7 +320,13 @@ class DodsmeldingBehandler(
      * Sjekker om bruker har en aktiv norsk adresse i PDL.
      * En norsk adresse anses som aktiv dersom gyldigTilOgMed er null eller etter doedsdato minus 2 uker.
      */
-    fun harAktivNorskAdresse(person: PdlPersonUtvidet, doedsdato: LocalDate): Boolean {
+    fun harAktivNorskAdresse(person: PdlPersonUtvidet, personVanlig: PdlPerson?, doedsdato: LocalDate): Boolean {
+        if(person.kontaktadresseInklHistoriske != personVanlig?.kontaktadresse) {
+            secureLogger.info("KontaktadresseInklHistoriske og kontaktadresse er ikke like for bruker: ${person.kontaktadresseInklHistoriske} vs ${personVanlig?.kontaktadresse}")
+        }
+        if(person.bostedsadresseInklHistoriske != personVanlig?.bostedsadresse) {
+            secureLogger.info("KontaktadresseInklHistoriske og kontaktadresse er ikke like for bruker: ${person.kontaktadresseInklHistoriske} vs ${personVanlig?.kontaktadresse}")
+        }
         val bostedsadresse = person.bostedsadresseInklHistoriske ?: return false.also { logger.info("Bruker har ingen bostedsadresse i PDL") }
         if (bostedsadresse.vegadresse == null) return false
         val gyldigTilOgMed = bostedsadresse.gyldigTilOgMed
