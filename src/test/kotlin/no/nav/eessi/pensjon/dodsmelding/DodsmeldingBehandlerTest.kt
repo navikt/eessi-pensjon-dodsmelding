@@ -131,7 +131,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato, null)
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person,mockk(relaxed = true), doedsdato, null)
 
         assertFalse(resultat)
     }
@@ -149,7 +149,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato, null)
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, mockk(relaxed = true), doedsdato, null)
 
         assertTrue(resultat)
     }
@@ -167,7 +167,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato, null)
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person,mockk(relaxed = true), doedsdato, null)
 
         assertTrue(resultat)
     }
@@ -183,7 +183,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato, null)
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person,mockk(relaxed = true), doedsdato, null)
 
         assertFalse(resultat)
     }
@@ -195,7 +195,7 @@ class DodsmeldingBehandlerTest {
             every { kontaktadresseInklHistoriske } returns null
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, doedsdato, "12345678910")
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person,mockk(relaxed = true), doedsdato, "12345678910")
 
         assertFalse(resultat)
     }

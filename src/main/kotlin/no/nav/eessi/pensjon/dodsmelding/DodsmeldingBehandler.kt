@@ -22,7 +22,6 @@ import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.math.log
 
 
 private const val H070_LAGRET_PREFIX_STANDARD = "H070_STANDARD"
@@ -320,15 +319,15 @@ class DodsmeldingBehandler(
      * Sjekker om bruker har en aktiv norsk adresse i PDL.
      * En norsk adresse anses som aktiv dersom gyldigTilOgMed er null eller etter doedsdato minus 2 uker.
      */
-    fun harAktivNorskAdresse(person: PdlPersonUtvidet, personVanlig: PdlPerson?, doedsdato: LocalDate): Boolean {
-        if(person.kontaktadresseInklHistoriske != personVanlig?.kontaktadresse) {
-            secureLogger.info("KontaktadresseInklHistoriske og kontaktadresse er ikke like for bruker: ${person.kontaktadresseInklHistoriske?.toJson()} vs ${personVanlig?.kontaktadresse?.toJson()}")
-        }
-        if(person.bostedsadresseInklHistoriske != personVanlig?.bostedsadresse) {
-            secureLogger.info("KontaktadresseInklHistoriske og kontaktadresse er ikke like for bruker: ${person.kontaktadresseInklHistoriske?.toJson()} vs ${personVanlig?.kontaktadresse?.toJson()}")
-        }
-        val bostedsadresse = person.bostedsadresseInklHistoriske ?: return false.also { logger.info("Bruker har ingen bostedsadresse i PDL") }
+    fun harAktivNorskAdresse(person: PdlPersonUtvidet, pdlPersonEnkel: PdlPerson?, doedsdato: LocalDate): Boolean {
+        val bostedsadresse = if (pdlPersonEnkel?.bostedsadresse != null) {
+            pdlPersonEnkel.bostedsadresse.also { logger.info("Har bostedsadresse for person: $it") }
+        } else {
+            person.bostedsadresseInklHistoriske.also { logger.info("Har bostedsadresse for person (historisk): $it") }
+        } ?: return false.also { logger.info("Bruker har ingen bostedsadresse i PDL") }
+
         if (bostedsadresse.vegadresse == null) return false
+
         val gyldigTilOgMed = bostedsadresse.gyldigTilOgMed
         val harAktivNorskAdresse = erGyldigPaaDoedsdato(gyldigTilOgMed, doedsdato)
 
@@ -339,15 +338,24 @@ class DodsmeldingBehandler(
             gyldigTilOgMed,
             harAktivNorskAdresse
         )
+
         return harAktivNorskAdresse
     }
 
-    fun harAktivUtenlandskAdresse(person: PdlPersonUtvidet, doedsdato: LocalDate, identFraRegister: String?): Boolean {
-        val kontaktadresse = person.kontaktadresseInklHistoriske ?: run {
-            logger.info("Bruker har ingen utenlandsk-kontaktadresse i PDL")
-            flaggManglendeUtenlandskAdresseVedRegisterMatch(identFraRegister, false)
-            return false
-        }
+    fun harAktivUtenlandskAdresse(person: PdlPersonUtvidet, pdlPersonEnkel: PdlPerson, doedsdato: LocalDate, identFraRegister: String?): Boolean {
+        val kontaktadresse = if (pdlPersonEnkel.kontaktadresse != null) {
+            //flaggManglendeUtenlandskAdresseVedRegisterMatch(identFraRegister, false)
+            pdlPersonEnkel.kontaktadresse.also { logger.info("Har kontaktadresse for person: $it") }
+        } else {
+            //flaggManglendeUtenlandskAdresseVedRegisterMatch(identFraRegister, false)
+            person.kontaktadresseInklHistoriske.also { logger.info("Har kontaktadresse for person (historisk): $it") }
+        } ?: return false.also { logger.info("Bruker har ingen kontaktadresse i PDL") }
+
+//        val kontaktadresse = person.kontaktadresseInklHistoriske ?: run {
+//            logger.info("Bruker har ingen utenlandsk-kontaktadresse i PDL")
+//            flaggManglendeUtenlandskAdresseVedRegisterMatch(identFraRegister, false)
+//            return false
+//        }
 
         val gyldigAdresse = erGyldigPaaDoedsdato(kontaktadresse.gyldigTilOgMed, doedsdato)
         val harAdresse = kontaktadresse.utenlandskAdresse != null || kontaktadresse.utenlandskAdresseIFrittFormat != null
