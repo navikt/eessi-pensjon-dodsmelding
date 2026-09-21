@@ -322,10 +322,10 @@ class DodsmeldingBehandler(
      */
     fun harAktivNorskAdresse(person: PdlPersonUtvidet, personVanlig: PdlPerson?, doedsdato: LocalDate): Boolean {
         if(person.kontaktadresseInklHistoriske != personVanlig?.kontaktadresse) {
-            secureLogger.info("KontaktadresseInklHistoriske og kontaktadresse er ikke like for bruker: ${person.kontaktadresseInklHistoriske} vs ${personVanlig?.kontaktadresse}")
+            secureLogger.info("KontaktadresseInklHistoriske og kontaktadresse er ikke like for bruker: ${person.kontaktadresseInklHistoriske?.toJson()} vs ${personVanlig?.kontaktadresse?.toJson()}")
         }
         if(person.bostedsadresseInklHistoriske != personVanlig?.bostedsadresse) {
-            secureLogger.info("KontaktadresseInklHistoriske og kontaktadresse er ikke like for bruker: ${person.kontaktadresseInklHistoriske} vs ${personVanlig?.kontaktadresse}")
+            secureLogger.info("KontaktadresseInklHistoriske og kontaktadresse er ikke like for bruker: ${person.kontaktadresseInklHistoriske?.toJson()} vs ${personVanlig?.kontaktadresse?.toJson()}")
         }
         val bostedsadresse = person.bostedsadresseInklHistoriske ?: return false.also { logger.info("Bruker har ingen bostedsadresse i PDL") }
         if (bostedsadresse.vegadresse == null) return false
