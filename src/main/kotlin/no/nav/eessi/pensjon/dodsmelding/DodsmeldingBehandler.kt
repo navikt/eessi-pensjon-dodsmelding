@@ -90,7 +90,7 @@ class DodsmeldingBehandler(
             return
         }
         secureLogger.info("Person (historisk): ${person.toJson()}")
-        secureLogger.info("Person (ordinær): ${personVanlig.toJson()}")
+        secureLogger.info("Person (ordinær): ${personVanlig?.toJson()}")
 
         val norskAdresse = harAktivNorskAdresse(person, personVanlig, personhendelse.doedsfall.doedsdato)
         if (norskAdresse.not()) {
