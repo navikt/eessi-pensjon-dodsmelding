@@ -69,8 +69,8 @@ class DodsmeldingBehandler(
             return
         }
 
-        val person = personService.hentPersonUtvidet(identFraPdl).also { secureLogger.info("Henter utvidet pdlperson: {}", it) }
-        val personVanlig = personService.hentPerson(identFraPdl).also { secureLogger.info("Henter vanlig pdlperson: {}", it) }
+        val person = personService.hentPersonUtvidet(identFraPdl)
+        val personVanlig = personService.hentPerson(identFraPdl)
         val (identFraRegister, land) = lagringsService.finnesDodBrukerILeveAttReg(person?.identer) ?: (null to null)
 
         val rinaSakId = if (identFraRegister == null) safService.brukerRinasakIdFraJoark(norskIdent) else null
@@ -89,6 +89,8 @@ class DodsmeldingBehandler(
             logger.warn("Fant ingen personident")
             return
         }
+        secureLogger.info("Person (historisk): ${person.toJson()}")
+        secureLogger.info("Person (ordinær): ${personVanlig.toJson()}")
 
         val norskAdresse = harAktivNorskAdresse(person, personVanlig, personhendelse.doedsfall.doedsdato)
         if (norskAdresse.not()) {
