@@ -69,8 +69,8 @@ class DodsmeldingBehandler(
             return
         }
 
-        val person = personService.hentPersonUtvidet(identFraPdl).also { logger.debug("Henter person: {}", it) }
-        val personVanlig = personService.hentPerson(identFraPdl).also { logger.debug("Henter person: {}", it) }
+        val person = personService.hentPersonUtvidet(identFraPdl).also { secureLogger.info("Henter utvidet pdlperson: {}", it) }
+        val personVanlig = personService.hentPerson(identFraPdl).also { secureLogger.info("Henter vanlig pdlperson: {}", it) }
         val (identFraRegister, land) = lagringsService.finnesDodBrukerILeveAttReg(person?.identer) ?: (null to null)
 
         val rinaSakId = if (identFraRegister == null) safService.brukerRinasakIdFraJoark(norskIdent) else null
