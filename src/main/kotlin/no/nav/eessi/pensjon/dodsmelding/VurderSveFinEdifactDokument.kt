@@ -1,6 +1,5 @@
 package no.nav.eessi.pensjon.dodsmelding
 
-import no.nav.eessi.pensjon.utils.toJson
 import org.springframework.stereotype.Component
 
 @Component
@@ -20,7 +19,7 @@ class VurderSveFinEdifactDokument {
         val bgm = finnSegment(segments, "BGM")
         val frNad = finnNadForRole(segments, "FR")
         val mrNad = finnNadForRole(segments, "MR")
-        val dtm329 = finnDtmForQualifier(segments, "329")
+        val dtm329 = finnDtmForQualifier(segments)
 
         val avsenderLand = hentSisteFelt(frNad)
         val mottakerLand = hentSisteFelt(mrNad)
@@ -32,6 +31,7 @@ class VurderSveFinEdifactDokument {
             mottaker = hentFelt(unb, 3),
             meldingstype = hentFelt(bgm, 1),
             norskIdent = hentNorskGirIdent(edifactDokument),
+            svenskIdent = hentSvenskGirIdent(edifactDokument),
             avsenderLand = avsenderLand,
             mottakerLand = mottakerLand,
             fodselsdato = hentDatoFraDtm(dtm329),
@@ -82,15 +82,31 @@ class VurderSveFinEdifactDokument {
     private fun finnNadForRole(segments: List<String>, role: String): String? =
         segments.firstOrNull { it.startsWith("NAD+$role+") }
 
-    private val norskGirRegex = Regex("""NO'GIR\s*\+\d+\+(\d+)""")
+    private val norskGirRegex = Regex("""NO'GIR\s*\+\s*\d+\s*\+\s*(\d{11})""")
+    private val svenskGirRegex = Regex("""SE'GIR\s*\+\d+\+(\d{10,})""")
 
     private fun hentNorskGirIdent(edifact: String?): String? =
         edifact
             ?.let(::normaliser)
             ?.let { norskGirRegex.find(it)?.groupValues?.get(1) }
 
-    private fun finnDtmForQualifier(segments: List<String>, qualifier: String): String? =
-        segments.firstOrNull { it.startsWith("DTM+$qualifier:") }
+    private fun hentSvenskGirIdent(edifact: String?): String? =
+        edifact
+            ?.let(::normaliser)
+            ?.let { svenskGirRegex.find(it)?.groupValues?.get(1) }
+//            ?.let(::formaterSvenskUID)
+
+
+//    fun formaterSvenskUID(uid: String): String { // TODO Denne implementasjonen kan godt få en ny titt
+//        var uidNew = uid.trim().replace(" ", "").replace("-", "")
+//        if (uidNew.length == 12) {
+//            uidNew = uidNew.removeRange(0, 2)
+//        }
+//        return uidNew
+//    }
+
+    private fun finnDtmForQualifier(segments: List<String>): String? =
+        segments.firstOrNull { it.startsWith("DTM+329:") }
 
     private fun hentFelt(segment: String?, index: Int): String? =
         segment?.split('+')?.getOrNull(index)?.takeIf { it.isNotBlank() }

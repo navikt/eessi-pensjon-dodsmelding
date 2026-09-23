@@ -16,7 +16,7 @@ class VurderSveFinEdifactDokumentTest {
         assertEquals("SESFAE5PC", resultat?.avsender)
         assertEquals("NORTVE5LA", resultat?.mottaker)
         assertEquals("512", resultat?.meldingstype)
-        assertEquals("445566778833", resultat?.norskIdent)
+        assertEquals("44556677883", resultat?.norskIdent)
         assertEquals("SE", resultat?.avsenderLand)
         assertEquals("NO", resultat?.mottakerLand)
         assertEquals("19350951", resultat?.fodselsdato)
