@@ -13,6 +13,8 @@ import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
+import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Service
@@ -23,7 +25,8 @@ import java.util.UUID
 @Service
 class MeldingFraPdlListener(
     private val dodsmeldingBehandler: DodsmeldingBehandler,
-    @Autowired(required = false) private val metricsHelper: MetricsHelper = MetricsHelper.ForTest()
+    @Autowired(required = false) private val metricsHelper: MetricsHelper = MetricsHelper.ForTest(),
+    @Autowired(required = false) private val environment: Environment? = null
 ) {
     @Autowired
     private lateinit var opprettH070: OpprettH070
@@ -49,6 +52,11 @@ class MeldingFraPdlListener(
 
     @EventListener(ApplicationReadyEvent::class)
     fun mottaFakeMeldinger() {
+        if (environment?.acceptsProfiles(Profiles.of("prod")) != true) {
+            logger.info("Hopper over fake dødsmeldinger utenfor prod")
+            return
+        }
+
         behandleMeldinger(genererFakeListe())
     }
 
