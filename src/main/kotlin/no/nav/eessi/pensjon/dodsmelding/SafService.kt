@@ -14,9 +14,13 @@ class SafService (
     private val logger: Logger = LoggerFactory.getLogger(SafService::class.java)
 
 
-    fun brukerRinasakIdFraJoark(valgtPersonident: String): String? =
+    fun brukerRinasakIdFraP6000(valgtPersonident: String): String? =
         hentJournalposter(valgtPersonident)
             .firstNotNullOfOrNull(::bucIdForP6000Journalpost)
+
+    fun brukerRinasakIdFraH070(valgtPersonident: String): String? =
+        hentJournalposter(valgtPersonident)
+            .firstNotNullOfOrNull(::bucIdForH070Journalpost)
 
     private fun hentJournalposter(valgtPersonident: String) =
         safClient
@@ -28,7 +32,18 @@ class SafService (
     private fun bucIdForP6000Journalpost(journalpost: Journalpost): String? {
         val bucId = hentBucId(journalpost) ?: return null
 
-        if (!harP6000Dokument(journalpost)) {
+        if (!harDokumentMedTittel(journalpost, "P6000")) {
+            return null
+        }
+
+        loggTreff(journalpost, bucId)
+        return bucId
+    }
+
+    private fun bucIdForH070Journalpost(journalpost: Journalpost): String? {
+        val bucId = hentBucId(journalpost) ?: return null
+
+        if (!harDokumentMedTittel(journalpost, "H070")) {
             return null
         }
 
@@ -44,9 +59,9 @@ class SafService (
             }
 
 
-    private fun harP6000Dokument(journalpost: Journalpost): Boolean =
+    private fun harDokumentMedTittel(journalpost: Journalpost, tittel: String): Boolean =
         journalpost.dokumenter.orEmpty()
-            .any { it.tittel?.contains("P6000") == true }
+            .any { it.tittel?.contains(tittel) == true }
 
     private fun loggTreff(journalpost: Journalpost, bucId: String) {
         logger.info(
