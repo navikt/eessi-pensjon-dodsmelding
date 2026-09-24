@@ -73,7 +73,7 @@ class DodsmeldingBehandler(
         val personVanlig = personService.hentPerson(identFraPdl)
         val (identFraRegister, land) = lagringsService.finnesDodBrukerILeveAttReg(person?.identer) ?: (null to null)
 
-        val rinaSakId = safService.brukerRinasakIdFraJoark(norskIdent).also { logger.info("RinaSakId fra Joark: {}", it) }
+        val rinaSakId = if (identFraRegister == null) safService.brukerRinasakIdFraJoark(norskIdent) else null
 
         // Hvis vi ikke finner ident i leveattestregisteret og heller ikke rinaSakId i Joark, avslutter vi prosessen.
         if(identFraRegister == null && rinaSakId == null) {
