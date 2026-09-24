@@ -9,5 +9,6 @@ open class EdifactDokument(
     val avsenderLand: String?,
     val mottakerLand: String?,
     val fodselsdato: String?,
-    val erSveFin: Boolean
+    val erSveFin: Boolean,
+    val doedsdato: String? = null
 )
