@@ -16,11 +16,23 @@ class VurderSveFinEdifactDokumentTest {
         assertEquals("SESFAE5PC", resultat?.avsender)
         assertEquals("NORTVE5LA", resultat?.mottaker)
         assertEquals("512", resultat?.meldingstype)
-        assertEquals("445566778833", resultat?.norskIdent)
+        assertEquals("44556677883", resultat?.norskIdent)
         assertEquals("SE", resultat?.avsenderLand)
         assertEquals("NO", resultat?.mottakerLand)
         assertEquals("19350951", resultat?.fodselsdato)
+        assertEquals("20250920", resultat?.doedsdato)
         assertTrue(resultat?.erSveFin == true)
+    }
+
+    @Test
+    fun `finnDokumenterMedDtm901 returnerer bare dokumenter med doedsdato`() {
+        val dokumentMedDoedsdato = edifactDokForSveFin()
+        val dokumentUtenDoedsdato = edifactDokForSveFin().replace("'DTM+901:20250920:102", "")
+
+        val resultat = tolk.finnDokumenterMedDtm901("$dokumentMedDoedsdato'$dokumentUtenDoedsdato")
+
+        assertEquals(1, resultat.size)
+        assertEquals("20250920", resultat.single().doedsdato)
     }
 
 
@@ -55,7 +67,7 @@ class VurderSveFinEdifactDokumentTest {
             SSREGW:D:94B:UN'BGM+512+1112190988'DTM+137:20251121:102'GIS+1'NAD+FR+RFV++FORSAK
             RINGSKASSAN+++++SE'GIR+903+6455545099:RN'NAD+MR+RTV++RIKSTRYGDEVERKET+++++NO'GIR
             +903+445566778833:RN'PNA+SIP++2+1+1:FOYKE++2:USTABIL'NAT+1+NO'ADR+1::1+1:FREDSGAT
-            AN 1+KARLSTAD+61225+NO'DTM+329:19350951:102'PDI+2+3'UNT+14+052000101'UNZ+15235+5
+            AN 1+KARLSTAD+61225+NO'DTM+329:19350951:102'DTM+901:20250920:102'PDI+2+3'UNT+15+052000101'UNZ+15235+5
             122225132121'
         """.trimIndent()
     }
