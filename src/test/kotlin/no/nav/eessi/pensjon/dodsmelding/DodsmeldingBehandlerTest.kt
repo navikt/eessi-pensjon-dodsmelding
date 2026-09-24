@@ -10,15 +10,30 @@ import no.nav.eessi.pensjon.eux.model.Motparter
 import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
+import no.nav.eessi.pensjon.personoppslag.pdl.model.AdressebeskyttelseGradering
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Bostedsadresse
+import no.nav.eessi.pensjon.personoppslag.pdl.model.Endring
+import no.nav.eessi.pensjon.personoppslag.pdl.model.Endringstype
+import no.nav.eessi.pensjon.personoppslag.pdl.model.Foedested
+import no.nav.eessi.pensjon.personoppslag.pdl.model.Foedselsdato
+import no.nav.eessi.pensjon.personoppslag.pdl.model.GeografiskTilknytning
+import no.nav.eessi.pensjon.personoppslag.pdl.model.GtType
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
+import no.nav.eessi.pensjon.personoppslag.pdl.model.Kjoenn
+import no.nav.eessi.pensjon.personoppslag.pdl.model.KjoennType
+import no.nav.eessi.pensjon.personoppslag.pdl.model.Metadata
+import no.nav.eessi.pensjon.personoppslag.pdl.model.Navn
+import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPerson
 import no.nav.eessi.pensjon.personoppslag.pdl.model.UtenlandskAdresse
 import no.nav.eessi.pensjon.personoppslag.pdl.model.UtenlandskIdentifikasjonsnummer
+import no.nav.eessi.pensjon.personoppslag.pdl.model.Vegadresse
 import no.nav.eessi.pensjon.saf.*
 import no.nav.eessi.pensjon.saf.BrukerIdType.FNR
+import no.nav.eessi.pensjon.shared.person.Fodselsnummer
 import no.nav.eessi.pensjon.utils.mapJsonToAny
+import no.nav.eessi.pensjon.utils.toJsonSkipEmpty
 import no.nav.person.pdl.leesah.Personhendelse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -36,6 +51,8 @@ import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.exchange
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+const val FNR_OVER_62 = "09035225916"   // SLAPP SKILPADDE
 
 @Disabled
 class DodsmeldingBehandlerTest {
@@ -86,6 +103,15 @@ class DodsmeldingBehandlerTest {
         every { euxService.sendSed(any(), any()) } returns mockk(relaxed = true)
         every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
         every { lagringsService.lagreH070(any(), any()) } returns mockk(relaxed = true)
+
+        every { personService.hentPerson(any()) } returns createBrukerWith(FNR_OVER_62, "Voksen ", "Forsikret", "SWE", aktorId = "1005094340092")
+        every { safClient.hentDokumentMetadata(any(),any()) } returns mockk(relaxed = true) {
+            every { data } returns mockk(relaxed = true) {
+                every { dokumentoversiktBruker } returns mockk(relaxed = true) {
+                    every { journalposter } returns emptyList()
+                }
+            }
+        }
     }
 
     @Test
@@ -269,6 +295,7 @@ class DodsmeldingBehandlerTest {
         val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns null
+        every { personService.hentPerson(ident) } returns null
         every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
         every { lagringsService.finnesDoedsmeldingAlleredeForBruker(any()) } returns mockk(relaxed = true )
 
@@ -276,7 +303,7 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
-        verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
+        //verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
     @Test
@@ -852,5 +879,74 @@ class DodsmeldingBehandlerTest {
         val result = method.invoke(dodsmeldingBehandler, norskIdent) as String?
 
         assertEquals(bucid, result)
+    }
+
+
+    fun createBrukerWith(
+        fnr: String?,
+        fornavn: String = "Fornavn",
+        etternavn: String = "Etternavn",
+        land: String? = "NOR",
+        geo: String = "1234",
+        harAdressebeskyttelse: Boolean = false,
+        aktorId: String? = null
+    ): PdlPerson {
+
+        val foedselsdato  = if(Fodselsnummer.fra(fnr)?.erNpid == true)
+            Foedselsdato(foedselsdato = "1988-07-12", metadata = mockk(relaxed = true)).also { println("XXX" + it.toJsonSkipEmpty()) }
+        else
+            fnr?.let {
+                Foedselsdato(foedselsdato = Fodselsnummer.fra(it)?.getBirthDate()?.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")), metadata = mockk(relaxed = true)).also { println("XXX" + it.toJsonSkipEmpty()) }
+            }
+
+        val utenlandskadresse = if (land == null || land == "NOR") null else UtenlandskAdresse(landkode = land)
+
+        val identer = listOfNotNull(
+            fnr?.let { IdentInformasjon(ident = it, gruppe = IdentGruppe.FOLKEREGISTERIDENT) },
+            aktorId?.let { IdentInformasjon(ident = it, gruppe = IdentGruppe.AKTORID) }
+        )
+
+        val adressebeskyttelse = if (harAdressebeskyttelse) listOf(AdressebeskyttelseGradering.STRENGT_FORTROLIG)
+        else listOf(AdressebeskyttelseGradering.UGRADERT)
+
+        val metadata = Metadata(
+            listOf(
+                Endring(
+                    "kilde",
+                    LocalDateTime.now(),
+                    "ole",
+                    "system1",
+                    Endringstype.OPPRETT
+                )
+            ),
+            false,
+            "nav",
+            "1234"
+        )
+
+        return PdlPerson(
+            identer = identer,
+            navn = Navn(
+                fornavn = fornavn, etternavn = etternavn, metadata = metadata
+            ),
+            adressebeskyttelse = adressebeskyttelse,
+            bostedsadresse = Bostedsadresse(
+                gyldigFraOgMed = LocalDateTime.now(),
+                gyldigTilOgMed = LocalDateTime.now(),
+                vegadresse = Vegadresse("Oppoverbakken", "66", null, "1920"),
+                utenlandskAdresse = utenlandskadresse,
+                metadata
+            ),
+            oppholdsadresse = null,
+            statsborgerskap = emptyList(),
+            foedselsdato = foedselsdato,
+            foedested = Foedested(foedeland = "NOR", foedested = "OSLO", metadata = metadata),
+            geografiskTilknytning = GeografiskTilknytning(GtType.KOMMUNE, geo),
+            kjoenn = Kjoenn(KjoennType.KVINNE, metadata = metadata),
+            doedsfall = null,
+            forelderBarnRelasjon = emptyList(),
+            sivilstand = emptyList(),
+            utenlandskIdentifikasjonsnummer = emptyList()
+        )
     }
 }

@@ -49,9 +49,10 @@ class DodsmeldingBehandler(
      *
      * Flyt:
      * 1. Mottar dødsmelding.
-     * 2. Sjekker ident mot leveattestregisteret.
-     * 3. Hvis ikke treff: sjekker Joark etter P6000 med relevant avsenderland.
-     * 4. Ved treff i ett av sporene lagres preutfylt H070.
+     * 2. Sjekker ident mot leveattestregisteret
+     * 3. Hvis treff: sjekker Joark etter H070 med relevant avsenderland. Om det finnes en H070, logger vi info og avslutter. Hvis ikke, oppretter vi H070.
+     * 4. Hvis ikke treff: sjekker Joark etter P6000 med relevant avsenderland.
+     * 5. Ved treff i ett av sporene lagres preutfylt H070.
      */
     fun behandle(personhendelse: Personhendelse) {
         val norskIdent = hentNorskIndent(personhendelse)
@@ -73,7 +74,20 @@ class DodsmeldingBehandler(
         val personVanlig = personService.hentPerson(identFraPdl)
         val (identFraRegister, land) = lagringsService.finnesDodBrukerILeveAttReg(person?.identer) ?: (null to null)
 
-        val rinaSakId = if (identFraRegister == null) safService.brukerRinasakIdFraJoark(norskIdent) else null
+        // Hvis vi finner ident i leveattestregisteret, sjekker vi om det allerede finnes en H070 i Joark for denne brukeren.
+        // Hvis det finnes en H070, logger vi informasjon og avslutter prosessen.
+        // Hvir ikke skal det lages en H070.
+        if(identFraRegister != null) {
+            val rinaSakIdH070 = safService.brukerRinasakIdFraH070(identFraRegister)
+            if(rinaSakIdH070 != null) {
+                logger.info("Bruker finnes i leveattestregisteret, men har allerede en H070 opprettet i Joark med rinaSakId: $rinaSakIdH070")
+                return
+            }
+            logger.info("Bruker finnes i leveattestregisteret med identFraRegister, land: $land og rinaSakIdH070: $rinaSakIdH070")
+        }
+
+
+        val rinaSakId = if (identFraRegister == null) safService.brukerRinasakIdFraP6000(norskIdent) else null
 
         // Hvis vi ikke finner ident i leveattestregisteret og heller ikke rinaSakId i Joark, avslutter vi prosessen.
         if(identFraRegister == null && rinaSakId == null) {
@@ -112,9 +126,9 @@ class DodsmeldingBehandler(
             logger.warn("Bruker sin utenlandske adresse er nyere enn norsk adresse; avbryter opprettelse av H070")
             return
         }
-        logger.info("Vurderer land fra kontaktadresse")
 
         val landFraKontaktadresse = hentLandFraKontaktadresse(person)
+        logger.info("Vurderer land fra kontaktadresse: $landFraKontaktadresse")
         if (landFraKontaktadresse !in gyldigeUtstederland) {
             logger.warn("Bruker har utenlandsk kontaktadresse, men utstederland ($landFraKontaktadresse) er ikke gyldig for opprettelse av H070")
             return
