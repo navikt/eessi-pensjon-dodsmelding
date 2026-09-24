@@ -24,23 +24,21 @@ class GcpLagretInnhold (
                 .iterateAll()
                 .count()
         }.onSuccess { count ->
-            logger.info(
-                """
-                ************************************************************
-                GCP bucket summary:
-                - bucket: {}
-                - antall lagrede personer: {}
-                ************************************************************
-                """.trimIndent(),
-                bucketName,
-                count
-            )
+            printBucketSummary(bucketName, count.toLong())
         }.onFailure { error ->
             logger.error(
-                "Error under henting av info fra $bucketName {}",
+                "Error under henting av info fra {}",
                 bucketName,
                 error
             )
         }
+    }
+
+    private fun printBucketSummary(bucket: String, antallLagredePersoner: Long) {
+        val border = "=".repeat(60)
+
+        println(
+            """        $border        GCP bucket summary        - bucket: $bucket        - antall lagrede personer: $antallLagredePersoner        $border        """.trimIndent()
+        )
     }
 }
