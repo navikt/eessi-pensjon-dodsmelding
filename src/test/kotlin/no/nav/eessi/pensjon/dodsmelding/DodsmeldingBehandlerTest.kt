@@ -54,7 +54,6 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 const val FNR_OVER_62 = "09035225916"   // SLAPP SKILPADDE
 
-@Disabled
 class DodsmeldingBehandlerTest {
 
     private val safGraphQlOidcRestTemplate: RestTemplate = mockk(relaxed = true)
@@ -81,6 +80,8 @@ class DodsmeldingBehandlerTest {
         every { gyldigTilOgMed } returns null
         every { vegadresse } returns mockk(relaxed = true)
     }
+
+    private fun metadataMock() = Metadata(emptyList(), false, "FREG", "test")
 
     private fun personhendelseMock(vararg identer: String): Personhendelse = mockk {
         every { personidenter } returns identer.toList()
@@ -125,7 +126,7 @@ class DodsmeldingBehandlerTest {
             every { bostedsadresseInklHistoriske } returns bostedsadresse
         }
 
-        val resultat = dodsmeldingBehandler.harAktivNorskAdresse(person,mockk(relaxed = true), doedsdato)
+        val resultat = dodsmeldingBehandler.harAktivNorskAdresse(person, null, doedsdato)
 
         assertTrue(resultat)
     }
@@ -141,7 +142,7 @@ class DodsmeldingBehandlerTest {
             every { bostedsadresseInklHistoriske } returns bostedsadresse
         }
 
-        val resultat = dodsmeldingBehandler.harAktivNorskAdresse(person, mockk(relaxed = true),doedsdato)
+        val resultat = dodsmeldingBehandler.harAktivNorskAdresse(person, null, doedsdato)
 
         assertFalse(resultat)
     }
@@ -175,7 +176,10 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, mockk(relaxed = true), doedsdato, null)
+        val personPdlEnkel = mockk<PdlPerson>(relaxed = true) {
+            every { kontaktadresse } returns null
+        }
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, personPdlEnkel, doedsdato, null)
 
         assertTrue(resultat)
     }
@@ -193,7 +197,10 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person,mockk(relaxed = true), doedsdato, null)
+        val personPdlEnkel = mockk<PdlPerson>(relaxed = true) {
+            every { kontaktadresse } returns null
+        }
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, personPdlEnkel, doedsdato, null)
 
         assertTrue(resultat)
     }
@@ -209,7 +216,10 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person,mockk(relaxed = true), doedsdato, null)
+        val personPdlEnkel = mockk<PdlPerson>(relaxed = true) {
+            every { kontaktadresse } returns null
+        }
+        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, personPdlEnkel, doedsdato, null)
 
         assertFalse(resultat)
     }
@@ -243,12 +253,15 @@ class DodsmeldingBehandlerTest {
             every { bostedsadresseInklHistoriske } returns norskGyldigFraOgMed?.let { dato ->
                 mockk(relaxed = true) { every { gyldigFraOgMed } returns LocalDate.parse(dato).atStartOfDay() }
             }
-            every { kontaktadresseInklHistoriske } returns utenlandskGyldigFraOgMed?.let { dato ->
-                mockk(relaxed = true) { every { gyldigFraOgMed } returns LocalDate.parse(dato).atStartOfDay() }
+            every { kontaktadresseInklHistoriske } returns mockk(relaxed = true) {
+                every { gyldigFraOgMed } returns utenlandskGyldigFraOgMed?.let { dato ->
+                    LocalDate.parse(dato).atStartOfDay()
+                }
+                every { utenlandskAdresse } returns mockk(relaxed = true)
             }
         }
 
-        val resultat = dodsmeldingBehandler.erNorskAdresseNyereEnnUtenlandsk(person, mockk(relaxed = true))
+        val resultat = dodsmeldingBehandler.erNorskAdresseNyereEnnUtenlandsk(person, null)
 
         assertEquals(forventet, resultat)
     }
@@ -264,7 +277,7 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
-    fun `behandle henter ikke dokumentmetadata naar person ikke har utenlandskIdentifikasjonsnummer`() {
+    fun `behandle sjekker Joark for eksisterende H070 ved treff i leveattestregister uten utenlandsk identifikasjonsnummer`() {
         val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
@@ -287,7 +300,7 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
-        verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
+        verify(exactly = 1) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
     @Test
@@ -307,29 +320,29 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
-    fun `behandle henter ikke dokumentmetadata naar utstederland ikke er i gyldigeUtstederland`() {
+    fun `behandle oppretter ikke H070 naar utenlandsk kontaktadresse ikke er gyldig utstederland`() {
         val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns listOf(
-                mockk {
-                    every { utstederland } returns "DEU"
-                    every { identifikasjonsnummer } returns "SE1234567890"
-                }
-
+                UtenlandskIdentifikasjonsnummer(
+                    identifikasjonsnummer = "SE1234567890",
+                    utstederland = "DEU",
+                    opphoert = false,
+                    metadata = metadataMock()
+                )
             )
-            every { identer } returns emptyList()
+            every { identer } returns listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT))
             every { bostedsadresse } returns null
             every { bostedsadresse?.utenlandskAdresse } returns null
             every { kontaktadresseInklHistoriske } returns mockk(relaxed = true) {
                 every { utenlandskAdresse } returns mockk(relaxed = true) {
-                    every { landkode } returns "FIN"
+                    every { landkode } returns "DEU"
                 }
                 every { utenlandskAdresseIFrittFormat } returns null
             }
             every { oppholdsadresseInklHistoriske } returns null
             every { bostedsadresseInklHistoriske } returns null
-            every { utenlandskIdentifikasjonsnummer} returns emptyList()
             every { doedsfall } returns null
             every { oppholdsadresse } returns mockk(relaxed = true)
             every { kontaktadresse } returns mockk(relaxed = true)
@@ -344,7 +357,8 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
-        verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
+        verify(exactly = 1) { safClient.hentDokumentMetadata(any(), any()) }
+        verify(exactly = 0) { opprettH070.preutFyltH070(any(), any(), any()) }
     }
 
     @Disabled
@@ -701,7 +715,7 @@ class DodsmeldingBehandlerTest {
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns listOf(UtenlandskIdentifikasjonsnummer(
-                identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = mockk())
+                identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = metadataMock())
             )
             every { identer } returns listOf(
                 IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
@@ -744,7 +758,7 @@ class DodsmeldingBehandlerTest {
             every { bostedsadresse } returns null
             every { bostedsadresse?.utenlandskAdresse } returns null
             every { utenlandskIdentifikasjonsnummer } returns listOf(UtenlandskIdentifikasjonsnummer(
-                identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = mockk())
+                identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = metadataMock())
             )
             every { identer } returns listOf(
                 IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
@@ -782,7 +796,7 @@ class DodsmeldingBehandlerTest {
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns null
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns listOf(UtenlandskIdentifikasjonsnummer(
-                identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = mockk())
+                identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = metadataMock())
             )
             every { identer } returns listOf(
                 IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
