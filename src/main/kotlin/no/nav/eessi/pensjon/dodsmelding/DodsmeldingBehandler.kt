@@ -494,9 +494,9 @@ class DodsmeldingBehandler(
     }
 
     private fun hentNorskIndent(personhendelse: Personhendelse?): String? {
-        val valgtPersonident = personhendelse?.personidenter
+        val gyldigePersonidenter = personhendelse?.personidenter
             ?.filter { it.length > 10 }
-            ?.firstOrNull { ident ->
+            ?.filter { ident ->
                 try {
                     Ident.bestemIdent(ident)
                     true
@@ -505,6 +505,8 @@ class DodsmeldingBehandler(
                     false
                 }
             }
-        return valgtPersonident
+        return gyldigePersonidenter
+            ?.firstOrNull { it.length == 11 }
+            ?: gyldigePersonidenter?.firstOrNull()
     }
 }

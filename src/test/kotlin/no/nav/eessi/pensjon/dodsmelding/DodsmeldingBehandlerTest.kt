@@ -705,8 +705,8 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
-    fun `behandle velger forste gyldige ident fra listen`() {
-        val personhendelse = personhendelseMock("ugyldig", "12345678901", "98765432100")
+    fun `behandle prioriterer folkeregisterident foran aktorid`() {
+        val personhendelse = personhendelseMock("1000016953359", "ugyldig", "12345678901", "98765432100")
         val ident = Ident.bestemIdent("12345678901")
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")

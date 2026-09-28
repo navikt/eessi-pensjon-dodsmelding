@@ -166,7 +166,7 @@ class LagringsServiceTest {
 
     @Test
     fun `hentBrukerILand ulike fnr genererer ulike hash`() {
-        val result1 = lagringsService.landOgIdent("FI", "12345678901")
+        val result1 = lagringsService.landOgIdent("SE", "13507008202")
         val result2 = lagringsService.landOgIdent("FI", "98765432101")
 
         assertNotEquals(result1, result2)
