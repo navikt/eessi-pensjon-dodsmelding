@@ -57,7 +57,7 @@ class LagringsService (
     fun finnesDodBrukerILeveAttReg(
         fnr: List<IdentInformasjon>?
     ): Pair<String, String>? {
-        logger.debug("Sjekker om fødselsnummer ligger i bucket")
+        logger.debug("Sjekker om fødselsnummer ligger i bucket: ${fnr?.take(4)}")
 
         val identifikatorer = fnr.orEmpty()
         if (identifikatorer.isEmpty()) {
