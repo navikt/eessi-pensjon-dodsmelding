@@ -438,7 +438,7 @@ class DodsmeldingBehandler(
             return true
         }
 
-        val norskAdresseNyereEnnUtenlandsk = norskGyldigFraOgMed.isAfter(utenlandskGyldigFraOgMed)
+        val norskAdresseNyereEnnUtenlandsk = norskGyldigFraOgMed >= utenlandskGyldigFraOgMed
 
         logger.info(
             "Sammenligner adressers alder: norskGyldigFraOgMed={}, utenlandskGyldigFraOgMed={}, norskAdresseNyereEnnUtenlandsk={}",

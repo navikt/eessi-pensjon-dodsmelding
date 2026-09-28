@@ -21,6 +21,7 @@ import no.nav.eessi.pensjon.personoppslag.pdl.model.GtType
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
+import no.nav.eessi.pensjon.personoppslag.pdl.model.KontaktadresseType
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Kjoenn
 import no.nav.eessi.pensjon.personoppslag.pdl.model.KjoennType
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Metadata
@@ -236,28 +237,48 @@ class DodsmeldingBehandlerTest {
         assertFalse(resultat)
     }
 
-    @ParameterizedTest(name = "erNorskAdresseNyereEnnUtenlandsk(norsk={0}, utenlandsk={1}) = {2}")
+    @ParameterizedTest(name = "erNorskAdresseNyereEnnUtenlandsk(norsk={0}, utenlandsk={1}, adresse={2}) = {4}")
     @CsvSource(
-        "2026-01-01, 2020-01-01, true",
-        "2020-01-01, 2026-01-01, false",
-        "2020-01-01, NULL, true",
-        "NULL, 2020-01-01, true",
+        "2026-01-01, 2020-01-01, UTLAND, true, true",
+        "2020-01-01, 2026-01-01, UTLAND, true, false",
+        "2020-01-01, 2020-01-01, UTLAND, true, true",
+        "2020-01-01, 2020-01-01, null, true, true",
+        "2020-01-01, NULL, UTLAND, true, true",
+        "NULL, 2020-01-01, UTLAND, true, true",
+        "NULL, NULL, INNLAND, true, true",
+        "NULL, NULL, UTLAND_UTEN_ADRESSE, true, true",
+        "NULL, NULL, UTLAND, false, true",
         nullValues = ["NULL"]
     )
     fun `erNorskAdresseNyereEnnUtenlandsk gir forventet resultat`(
         norskGyldigFraOgMed: String?,
         utenlandskGyldigFraOgMed: String?,
+        kontaktadresseType: String,
+        harKontaktadresse: Boolean,
         forventet: Boolean
     ) {
         val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
             every { bostedsadresseInklHistoriske } returns norskGyldigFraOgMed?.let { dato ->
                 mockk(relaxed = true) { every { gyldigFraOgMed } returns LocalDate.parse(dato).atStartOfDay() }
             }
-            every { kontaktadresseInklHistoriske } returns mockk(relaxed = true) {
-                every { gyldigFraOgMed } returns utenlandskGyldigFraOgMed?.let { dato ->
-                    LocalDate.parse(dato).atStartOfDay()
+            every { kontaktadresseInklHistoriske } returns if (harKontaktadresse) {
+                mockk(relaxed = true) {
+                    every { type } returns if (kontaktadresseType == "INNLAND") {
+                        KontaktadresseType.Innland
+                    } else {
+                        KontaktadresseType.Utland
+                    }
+                    every { gyldigFraOgMed } returns utenlandskGyldigFraOgMed?.let { dato ->
+                        LocalDate.parse(dato).atStartOfDay()
+                    }
+                    every { utenlandskAdresse } returns if (kontaktadresseType == "UTLAND") {
+                        mockk(relaxed = true)
+                    } else {
+                        null
+                    }
                 }
-                every { utenlandskAdresse } returns mockk(relaxed = true)
+            } else {
+                null
             }
         }
 
