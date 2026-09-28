@@ -414,29 +414,31 @@ class DodsmeldingBehandler(
      * regnes den norske adressen som nyest.
      */
     fun erNorskAdresseNyereEnnUtenlandsk(personUtvidet: PdlPersonUtvidet, personPdlEnkel: PdlPerson?): Boolean {
+        val kontaktadresse = personPdlEnkel?.kontaktadresse ?: personUtvidet.kontaktadresseInklHistoriske
+        if (kontaktadresse == null) {
+            logger.info("Bruker har ingen nyere kontaktadresse i PDL")
+            return true
+        }
 
-        val kontaktadresse = if (personPdlEnkel?.kontaktadresse != null) {
-            personPdlEnkel.kontaktadresse.also { logger.info("Sjekker nyere kontaktadresse for person: $it") }
-        } else {
-            personUtvidet.kontaktadresseInklHistoriske.also { logger.info("Sjekker nyere kontaktadresse for person (historisk): $it") }
-        } ?: return false.also { logger.info("Bruker har ingen nyere kontaktadresse i PDL") }
-
-        val manglerUtenlandskAdresse = kontaktadresse.utenlandskAdresse == null && kontaktadresse.utenlandskAdresseIFrittFormat == null
-
-        if (kontaktadresse.type == KontaktadresseType.Innland || manglerUtenlandskAdresse) {
+        val harUtenlandskAdresse =
+            kontaktadresse.utenlandskAdresse != null || kontaktadresse.utenlandskAdresseIFrittFormat != null
+        if (kontaktadresse.type == KontaktadresseType.Innland || !harUtenlandskAdresse) {
             logger.info("Bruker har ingen utenlandsk kontaktadresse, regner norsk adresse som nyest")
             return true
         }
 
         val norskGyldigFraOgMed = personUtvidet.bostedsadresseInklHistoriske?.gyldigFraOgMed
-        val utenlandskGyldigFraOgMed = personUtvidet.kontaktadresseInklHistoriske?.gyldigFraOgMed
-
-        if(utenlandskGyldigFraOgMed == null){
-            logger.info("Bruker har ingen gyldigFraOgMed på utenlandsk kontaktadresse, regner norsk adresse som nyest")
-            return false
+        val utenlandskGyldigFraOgMed = kontaktadresse.gyldigFraOgMed
+        if (norskGyldigFraOgMed == null || utenlandskGyldigFraOgMed == null) {
+            logger.info(
+                "Mangler gyldigFraOgMed på norsk eller utenlandsk adresse, regner norsk adresse som nyest: norskGyldigFraOgMed={}, utenlandskGyldigFraOgMed={}",
+                norskGyldigFraOgMed,
+                utenlandskGyldigFraOgMed
+            )
+            return true
         }
 
-        val norskAdresseNyereEnnUtenlandsk = norskGyldigFraOgMed?.isAfter(utenlandskGyldigFraOgMed)
+        val norskAdresseNyereEnnUtenlandsk = norskGyldigFraOgMed.isAfter(utenlandskGyldigFraOgMed)
 
         logger.info(
             "Sammenligner adressers alder: norskGyldigFraOgMed={}, utenlandskGyldigFraOgMed={}, norskAdresseNyereEnnUtenlandsk={}",
@@ -445,7 +447,7 @@ class DodsmeldingBehandler(
             norskAdresseNyereEnnUtenlandsk
         )
 
-        return norskAdresseNyereEnnUtenlandsk?: false.also { logger.info("Bruker har ingen gyldigFraOgMed på norsk bostedsadresse, regner utenlandsk adresse som nyest") }
+        return norskAdresseNyereEnnUtenlandsk
     }
 
     /**
