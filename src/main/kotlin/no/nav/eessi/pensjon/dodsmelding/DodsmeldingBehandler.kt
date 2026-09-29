@@ -130,7 +130,7 @@ class DodsmeldingBehandler(
         val landFraKontaktadresse = hentLandFraKontaktadresse(person)
         logger.info("Vurderer land fra kontaktadresse: $landFraKontaktadresse")
         if (landFraKontaktadresse !in gyldigeUtstederland) {
-            logger.warn("Bruker har utenlandsk kontaktadresse, men utstederland ($landFraKontaktadresse) er ikke gyldig for opprettelse av H070")
+            logger.warn("Manglende, eller ugyldig utstederland: ($landFraKontaktadresse) ")
             return
         }
 
