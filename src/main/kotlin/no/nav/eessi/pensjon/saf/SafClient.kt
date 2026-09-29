@@ -32,7 +32,7 @@ class SafClient(
     }
 
     fun hentDokumentMetadata(ident: String, identType: BrukerIdType): HentMetadataResponse {
-        logger.info("Henter dokument metadata for aktørid: $ident")
+        logger.info("Henter dokument metadata for aktørid: $ident, identType: $identType")
 
         return hentDokumentMetadata.measure {
             try {
