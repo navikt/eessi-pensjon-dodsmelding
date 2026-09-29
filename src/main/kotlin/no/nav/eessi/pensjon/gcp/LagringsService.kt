@@ -57,10 +57,9 @@ class LagringsService (
     fun finnesDodBrukerILeveAttReg(
         fnr: List<IdentInformasjon>?
     ): Pair<String, String>? {
-        logger.debug("Sjekker om fødselsnummer ligger i bucket: ${fnr?.take(4)}")
+        logger.debug("Sjekker om fødselsnummer ligger i bucket: ${fnr}")
 
-        val identifikatorer = fnr.orEmpty()
-        if (identifikatorer.isEmpty()) {
+        if (fnr.isNullOrEmpty()) {
             logger.debug("Ingen identifikatorer mottatt fra PDL")
             return null
         }
@@ -71,9 +70,9 @@ class LagringsService (
             }
 
         val resultat = bucketEntries.firstNotNullOfOrNull { bucketEntry ->
-            identifikatorer.firstNotNullOfOrNull { identInformasjon ->
+            fnr.firstNotNullOfOrNull { identInformasjon ->
                 val ident = identInformasjon.ident
-                val hash = hashedValue(ident)
+                val hash = hashedValue(ident).also { logger.debug("${ident.take(4)}: hash: $it") }
 
                 if (bucketEntry.contains(hash)) {
                     ident to hentLandFraPrefix(bucketEntry).also { secureLogger.info("Bruker med ident $ident finnes i bucket med landkode: $it for hash:$hash") }
@@ -132,11 +131,6 @@ class LagringsService (
     }
 
     fun hentListeFraS3(keyPrefix: String, bucket: String) : List<String> {
-        logger.debug("lister innhold i fila")
-        // Page.values gir kun forste side av resultatet. Bruker iterateAll() slik at alle sider
-        // hentes - ellers vil eksisterer-sjekker feilaktig kunne mislykkes for identer som ligger
-        // pa senere sider naar bucketen inneholder flere blobber enn en enkelt side (default 1000),
-        // med fare for at samme ident lagres pa nytt i hver kjoring av batchen.
         return gcpStorage.list(bucket , Storage.BlobListOption.prefix(keyPrefix))?.iterateAll()?.map { v -> v.name}  ?:  emptyList()
     }
 
