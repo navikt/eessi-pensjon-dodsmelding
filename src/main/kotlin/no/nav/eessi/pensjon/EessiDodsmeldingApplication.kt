@@ -1,5 +1,6 @@
 package no.nav.eessi.pensjon
 
+import no.nav.eessi.pensjon.config.configureAvroClassSecurityForPdlPersonhendelse
 import no.nav.security.token.support.client.spring.oauth2.EnableOAuth2Client
 import no.nav.security.token.support.spring.api.EnableJwtTokenValidation
 import org.springframework.boot.autoconfigure.SpringBootApplication
@@ -17,5 +18,6 @@ import org.springframework.scheduling.annotation.EnableScheduling
 class EessiDodsmeldingApplication
 
 fun main(args: Array<String>) {
+    configureAvroClassSecurityForPdlPersonhendelse()
     runApplication<EessiDodsmeldingApplication>(*args)
 }
