@@ -83,7 +83,7 @@ class DodsmeldingBehandler(
                 logger.info("Bruker finnes i leveattestregisteret, men har allerede en H070 opprettet i Joark med rinaSakId: $rinaSakIdH070")
                 return
             }
-            logger.info("Bruker finnes i leveattestregisteret med identFraRegister, land: $land og rinaSakIdH070: $rinaSakIdH070")
+            logger.info("Bruker finnes i leveattestregisteret med identFraRegister, land: $land. Ingen H070 funnet i Joark, fortsetter")
         }
 
 
