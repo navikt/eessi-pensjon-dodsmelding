@@ -6,6 +6,15 @@ En H070 sendes i de tilfeller hvor vi har en match i PDL på en person som er re
 
 Applikasjonen er skrevet i Kotlin og Spring Boot.
 
+## Avro-klassetillatelser
+
+`main()` kaller `configureAvroClassSecurityForPdlPersonhendelse()` før Spring starter.
+Funksjonen tillater klasser i `no.nav.person.pdl.leesah` og underpakkene gjennom
+`ClassSecurityValidator`, og beholder eksisterende tillatelser.
+Skjemaet bruker også `Personnavn`, `RelatertBiPerson` og `KjoennType` fra
+`no.nav.person.identhendelse.v1.common`. Disse klassene tillates eksplisitt.
+Tester som bruker ekte Avro-deserialisering uten å kjøre `main()`, må kalle funksjonen selv.
+
 ## Feil ved konvertering av Kafka-meldinger
 
 Applikasjonen avslutter med exit-kode 1 hvis den ikke kan deserialisere eller konvertere en Kafka-melding.
