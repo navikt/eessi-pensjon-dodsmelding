@@ -8,6 +8,7 @@ import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.oppgaverouting.SakInformasjon
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
+import no.nav.eessi.pensjon.personoppslag.pdl.model.GtType
 import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
 import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
 import no.nav.eessi.pensjon.personoppslag.pdl.model.KontaktadresseType
@@ -120,8 +121,8 @@ class DodsmeldingBehandler(
 //        }
 
         if (erNorskAdresseNyereEnnUtenlandsk(person, personVanlig).not()) {
-            if(person.geografiskTilknytning?.gtLand != "UTLAND") {
-                logger.warn("Utenlandsk adresse er nyere enn norsk adresse, men geografisk tilknytning er ikke utland: $gtLand")
+            if(person.geografiskTilknytning?.gtType != GtType.UTLAND) {
+                    logger.warn("Utenlandsk adresse er nyere enn norsk adresse, men geografisk tilknytning er ikke utland: $gtLand")
             }
             logger.warn("Bruker sin utenlandske adresse er nyere enn norsk adresse; avbryter opprettelse av H070")
             return
