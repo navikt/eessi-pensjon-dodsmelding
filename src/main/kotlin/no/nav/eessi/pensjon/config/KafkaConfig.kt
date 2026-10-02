@@ -9,7 +9,6 @@ import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -17,6 +16,7 @@ import org.springframework.context.annotation.Profile
 import org.springframework.kafka.annotation.EnableKafka
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.core.*
+import org.springframework.kafka.listener.CommonErrorHandler
 import org.springframework.kafka.listener.ContainerProperties
 import org.springframework.kafka.listener.DefaultErrorHandler
 import org.springframework.util.backoff.FixedBackOff
@@ -31,7 +31,7 @@ class KafkaConfig(
     @param:Value("\${kafka.truststore.path}") private val truststorePath: String,
     @param:Value("\${kafka.brokers}") private val bootstrapServers: String,
     @param:Value("\${kafka.security.protocol}") private val securityProtocol: String,
-    @Autowired private val kafkaErrorHandler: KafkaStoppingErrorHandler?
+    private val applicationShutdown: KafkaApplicationShutdown
 ) {
 
     @Bean
@@ -48,14 +48,15 @@ class KafkaConfig(
                 configMap
             )
         )
-        factory.setCommonErrorHandler(kafkaRestartingErrorHandler())
+        factory.setCommonErrorHandler(kafkaErrorHandler())
         return factory
     }
 
-    fun kafkaRestartingErrorHandler(): DefaultErrorHandler {
-        return DefaultErrorHandler({ record, exception ->
+    fun kafkaErrorHandler(): CommonErrorHandler {
+        val retryHandler = DefaultErrorHandler({ _, exception ->
             logger.error("Kafka error, restarting container", exception)
         }, FixedBackOff(5000, 3))
+        return KafkaConversionErrorHandler(retryHandler, applicationShutdown)
     }
 
     private fun consumerConfigsLatestAvro(): MutableMap<String, Any> {
