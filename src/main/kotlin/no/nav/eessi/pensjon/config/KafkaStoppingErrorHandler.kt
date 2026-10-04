@@ -2,6 +2,7 @@ package no.nav.eessi.pensjon.config
 
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.kafka.listener.CommonContainerStoppingErrorHandler
@@ -14,6 +15,20 @@ import java.lang.Exception
 @Component
 class KafkaStoppingErrorHandler : CommonContainerStoppingErrorHandler() {
     private val logger = LoggerFactory.getLogger(KafkaStoppingErrorHandler::class.java)
+
+    override fun handleBatch(
+        thrownException: Exception,
+        data: ConsumerRecords<*, *>,
+        consumer: Consumer<*, *>,
+        container: MessageListenerContainer,
+        invokeListener: Runnable
+    ) {
+        logger.error(
+            "Mangler tilgang til GCP. Stopper Kafka-containeren med ${data.count()} meldinger i batchen. " +
+                "Rett tilgangen og restart applikasjonen for å fortsette konsumeringen."
+        )
+        super.handleBatch(thrownException, data, consumer, container, invokeListener)
+    }
 
     override fun handleRemaining(
         thrownException: Exception,

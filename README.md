@@ -58,3 +58,10 @@ Applikasjonen er skrevet i Kotlin og Spring Boot.
 - Overordnet rutine og krav: `docs/monitorering-kritisk-dataflyt.md`
 - Dataflytregister og kritikalitet: `docs/dataflyt-register-kritikalitet.md`
 
+## GCP-tilgang og Kafka-batcher
+
+Ved HTTP 401 eller 403 fra GCS stopper Kafka-containeren uten nye behandlingsforsøk
+eller feillogging for hver melding i batchen. Batchen blir ikke kvittert ut.
+Rett GCP-tilgangen (for eksempel IAM-bindingen for Workload Identity), og restart
+applikasjonen. Kafka leser meldingene på nytt fra sist lagrede offset.
+Andre feil beholder tre nye behandlingsforsøk med fem sekunders mellomrom.
