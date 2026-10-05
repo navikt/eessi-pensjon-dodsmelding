@@ -49,7 +49,7 @@ class MeldingFraPdlListenerTest {
     fun setup() {
         dodsmeldingBehandler =
             DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, safService, lagringsService, "test")
-        listener = MeldingFraPdlListener(dodsmeldingBehandler)
+        listener = MeldingFraPdlListener(dodsmeldingBehandler, "test")
         justRun { ack.acknowledge() }
 
         personhendelse = mockk<Personhendelse> {

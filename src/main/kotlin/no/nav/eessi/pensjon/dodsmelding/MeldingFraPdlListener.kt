@@ -10,6 +10,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Service
@@ -18,6 +19,7 @@ import java.util.UUID
 @Service
 class MeldingFraPdlListener(
     private val dodsmeldingBehandler: DodsmeldingBehandler,
+    @Value("\${ENV}") private val env: String,
     @Autowired(required = false) private val metricsHelper: MetricsHelper = MetricsHelper.ForTest()
 ) {
     @Autowired
@@ -64,7 +66,10 @@ class MeldingFraPdlListener(
 
         messureOpplysningstype.createMetrics()
         messureOpplysningstype.clearAll()
-//        ack.acknowledge()
+
+        if (env == "q2") {
+            ack.acknowledge()
+        }
     }
 
 
