@@ -5,16 +5,38 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
-import org.springframework.kafka.listener.CommonContainerStoppingErrorHandler
+import org.springframework.context.event.EventListener
+import org.springframework.kafka.KafkaException
+import org.springframework.kafka.event.ConsumerFailedToStartEvent
+import org.springframework.kafka.event.ConsumerStoppedEvent
+import org.springframework.kafka.listener.CommonErrorHandler
 import org.springframework.kafka.listener.MessageListenerContainer
 import org.springframework.stereotype.Component
-import java.lang.Exception
-
 
 @Profile("prod", "test")
 @Component
-class KafkaStoppingErrorHandler : CommonContainerStoppingErrorHandler() {
-    private val logger = LoggerFactory.getLogger(KafkaStoppingErrorHandler::class.java)
+class KafkaStoppingErrorHandler(
+    private val shutdown: KafkaApplicationShutdown
+) : CommonErrorHandler {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
+    override fun isAckAfterHandle(): Boolean = false
+
+    override fun seeksAfterHandling(): Boolean = true
+
+    @EventListener
+    fun konsumentStoppet(event: ConsumerStoppedEvent) {
+        if (event.reason != ConsumerStoppedEvent.Reason.NORMAL) {
+            logger.error("Kafka-konsumenten stoppet med årsak {}. Avslutter applikasjonen.", event.reason)
+            shutdown.shutdown()
+        }
+    }
+
+    @EventListener
+    fun konsumentStartFeilet(event: ConsumerFailedToStartEvent) {
+        logger.error("Kafka-konsumenten kunne ikke starte. Avslutter applikasjonen.")
+        shutdown.shutdown()
+    }
 
     override fun handleBatch(
         thrownException: Exception,
@@ -22,29 +44,32 @@ class KafkaStoppingErrorHandler : CommonContainerStoppingErrorHandler() {
         consumer: Consumer<*, *>,
         container: MessageListenerContainer,
         invokeListener: Runnable
-    ) {
-        logger.error(
-            "Mangler tilgang til GCP. Stopper Kafka-containeren med ${data.count()} meldinger i batchen. " +
-                "Rett tilgangen og restart applikasjonen for å fortsette konsumeringen."
-        )
-        super.handleBatch(thrownException, data, consumer, container, invokeListener)
-    }
+    ) = stopp(thrownException)
 
     override fun handleRemaining(
         thrownException: Exception,
         records: MutableList<ConsumerRecord<*, *>>,
         consumer: Consumer<*, *>,
         container: MessageListenerContainer
-    ) {
-        logger.error("En feil oppstod under kafka konsumering av meldinger: \n" + textListingOf(records) +
-                "\nStopper containeren ! Restart er nødvendig for å fortsette konsumering", thrownException)
-        super.handleRemaining(thrownException, records, consumer, container)
+    ) = stopp(thrownException)
+
+    override fun handleOne(
+        thrownException: Exception,
+        record: ConsumerRecord<*, *>,
+        consumer: Consumer<*, *>,
+        container: MessageListenerContainer
+    ): Boolean = stopp(thrownException)
+
+    override fun handleOtherException(
+        thrownException: Exception,
+        consumer: Consumer<*, *>,
+        container: MessageListenerContainer,
+        batchListener: Boolean
+    ) = stopp(thrownException)
+
+    private fun stopp(feil: Exception): Nothing {
+        logger.error("Kafka-feil. Avslutter applikasjonen uten å kvittere ut meldingene.", feil)
+        shutdown.shutdown()
+        throw KafkaException("Avslutter applikasjonen etter Kafka-feil", feil)
     }
-
-    fun textListingOf(records: List<ConsumerRecord<*, *>>) =
-        records.joinToString(separator = "\n") {
-            "-" .repeat(20) + "\n" + vaskFnr(it.toString())
-        }
-
-    private fun vaskFnr(tekst: String) = tekst.replace(Regex("""\b\d{11}\b"""), "***")
 }

@@ -16,9 +16,6 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory
 import org.springframework.kafka.listener.CommonErrorHandler
 import org.springframework.kafka.listener.ContainerProperties
-import org.springframework.kafka.listener.DefaultErrorHandler
-import org.springframework.util.backoff.FixedBackOff
-import java.time.Duration
 
 @EnableKafka
 @Profile("prod", "test")
@@ -36,7 +33,6 @@ class KafkaConfig(
     fun kafkaAivenHendelseListenerAvroLatestContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, Personhendelse> {
         val factory = ConcurrentKafkaListenerContainerFactory<String, Personhendelse>()
         factory.containerProperties.ackMode = ContainerProperties.AckMode.MANUAL
-        factory.containerProperties.setAuthExceptionRetryInterval(Duration.ofSeconds(2))
 
         val configMap: MutableMap<String, Any> = consumerConfigsLatestAvro()
         populerCommonConfig(configMap)
@@ -46,16 +42,11 @@ class KafkaConfig(
                 configMap
             )
         )
-        factory.setCommonErrorHandler(kafkaRestartingErrorHandler())
+        factory.setCommonErrorHandler(kafkaErrorHandler())
         return factory
     }
 
-    fun kafkaRestartingErrorHandler(): CommonErrorHandler {
-        val standardFeilhaandtering = DefaultErrorHandler({ _, exception ->
-            logger.error("Kafka-melding kunne ikke behandles etter gjentatte forsøk", exception)
-        }, FixedBackOff(5000, 3))
-        return KafkaBatchErrorHandler(standardFeilhaandtering, kafkaErrorHandler)
-    }
+    fun kafkaErrorHandler(): CommonErrorHandler = kafkaErrorHandler
 
     private fun consumerConfigsLatestAvro(): MutableMap<String, Any> {
         val schemaRegisty = System.getenv("KAFKA_SCHEMA_REGISTRY") ?: throw RuntimeException("KAFKA_BROKERS må være satt i miljøet")
@@ -66,7 +57,6 @@ class KafkaConfig(
             mutableMapOf<String, Any>(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
                 "schema.registry.url" to schemaRegisty,
-                "auth.exception.retry.interval" to "30s",
                 "basic.auth.credentials.source" to "USER_INFO",
                 "basic.auth.user.info" to "$schemaRegistryUser:$schemaRegistryPassword",
                 "specific.avro.reader" to "true",
