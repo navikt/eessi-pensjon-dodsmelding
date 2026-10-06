@@ -3,7 +3,6 @@ package no.nav.eessi.pensjon.dodsmelding
 import io.micrometer.core.instrument.Metrics
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.metrics.MetricsHelper
-import no.nav.eessi.pensjon.utils.toJson
 import no.nav.person.pdl.leesah.Endringstype
 import no.nav.person.pdl.leesah.Personhendelse
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -19,7 +18,7 @@ import java.util.UUID
 
 @Service
 class MeldingFraPdlListener(
-    private val dodsmeldingBehandler: DodsmeldingBehandler,
+    private val personHendelseBehandler: PersonHendelseBehandler,
     @Value("\${ENV}") private val env: String,
     @Autowired(required = false) private val metricsHelper: MetricsHelper = MetricsHelper.ForTest()
 ) {
@@ -51,7 +50,7 @@ class MeldingFraPdlListener(
                     try {
                         when (personhendelse.opplysningstype) {
                             "DOEDSFALL_V1" -> behandleDoedsfall(personhendelse, consumerRecords, recordCount)
-                            "BOSTEDSADRESSE_V1" -> behandleBostedsadresse(personhendelse)
+                            "BOSTEDSADRESSE_V1", "SIVILSTAND_V1", "UTFLYTTING_FRA_NORGE" -> behandleAndreHendelser(personhendelse)
                             "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1" ->
                                 messureOpplysningstype.addKjent(personhendelse)
                             else -> messureOpplysningstype.addUkjent(personhendelse)
@@ -72,7 +71,7 @@ class MeldingFraPdlListener(
     }
 
 
-    private fun behandleBostedsadresse(personhendelse: Personhendelse) {
+    private fun behandleAndreHendelser(personhendelse: Personhendelse) {
         secureLogger.info("BOSTEDSADRESSE_V1 HENDELSE: $personhendelse")
 
         logger.debug(
@@ -81,7 +80,7 @@ class MeldingFraPdlListener(
             personhendelse.endringstype
         )
 
-        dodsmeldingBehandler.behandleAdresse(personhendelse)
+        personHendelseBehandler.behandleAdresse(personhendelse)
         messureOpplysningstype.addKjent(personhendelse)
     }
 
@@ -95,7 +94,7 @@ class MeldingFraPdlListener(
 
         when (personhendelse.endringstype) {
             Endringstype.OPPRETTET ->
-                dodsmeldingBehandler.behandle(personhendelse).also {
+                personHendelseBehandler.behandle(personhendelse).also {
                     logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, behandler denne")
                 }
             else -> {

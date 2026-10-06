@@ -21,7 +21,7 @@ class MeldingFraPdlListenerAdresseTest {
         val register = SimpleMeterRegistry()
         Metrics.addRegistry(register)
         try {
-            val behandler = mockk<DodsmeldingBehandler>()
+            val behandler = mockk<PersonHendelseBehandler>()
             val kvittering = mockk<Acknowledgment>(relaxed = true)
             val listener = MeldingFraPdlListener(behandler, "q2")
             val opplysningstyper = listOf("BOSTEDSADRESSE_V1", "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1")

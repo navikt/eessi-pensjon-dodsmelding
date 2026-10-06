@@ -41,15 +41,15 @@ class MeldingFraPdlListenerTest {
     private val lagringsService = mockk<LagringsService>()
 
     private lateinit var listener: MeldingFraPdlListener
-    private lateinit var dodsmeldingBehandler: DodsmeldingBehandler
+    private lateinit var personHendelseBehandler: PersonHendelseBehandler
 
     private lateinit var personhendelse: Personhendelse
 
     @BeforeEach
     fun setup() {
-        dodsmeldingBehandler =
-            DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, safService, lagringsService, "test")
-        listener = MeldingFraPdlListener(dodsmeldingBehandler, "test")
+        personHendelseBehandler =
+            PersonHendelseBehandler(pesysKlient, personService, opprettH070, euxService, safService, lagringsService, "test")
+        listener = MeldingFraPdlListener(personHendelseBehandler, "test")
         justRun { ack.acknowledge() }
 
         personhendelse = mockk<Personhendelse> {
