@@ -11,26 +11,18 @@ import org.springframework.stereotype.Component
 class GcpLagretInnhold (
     private val storage: Storage,
     @Value("\${GCP_BUCKET_UTL_YTELSE}")
-    private val bucketName: String
+    private val bucketName: String,
+    @Value("\${GCP_H070_OPPRETTET}")
+    private val h070BucketName: String
 ) : ApplicationRunner {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
     override fun run(args: ApplicationArguments) {
-        logger.info("Starting gcp-lagret-innhold")
-        runCatching {
-            storage
-                .list(bucketName)
-                .iterateAll()
-                .count()
-        }.onSuccess { count ->
-            printBucketSummary(bucketName, count.toLong())
-        }.onFailure { error ->
-            logger.error(
-                "Error under henting av info fra {}",
-                bucketName,
-                error
-            )
+        logger.info("Kontrollerer tilgang til GCP-bucketene ved oppstart")
+        for (bucket in listOf(bucketName, h070BucketName).distinct()) {
+            val count = storage.list(bucket).iterateAll().count()
+            printBucketSummary(bucket, count.toLong())
         }
     }
 
