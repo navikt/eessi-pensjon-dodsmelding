@@ -73,13 +73,14 @@ class MeldingFraPdlListener(
 
 
     private fun behandleBostedsadresse(personhendelse: Personhendelse) {
+        secureLogger.info("BOSTEDSADRESSE_V1 HENDELSE: $personhendelse")
+
         logger.debug(
             "Behandler BOSTEDSADRESSE_V1 melding, opplysningstype={}, endringstype={}",
             personhendelse.opplysningstype,
             personhendelse.endringstype
         )
 
-        logger.debug("BOSTEDSADRESSE_V1 melding, personhendelse={}", personhendelse.toJson())
         dodsmeldingBehandler.behandleAdresse(personhendelse)
         messureOpplysningstype.addKjent(personhendelse)
     }

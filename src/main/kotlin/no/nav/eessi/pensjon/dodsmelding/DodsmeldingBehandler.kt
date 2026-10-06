@@ -46,6 +46,7 @@ class DodsmeldingBehandler(
 
     fun behandleAdresse(personhendelse: Personhendelse) {
         val norskIdent = hentNorskIndent(personhendelse)
+        logger.info("Behandle adresse hendelseId: {}", personhendelse.hendelseId)
         val identFraPdl = norskIdent?.let { Ident.bestemIdent(it) }
         logger.debug(identFraPdl?.let { personService.hentPerson(it) }?.toJson() ?: "Fant ingen person i PDL for ident: $norskIdent")
     }
