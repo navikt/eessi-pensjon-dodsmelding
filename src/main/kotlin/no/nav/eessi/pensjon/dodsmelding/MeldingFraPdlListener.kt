@@ -68,14 +68,15 @@ class MeldingFraPdlListener(
         messureOpplysningstype.createMetrics()
         messureOpplysningstype.clearAll()
 
-        if (env == "q2") {
-            ack.acknowledge()
-        }
     }
 
 
     private fun behandleBostedsadresse(personhendelse: Personhendelse) {
-        logger.debug("Behandler BOSTEDSADRESSE_V1 melding, opplysningstype=${personhendelse.opplysningstype}, endringstype=${personhendelse.endringstype}")
+        logger.debug(
+            "Behandler BOSTEDSADRESSE_V1 melding, opplysningstype={}, endringstype={}",
+            personhendelse.opplysningstype,
+            personhendelse.endringstype
+        )
         messureOpplysningstype.addKjent(personhendelse)
     }
 
