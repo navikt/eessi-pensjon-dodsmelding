@@ -72,10 +72,10 @@ class MeldingFraPdlListener(
 
 
     private fun behandleAndreHendelser(personhendelse: Personhendelse) {
-        secureLogger.info("BOSTEDSADRESSE_V1 HENDELSE: $personhendelse")
+        secureLogger.info("${personhendelse.opplysningstype} HENDELSE: $personhendelse")
 
         logger.debug(
-            "Behandler BOSTEDSADRESSE_V1 melding, opplysningstype={}, endringstype={}",
+            "Behandler ${personhendelse.opplysningstype} melding, opplysningstype={}, endringstype={}",
             personhendelse.opplysningstype,
             personhendelse.endringstype
         )
