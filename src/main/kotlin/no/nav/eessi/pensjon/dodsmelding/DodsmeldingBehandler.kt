@@ -44,8 +44,13 @@ class DodsmeldingBehandler(
 
     val gyldigeUtstederland = listOf("SE", "SW", "SWE", "FI", "FIN", "PO", "POL")
 
+    fun behandleAdresse(personhendelse: Personhendelse) {
+        val norskIdent = hentNorskIndent(personhendelse)
+        val identFraPdl = norskIdent?.let { Ident.bestemIdent(it) }
+        logger.debug(identFraPdl?.let { personService.hentPerson(it) }?.toJson() ?: "Fant ingen person i PDL for ident: $norskIdent")
+    }
 
-    /**
+        /**
      * Behandler dødsmelding og vurderer om H070 skal opprettes.
      *
      * Flyt:

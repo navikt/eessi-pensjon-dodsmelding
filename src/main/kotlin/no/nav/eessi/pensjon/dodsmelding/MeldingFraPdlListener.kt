@@ -3,6 +3,7 @@ package no.nav.eessi.pensjon.dodsmelding
 import io.micrometer.core.instrument.Metrics
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.metrics.MetricsHelper
+import no.nav.eessi.pensjon.utils.toJson
 import no.nav.person.pdl.leesah.Endringstype
 import no.nav.person.pdl.leesah.Personhendelse
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -77,6 +78,9 @@ class MeldingFraPdlListener(
             personhendelse.opplysningstype,
             personhendelse.endringstype
         )
+
+        logger.debug("BOSTEDSADRESSE_V1 melding, personhendelse={}", personhendelse.toJson())
+        dodsmeldingBehandler.behandleAdresse(personhendelse)
         messureOpplysningstype.addKjent(personhendelse)
     }
 
