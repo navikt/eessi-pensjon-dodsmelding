@@ -50,7 +50,8 @@ class MeldingFraPdlListener(
                     try {
                         when (personhendelse.opplysningstype) {
                             "DOEDSFALL_V1" -> behandleDoedsfall(personhendelse, consumerRecords, recordCount)
-                            "BOSTEDSADRESSE_V1", "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1" ->
+                            "BOSTEDSADRESSE_V1" -> behandleBostedsadresse(personhendelse)
+                            "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1" ->
                                 messureOpplysningstype.addKjent(personhendelse)
                             else -> messureOpplysningstype.addUkjent(personhendelse)
                         }
@@ -72,6 +73,11 @@ class MeldingFraPdlListener(
         }
     }
 
+
+    private fun behandleBostedsadresse(personhendelse: Personhendelse) {
+        logger.debug("Behandler BOSTEDSADRESSE_V1 melding, opplysningstype=${personhendelse.opplysningstype}, endringstype=${personhendelse.endringstype}")
+        messureOpplysningstype.addKjent(personhendelse)
+    }
 
     private fun behandleDoedsfall(
         personhendelse: Personhendelse,
