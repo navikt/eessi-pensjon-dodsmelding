@@ -50,7 +50,7 @@ class MeldingFraPdlListener(
                     try {
                         when (personhendelse.opplysningstype) {
                             "DOEDSFALL_V1" -> behandleDoedsfall(personhendelse, consumerRecords, recordCount)
-                            "BOSTEDSADRESSE_V1", "SIVILSTAND_V1", "UTFLYTTING_FRA_NORGE" -> behandleAndreHendelser(personhendelse)
+                            "BOSTEDSADRESSE_V1", "SIVILSTAND_V1", "UTFLYTTING_FRA_NORGE", "FAMILIERELASJON_V1" -> behandleAndreHendelser(personhendelse)
                             "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1" ->
                                 messureOpplysningstype.addKjent(personhendelse)
                             else -> messureOpplysningstype.addUkjent(personhendelse)
