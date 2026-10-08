@@ -18,7 +18,7 @@ import java.util.UUID
 
 @Service
 class MeldingFraPdlListener(
-    private val dodsmeldingBehandler: DodsmeldingBehandler,
+    private val personHendelseBehandler: PersonHendelseBehandler,
     @Value("\${ENV}") private val env: String,
     @Autowired(required = false) private val metricsHelper: MetricsHelper = MetricsHelper.ForTest()
 ) {
@@ -47,10 +47,12 @@ class MeldingFraPdlListener(
                 leesahKafkaListenerMetric.measure {
                     val personhendelse = record.value()
                     MDC.put("x_request_id", UUID.randomUUID().toString())
+                    logger.debug("Behandler personhendelse: ${personhendelse.opplysningstype}")
                     try {
                         when (personhendelse.opplysningstype) {
                             "DOEDSFALL_V1" -> behandleDoedsfall(personhendelse, consumerRecords, recordCount)
-                            "BOSTEDSADRESSE_V1", "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1" ->
+                            "BOSTEDSADRESSE_V1", "SIVILSTAND_V1", "UTFLYTTING_FRA_NORGE", "FAMILIERELASJON_V1" -> behandleAndreHendelser(personhendelse)
+                            "KONTAKTADRESSE_V1", "OPPHOLDSADRESSE_V1" ->
                                 messureOpplysningstype.addKjent(personhendelse)
                             else -> messureOpplysningstype.addUkjent(personhendelse)
                         }
@@ -67,11 +69,21 @@ class MeldingFraPdlListener(
         messureOpplysningstype.createMetrics()
         messureOpplysningstype.clearAll()
 
-        if (env == "q2") {
-            ack.acknowledge()
-        }
     }
 
+
+    private fun behandleAndreHendelser(personhendelse: Personhendelse) {
+        secureLogger.info("${personhendelse.opplysningstype} HENDELSE: $personhendelse")
+
+        logger.debug(
+            "Behandler ${personhendelse.opplysningstype} melding, opplysningstype={}, endringstype={}",
+            personhendelse.opplysningstype,
+            personhendelse.endringstype
+        )
+
+        personHendelseBehandler.behandleAdresse(personhendelse)
+        messureOpplysningstype.addKjent(personhendelse)
+    }
 
     private fun behandleDoedsfall(
         personhendelse: Personhendelse,
@@ -83,7 +95,7 @@ class MeldingFraPdlListener(
 
         when (personhendelse.endringstype) {
             Endringstype.OPPRETTET ->
-                dodsmeldingBehandler.behandle(personhendelse).also {
+                personHendelseBehandler.behandle(personhendelse).also {
                     logger.info("DOEDSFALL_V1 ${personhendelse.endringstype}, behandler denne")
                 }
             else -> {

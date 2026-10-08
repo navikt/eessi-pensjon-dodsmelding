@@ -33,13 +33,13 @@ class SendH070MedInstTest {
     private val euxKlient = mockk<EuxKlientLib>()
     private val lagringsService = mockk<LagringsService>()
 
-    private lateinit var dodsmeldingBehandler: DodsmeldingBehandler
+    private lateinit var personHendelseBehandler: PersonHendelseBehandler
     private lateinit var euxService: EuxService
 
     @BeforeEach
     fun setup() {
         euxService = EuxService(euxKlient, mockk<RestTemplate>())
-        dodsmeldingBehandler = DodsmeldingBehandler(fagmodulKlient, personService, opprettH070, euxService, safService, lagringsService, "q2")
+        personHendelseBehandler = PersonHendelseBehandler(fagmodulKlient, personService, opprettH070, euxService, safService, lagringsService, "q2")
     }
 
     @Test
@@ -50,7 +50,7 @@ class SendH070MedInstTest {
         every { euxKlient.createHBuc07(any(), any()) } returns "{\"caseId\":\"$SAKSID\",\"documentId\":\"$DOK_ID\"}"
         every { fagmodulKlient.hentPensjonSaklist(any()) } returns listOf(SakInformasjon(SAKSID, SakType.ALDER, LOPENDE))
 
-        val response = dodsmeldingBehandler.institusjon(FNR.name, "FIN")
+        val response = personHendelseBehandler.institusjon(FNR.name, "FIN")
         val response2 = euxService.opprettH070(FNR.name, h070)
 
         assertEquals("FI:0200000010", response)
@@ -65,7 +65,7 @@ class SendH070MedInstTest {
         every { euxKlient.createHBuc07(any(), any()) } returns "{\"caseId\":\"$SAKSID\",\"documentId\":\"$DOK_ID\"}"
         every { fagmodulKlient.hentPensjonSaklist(any()) } returns listOf(SakInformasjon(SAKSID, UFOREP, LOPENDE))
 
-       val response = dodsmeldingBehandler.institusjon(FNR.name, "FIN")
+       val response = personHendelseBehandler.institusjon(FNR.name, "FIN")
        euxService.opprettH070(FNR.name, h070)
 
         assertEquals("FI:0200000010", response)
@@ -79,7 +79,7 @@ class SendH070MedInstTest {
         every { euxKlient.createHBuc07(any(), any()) } returns "{\"caseId\":\"$SAKSID\",\"documentId\":\"$DOK_ID\"}"
         every { fagmodulKlient.hentPensjonSaklist(any()) } returns listOf(SakInformasjon(SAKSID, SakType.ALDER, LOPENDE))
 
-        val response = dodsmeldingBehandler.institusjon(FNR.name, ("FIN"))
+        val response = personHendelseBehandler.institusjon(FNR.name, ("FIN"))
         euxService.opprettH070(FNR.name, h070)
 
         assertEquals("FI:0200000010", response)

@@ -55,7 +55,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 const val FNR_OVER_62 = "09035225916"   // SLAPP SKILPADDE
 
-class DodsmeldingBehandlerTest {
+class PersonHendelseBehandlerTest {
 
     private val safGraphQlOidcRestTemplate: RestTemplate = mockk(relaxed = true)
     private val hentRestUrlRestTemplate: RestTemplate = mockk(relaxed = true)
@@ -67,7 +67,7 @@ class DodsmeldingBehandlerTest {
     private val euxService = mockk<EuxService>()
     private val lagringsService = mockk<LagringsService>()
 
-    private lateinit var dodsmeldingBehandler: DodsmeldingBehandler
+    private lateinit var personHendelseBehandler: PersonHendelseBehandler
 
     private fun adresseMock(utenlandskAdresse: UtenlandskAdresse? = null) = mockk<Bostedsadresse>(relaxed = true) {
         every { this@mockk.utenlandskAdresse } returns utenlandskAdresse
@@ -94,7 +94,7 @@ class DodsmeldingBehandlerTest {
     @BeforeEach
     fun setup() {
         clearAllMocks()
-        dodsmeldingBehandler = DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, safService, lagringsService, "q2")
+        personHendelseBehandler = PersonHendelseBehandler(pesysKlient, personService, opprettH070, euxService, safService, lagringsService, "q2")
         every { pesysKlient.hentPensjonSaklist(any()) } returns emptyList()
 
         // ting som ikke er så viktig akkurat nå
@@ -127,7 +127,7 @@ class DodsmeldingBehandlerTest {
             every { bostedsadresseInklHistoriske } returns bostedsadresse
         }
 
-        val resultat = dodsmeldingBehandler.harAktivNorskAdresse(person, null, doedsdato)
+        val resultat = personHendelseBehandler.harAktivNorskAdresse(person, null, doedsdato)
 
         assertTrue(resultat)
     }
@@ -143,7 +143,7 @@ class DodsmeldingBehandlerTest {
             every { bostedsadresseInklHistoriske } returns bostedsadresse
         }
 
-        val resultat = dodsmeldingBehandler.harAktivNorskAdresse(person, null, doedsdato)
+        val resultat = personHendelseBehandler.harAktivNorskAdresse(person, null, doedsdato)
 
         assertFalse(resultat)
     }
@@ -159,7 +159,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person,mockk(relaxed = true), doedsdato, null)
+        val resultat = personHendelseBehandler.harAktivUtenlandskAdresse(person,mockk(relaxed = true), doedsdato, null)
 
         assertFalse(resultat)
     }
@@ -180,7 +180,7 @@ class DodsmeldingBehandlerTest {
         val personPdlEnkel = mockk<PdlPerson>(relaxed = true) {
             every { kontaktadresse } returns null
         }
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, personPdlEnkel, doedsdato, null)
+        val resultat = personHendelseBehandler.harAktivUtenlandskAdresse(person, personPdlEnkel, doedsdato, null)
 
         assertTrue(resultat)
     }
@@ -201,7 +201,7 @@ class DodsmeldingBehandlerTest {
         val personPdlEnkel = mockk<PdlPerson>(relaxed = true) {
             every { kontaktadresse } returns null
         }
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, personPdlEnkel, doedsdato, null)
+        val resultat = personHendelseBehandler.harAktivUtenlandskAdresse(person, personPdlEnkel, doedsdato, null)
 
         assertTrue(resultat)
     }
@@ -220,7 +220,7 @@ class DodsmeldingBehandlerTest {
         val personPdlEnkel = mockk<PdlPerson>(relaxed = true) {
             every { kontaktadresse } returns null
         }
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person, personPdlEnkel, doedsdato, null)
+        val resultat = personHendelseBehandler.harAktivUtenlandskAdresse(person, personPdlEnkel, doedsdato, null)
 
         assertFalse(resultat)
     }
@@ -232,7 +232,7 @@ class DodsmeldingBehandlerTest {
             every { kontaktadresseInklHistoriske } returns null
         }
 
-        val resultat = dodsmeldingBehandler.harAktivUtenlandskAdresse(person,mockk(relaxed = true), doedsdato, "12345678910")
+        val resultat = personHendelseBehandler.harAktivUtenlandskAdresse(person,mockk(relaxed = true), doedsdato, "12345678910")
 
         assertFalse(resultat)
     }
@@ -282,7 +282,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        val resultat = dodsmeldingBehandler.erNorskAdresseNyereEnnUtenlandsk(person, null)
+        val resultat = personHendelseBehandler.erNorskAdresseNyereEnnUtenlandsk(person, null)
 
         assertEquals(forventet, resultat)
     }
@@ -291,7 +291,7 @@ class DodsmeldingBehandlerTest {
     fun `behandle returnerer tidlig naar personhendelse har tom liste med identer`() {
         val personhendelse = personhendelseMock()
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
         verify(exactly = 0) { personService.hentPerson(any()) }
         verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
@@ -318,7 +318,7 @@ class DodsmeldingBehandlerTest {
             every { oppholdsadresse } returns mockk(relaxed = true)
         }
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         verify(exactly = 1) { safClient.hentDokumentMetadata(any(), any()) }
@@ -334,7 +334,7 @@ class DodsmeldingBehandlerTest {
         every { lagringsService.finnesDoedsmeldingAlleredeForBruker(any()) } returns mockk(relaxed = true )
 
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         //verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
@@ -375,7 +375,7 @@ class DodsmeldingBehandlerTest {
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         verify(exactly = 1) { safClient.hentDokumentMetadata(any(), any()) }
@@ -408,7 +408,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { safClient.hentDokumentMetadata("12345678901", FNR) }
     }
@@ -503,7 +503,7 @@ class DodsmeldingBehandlerTest {
 
         every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
 //        verify(exactly = 1) { safClient.hentDokumentMetadata("12345678901", FNR) }
     }
@@ -545,7 +545,7 @@ class DodsmeldingBehandlerTest {
             }
         }
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
 //        verify(exactly = 1) { safClient.hentDokumentMetadata("12345678901", FNR) }
     }
@@ -604,7 +604,7 @@ class DodsmeldingBehandlerTest {
 
         every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
 //        verify(exactly = 1) { safClient.hentDokumentInnhold("123456", "dok123", "ARKIV") }
     }
@@ -651,7 +651,7 @@ class DodsmeldingBehandlerTest {
 
         every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
         verify(exactly = 0) { safClient.hentDokumentInnhold(any(), any(), any()) }
     }
@@ -699,7 +699,7 @@ class DodsmeldingBehandlerTest {
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
         every { opprettH070.preutFyltH070(any(), any(), any()) } returns mockk(relaxed = true)
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
 //        verify(exactly = 0) { safClient.hentDokumentInnhold(any(), any(), any()) }
     }
@@ -722,7 +722,7 @@ class DodsmeldingBehandlerTest {
             every { doedsfall } returns null
         }
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
     }
@@ -761,7 +761,7 @@ class DodsmeldingBehandlerTest {
             every { bostedsadresseInklHistoriske } returns aktivNorskAdresseMock()
         }
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any(), any()) }
@@ -800,7 +800,7 @@ class DodsmeldingBehandlerTest {
             every { bostedsadresseInklHistoriske } returns aktivNorskAdresseMock()
         }
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any(), any()) }
@@ -873,7 +873,7 @@ class DodsmeldingBehandlerTest {
         )))
         every { euxService.hentAvsenderLand(bucid) } returns listOf(Motparter(motpartId = "123456", motpartLand = "FI", motpartLandkode = "FI"))
 
-        dodsmeldingBehandler.behandle(personhendelse)
+        personHendelseBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         verify(exactly = 1) { euxService.hentAvsenderLand(bucid) }
@@ -907,11 +907,11 @@ class DodsmeldingBehandlerTest {
             data = Data(DokumentoversiktBruker(listOf(journalpost)))
         )
 
-        val method = DodsmeldingBehandler::class.java
+        val method = PersonHendelseBehandler::class.java
             .getDeclaredMethod("brukerRinasakIdFraJoark", String::class.java)
             .apply { isAccessible = true }
 
-        val result = method.invoke(dodsmeldingBehandler, norskIdent) as String?
+        val result = method.invoke(personHendelseBehandler, norskIdent) as String?
 
         assertEquals(bucid, result)
     }

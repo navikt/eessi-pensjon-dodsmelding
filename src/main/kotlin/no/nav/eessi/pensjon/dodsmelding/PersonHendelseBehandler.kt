@@ -29,7 +29,7 @@ private const val H070_LAGRET_PREFIX_STANDARD = "H070_STANDARD"
 private const val H070_LAGRET_PREFIX_EDIFACT = "H070_EDIFACT"
 
 @Component
-class DodsmeldingBehandler(
+class PersonHendelseBehandler(
     private val pesysKlient: PesysKlient,
     private val personService: PersonService,
     private val opprettH070: OpprettH070,
@@ -38,14 +38,22 @@ class DodsmeldingBehandler(
     private val lagringsService: LagringsService,
     @Value("\${ENV}") private val env: String
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(DodsmeldingBehandler::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(PersonHendelseBehandler::class.java)
     private val secureLogger = LoggerFactory.getLogger("secureLog")
     private val personhendelserForVidereBehandling = AtomicLong(0)
 
     val gyldigeUtstederland = listOf("SE", "SW", "SWE", "FI", "FIN", "PO", "POL")
 
+    fun behandleAdresse(personhendelse: Personhendelse) {
+        val norskIdent = hentNorskIndent(personhendelse)
+        logger.info("Behandle adresse hendelseId: {}", personhendelse.hendelseId)
+        val identFraPdl = norskIdent?.let { Ident.bestemIdent(it) }
+        logger.debug(identFraPdl?.let { personService.hentPerson(it) }?.toJson() ?: "Fant ingen person i PDL for ident: $norskIdent")
 
-    /**
+        logger.debug(identFraPdl?.let { personService.hentPersonUtvidet(it) }?.toJson() ?: "Fant ingen historisk person i PDL for ident: $norskIdent")
+    }
+
+        /**
      * Behandler dødsmelding og vurderer om H070 skal opprettes.
      *
      * Flyt:
