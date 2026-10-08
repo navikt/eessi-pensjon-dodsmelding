@@ -131,6 +131,7 @@ class DodsmeldingBehandler(
         val landFraKontaktadresse = hentLandFraKontaktadresse(person)
         logger.info("Vurderer land fra kontaktadresse: $landFraKontaktadresse")
         if (landFraKontaktadresse !in gyldigeUtstederland) {
+            secureLogger.info("Land fra adresser med kilder: {}", hentLandFraAdresser(person, personVanlig))
             logger.warn("Manglende, eller ugyldig utstederland: ($landFraKontaktadresse) ")
             return
         }
@@ -461,6 +462,34 @@ class DodsmeldingBehandler(
         return gyldigTilOgMed.isAfter(toUkerFoerDoedsdato)
     }
 
+
+    /**
+     * Samler eksplisitte landkoder fra adressene som PersonService har valgt.
+     * Feltene InklHistoriske inneholder én valgt adresse hver, ikke hele adressehistorikken.
+     * Resultatet brukes ikke til å avgjøre om H070 skal opprettes.
+     */
+    internal fun hentLandFraAdresser(person: PdlPersonUtvidet, personVanlig: PdlPerson?): Map<String, Set<String>> {
+        val landMedKilder = listOf(
+            person.kontaktadresse?.utenlandskAdresse?.landkode to "person.kontaktadresse.utenlandskAdresse.landkode",
+            person.kontaktadresse?.utenlandskAdresseIFrittFormat?.landkode to "person.kontaktadresse.utenlandskAdresseIFrittFormat.landkode",
+            person.kontaktadresseInklHistoriske?.utenlandskAdresse?.landkode to "person.kontaktadresseInklHistoriske.utenlandskAdresse.landkode",
+            person.kontaktadresseInklHistoriske?.utenlandskAdresseIFrittFormat?.landkode to "person.kontaktadresseInklHistoriske.utenlandskAdresseIFrittFormat.landkode",
+            person.bostedsadresse?.utenlandskAdresse?.landkode to "person.bostedsadresse.utenlandskAdresse.landkode",
+            person.bostedsadresseInklHistoriske?.utenlandskAdresse?.landkode to "person.bostedsadresseInklHistoriske.utenlandskAdresse.landkode",
+            person.oppholdsadresse?.utenlandskAdresse?.landkode to "person.oppholdsadresse.utenlandskAdresse.landkode",
+            person.oppholdsadresseInklHistoriske?.utenlandskAdresse?.landkode to "person.oppholdsadresseInklHistoriske.utenlandskAdresse.landkode",
+            person.geografiskTilknytning?.gtLand to "person.geografiskTilknytning.gtLand",
+            personVanlig?.kontaktadresse?.utenlandskAdresse?.landkode to "personVanlig.kontaktadresse.utenlandskAdresse.landkode",
+            personVanlig?.kontaktadresse?.utenlandskAdresseIFrittFormat?.landkode to "personVanlig.kontaktadresse.utenlandskAdresseIFrittFormat.landkode",
+            personVanlig?.bostedsadresse?.utenlandskAdresse?.landkode to "personVanlig.bostedsadresse.utenlandskAdresse.landkode",
+            personVanlig?.oppholdsadresse?.utenlandskAdresse?.landkode to "personVanlig.oppholdsadresse.utenlandskAdresse.landkode",
+            personVanlig?.geografiskTilknytning?.gtLand to "personVanlig.geografiskTilknytning.gtLand"
+        )
+        return landMedKilder
+            .mapNotNull { (land, kilde) -> land?.trim()?.uppercase()?.takeIf { it.isNotBlank() }?.let { it to kilde } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, kilder) -> kilder.toSet() }
+    }
 
     private fun hentLandFraKontaktadresse(person: PdlPersonUtvidet): String? {
         val kontaktadresse = person.kontaktadresseInklHistoriske

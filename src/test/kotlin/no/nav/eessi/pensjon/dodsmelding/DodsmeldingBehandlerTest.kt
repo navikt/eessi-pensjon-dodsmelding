@@ -1,44 +1,19 @@
 package no.nav.eessi.pensjon.dodsmelding
 
-import io.mockk.clearAllMocks
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.spyk
-import io.mockk.verify
+import io.mockk.*
 import no.nav.eessi.pensjon.eux.EuxService
 import no.nav.eessi.pensjon.eux.model.Motparter
 import no.nav.eessi.pensjon.gcp.LagringsService
 import no.nav.eessi.pensjon.h070.OpprettH070
 import no.nav.eessi.pensjon.personoppslag.pdl.PersonService
-import no.nav.eessi.pensjon.personoppslag.pdl.model.AdressebeskyttelseGradering
-import no.nav.eessi.pensjon.personoppslag.pdl.model.Bostedsadresse
-import no.nav.eessi.pensjon.personoppslag.pdl.model.Endring
-import no.nav.eessi.pensjon.personoppslag.pdl.model.Endringstype
-import no.nav.eessi.pensjon.personoppslag.pdl.model.Foedested
-import no.nav.eessi.pensjon.personoppslag.pdl.model.Foedselsdato
-import no.nav.eessi.pensjon.personoppslag.pdl.model.GeografiskTilknytning
-import no.nav.eessi.pensjon.personoppslag.pdl.model.GtType
-import no.nav.eessi.pensjon.personoppslag.pdl.model.Ident
-import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentGruppe
-import no.nav.eessi.pensjon.personoppslag.pdl.model.IdentInformasjon
-import no.nav.eessi.pensjon.personoppslag.pdl.model.KontaktadresseType
-import no.nav.eessi.pensjon.personoppslag.pdl.model.Kjoenn
-import no.nav.eessi.pensjon.personoppslag.pdl.model.KjoennType
-import no.nav.eessi.pensjon.personoppslag.pdl.model.Metadata
-import no.nav.eessi.pensjon.personoppslag.pdl.model.Navn
-import no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPerson
-import no.nav.eessi.pensjon.personoppslag.pdl.model.UtenlandskAdresse
-import no.nav.eessi.pensjon.personoppslag.pdl.model.UtenlandskIdentifikasjonsnummer
-import no.nav.eessi.pensjon.personoppslag.pdl.model.Vegadresse
+import no.nav.eessi.pensjon.personoppslag.pdl.model.*
 import no.nav.eessi.pensjon.saf.*
 import no.nav.eessi.pensjon.saf.BrukerIdType.FNR
 import no.nav.eessi.pensjon.shared.person.Fodselsnummer
 import no.nav.eessi.pensjon.utils.mapJsonToAny
 import no.nav.eessi.pensjon.utils.toJsonSkipEmpty
 import no.nav.person.pdl.leesah.Personhendelse
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -53,6 +28,7 @@ import org.springframework.web.client.exchange
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+
 const val FNR_OVER_62 = "09035225916"   // SLAPP SKILPADDE
 
 class DodsmeldingBehandlerTest {
@@ -116,6 +92,137 @@ class DodsmeldingBehandlerTest {
         }
     }
 
+    private fun personUtenAdresser() = PdlPerson(
+        identer = listOf(IdentInformasjon("12345678901", IdentGruppe.FOLKEREGISTERIDENT)),
+        adressebeskyttelse = emptyList(),
+        statsborgerskap = emptyList(),
+        forelderBarnRelasjon = emptyList(),
+        sivilstand = emptyList(),
+        utenlandskIdentifikasjonsnummer = emptyList()
+    )
+
+    private fun kontaktadresseMedLand(strukturert: String, frittFormat: String?) = Kontaktadresse(
+        metadata = metadataMock(),
+        type = KontaktadresseType.Utland,
+        utenlandskAdresse = UtenlandskAdresse(landkode = strukturert),
+        utenlandskAdresseIFrittFormat = UtenlandskAdresseIFrittFormat(landkode = frittFormat)
+    )
+
+    private fun bostedsadresseMedLand(land: String) = Bostedsadresse(
+        utenlandskAdresse = UtenlandskAdresse(landkode = land),
+        metadata = metadataMock()
+    )
+
+    @Test
+    fun `hentLandFraAdresser samler begge kontaktadresseformater og alle valgte adressekilder`() {
+        val person = PdlPersonUtvidet(
+            pdlPerson = personUtenAdresser().copy(
+                kontaktadresse = kontaktadresseMedLand("SWE", "FIN"),
+                bostedsadresse = bostedsadresseMedLand("POL"),
+                oppholdsadresse = bostedsadresseMedLand("DNK"),
+                geografiskTilknytning = GeografiskTilknytning(gtType = GtType.UTLAND, gtLand = "DEU")
+            ),
+            kontaktadresseInklHistoriske = kontaktadresseMedLand("FRA", "ESP"),
+            bostedsadresseInklHistoriske = bostedsadresseMedLand("ITA"),
+            oppholdsadresseInklHistoriske = bostedsadresseMedLand("PRT")
+        )
+        val personVanlig = personUtenAdresser().copy(
+            kontaktadresse = kontaktadresseMedLand("GBR", "IRL"),
+            bostedsadresse = bostedsadresseMedLand("NLD"),
+            oppholdsadresse = bostedsadresseMedLand("BEL"),
+            geografiskTilknytning = GeografiskTilknytning(gtType = GtType.UTLAND, gtLand = "AUT")
+        )
+
+        val resultat = dodsmeldingBehandler.hentLandFraAdresser(person, personVanlig)
+
+        assertEquals(
+            mapOf(
+                "SWE" to setOf("person.kontaktadresse.utenlandskAdresse.landkode"),
+                "FIN" to setOf("person.kontaktadresse.utenlandskAdresseIFrittFormat.landkode"),
+                "POL" to setOf("person.bostedsadresse.utenlandskAdresse.landkode"),
+                "DNK" to setOf("person.oppholdsadresse.utenlandskAdresse.landkode"),
+                "DEU" to setOf("person.geografiskTilknytning.gtLand"),
+                "FRA" to setOf("person.kontaktadresseInklHistoriske.utenlandskAdresse.landkode"),
+                "ESP" to setOf("person.kontaktadresseInklHistoriske.utenlandskAdresseIFrittFormat.landkode"),
+                "ITA" to setOf("person.bostedsadresseInklHistoriske.utenlandskAdresse.landkode"),
+                "PRT" to setOf("person.oppholdsadresseInklHistoriske.utenlandskAdresse.landkode"),
+                "GBR" to setOf("personVanlig.kontaktadresse.utenlandskAdresse.landkode"),
+                "IRL" to setOf("personVanlig.kontaktadresse.utenlandskAdresseIFrittFormat.landkode"),
+                "NLD" to setOf("personVanlig.bostedsadresse.utenlandskAdresse.landkode"),
+                "BEL" to setOf("personVanlig.oppholdsadresse.utenlandskAdresse.landkode"),
+                "AUT" to setOf("personVanlig.geografiskTilknytning.gtLand")
+            ),
+            resultat
+        )
+    }
+
+    @Test
+    fun `hentLandFraAdresser normaliserer landkoder og beholder alle kilder til samme land`() {
+        val person = PdlPersonUtvidet(
+            pdlPerson = personUtenAdresser().copy(
+                kontaktadresse = kontaktadresseMedLand(" fin ", "FIN"),
+                oppholdsadresse = bostedsadresseMedLand("FI")
+            ),
+            kontaktadresseInklHistoriske = kontaktadresseMedLand("fin", " \t "),
+            bostedsadresseInklHistoriske = bostedsadresseMedLand("")
+        )
+
+        val resultat = dodsmeldingBehandler.hentLandFraAdresser(person, null)
+
+        assertEquals(
+            mapOf(
+                "FIN" to setOf(
+                    "person.kontaktadresse.utenlandskAdresse.landkode",
+                    "person.kontaktadresse.utenlandskAdresseIFrittFormat.landkode",
+                    "person.kontaktadresseInklHistoriske.utenlandskAdresse.landkode"
+                ),
+                "FI" to setOf("person.oppholdsadresse.utenlandskAdresse.landkode")
+            ),
+            resultat
+        )
+    }
+
+    @Test
+    fun `hentLandFraAdresser returnerer tomt resultat uten eksplisitte landkoder`() {
+        val person = PdlPersonUtvidet(
+            pdlPerson = personUtenAdresser().copy(
+                bostedsadresse = Bostedsadresse(vegadresse = Vegadresse(), metadata = metadataMock()),
+                kontaktadresse = Kontaktadresse(
+                    type = KontaktadresseType.Utland,
+                    metadata = metadataMock(),
+                    utenlandskAdresseIFrittFormat = UtenlandskAdresseIFrittFormat()
+                )
+            )
+        )
+
+        assertEquals(emptyMap<String, Set<String>>(), dodsmeldingBehandler.hentLandFraAdresser(person, null))
+    }
+
+    @ParameterizedTest
+    @CsvSource("DEU, FIN, false", "FIN, DEU, true", "'', FIN, false")
+    fun `behandle beholder kontaktadressekontrollen uavhengig av innsamlede land`(
+        historiskLand: String,
+        gjeldendeLand: String,
+        skalOpprette: Boolean
+    ) {
+        val grunnperson = personUtenAdresser().copy(
+            bostedsadresse = Bostedsadresse(vegadresse = Vegadresse(), metadata = metadataMock()),
+            kontaktadresse = kontaktadresseMedLand(gjeldendeLand, "FIN")
+        )
+        val person = PdlPersonUtvidet(
+            pdlPerson = grunnperson,
+            kontaktadresseInklHistoriske = kontaktadresseMedLand(historiskLand, "FIN")
+        )
+        every { personService.hentPersonUtvidet(any()) } returns person
+        every { personService.hentPerson(any()) } returns grunnperson
+        every { lagringsService.finnesDoedsmeldingAlleredeForBruker(any()) } returns false
+
+        dodsmeldingBehandler.behandle(personhendelseMock("12345678901"))
+
+        verify(exactly = if (skalOpprette) 1 else 0) { opprettH070.preutFyltH070(any(), any(), any()) }
+        verify(exactly = if (skalOpprette) 1 else 0) { lagringsService.lagreH070(any(), any()) }
+    }
+
     @Test
     fun `harAktivNorskAdresse er true naar gyldigTilOgMed er nyere enn to uker foer doedsdato`() {
         val doedsdato = LocalDate.of(2026, 9, 1)
@@ -123,7 +230,7 @@ class DodsmeldingBehandlerTest {
             every { vegadresse } returns mockk(relaxed = true)
             every { gyldigTilOgMed } returns doedsdato.minusDays(13).atStartOfDay()
         }
-        val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
+        val person = mockk<PdlPersonUtvidet>(relaxed = true) {
             every { bostedsadresseInklHistoriske } returns bostedsadresse
         }
 
@@ -139,7 +246,7 @@ class DodsmeldingBehandlerTest {
             every { vegadresse } returns mockk(relaxed = true)
             every { gyldigTilOgMed } returns doedsdato.minusDays(15).atStartOfDay()
         }
-        val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
+        val person = mockk<PdlPersonUtvidet>(relaxed = true) {
             every { bostedsadresseInklHistoriske } returns bostedsadresse
         }
 
@@ -151,7 +258,7 @@ class DodsmeldingBehandlerTest {
     @Test
     fun `harAktivUtenlandskAdresse er false naar adresse er utgaatt og ingen utenlandsk adresse finnes`() {
         val doedsdato = LocalDate.of(2026, 9, 1)
-        val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
+        val person = mockk<PdlPersonUtvidet>(relaxed = true) {
             every { kontaktadresseInklHistoriske } returns mockk(relaxed = true) {
                 every { gyldigTilOgMed } returns doedsdato.minusDays(15).atStartOfDay()
                 every { utenlandskAdresse } returns null
@@ -167,7 +274,7 @@ class DodsmeldingBehandlerTest {
     @Test
     fun `harAktivUtenlandskAdresse er true naar adresse er gyldig og har utenlandsk adresse`() {
         val doedsdato = LocalDate.of(2026, 9, 1)
-        val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
+        val person = mockk<PdlPersonUtvidet>(relaxed = true) {
             every { kontaktadresseInklHistoriske } returns mockk(relaxed = true) {
                 every { gyldigTilOgMed } returns doedsdato.minusDays(13).atStartOfDay()
                 every { utenlandskAdresse } returns mockk(relaxed = true) {
@@ -188,7 +295,7 @@ class DodsmeldingBehandlerTest {
     @Test
     fun `harAktivUtenlandskAdresse er true naar gyldigTilOgMed er null`() {
         val doedsdato = LocalDate.of(2026, 9, 1)
-        val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
+        val person = mockk<PdlPersonUtvidet>(relaxed = true) {
             every { kontaktadresseInklHistoriske } returns mockk(relaxed = true) {
                 every { gyldigTilOgMed } returns null
                 every { utenlandskAdresse } returns mockk(relaxed = true) {
@@ -209,7 +316,7 @@ class DodsmeldingBehandlerTest {
     @Test
     fun `harAktivUtenlandskAdresse er false naar utenlandskAdresse sin gyldigTilOgMed er utgaatt`() {
         val doedsdato = LocalDate.of(2026, 9, 1)
-        val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
+        val person = mockk<PdlPersonUtvidet>(relaxed = true) {
             every { kontaktadresseInklHistoriske } returns mockk(relaxed = true) {
                 every { gyldigTilOgMed } returns LocalDateTime.of(2025, 9, 1, 0, 0)
                 every { utenlandskAdresse } returns mockk(relaxed = true)
@@ -228,7 +335,7 @@ class DodsmeldingBehandlerTest {
     @Test
     fun `harAktivUtenlandskAdresse flagger uventet naar identFraRegister finnes men ingen aktiv utenlandsk adresse`() {
         val doedsdato = LocalDate.of(2026, 9, 1)
-        val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
+        val person = mockk<PdlPersonUtvidet>(relaxed = true) {
             every { kontaktadresseInklHistoriske } returns null
         }
 
@@ -257,7 +364,7 @@ class DodsmeldingBehandlerTest {
         harKontaktadresse: Boolean,
         forventet: Boolean
     ) {
-        val person = mockk<no.nav.eessi.pensjon.personoppslag.pdl.model.PdlPersonUtvidet>(relaxed = true) {
+        val person = mockk<PdlPersonUtvidet>(relaxed = true) {
             every { bostedsadresseInklHistoriske } returns norskGyldigFraOgMed?.let { dato ->
                 mockk(relaxed = true) { every { gyldigFraOgMed } returns LocalDate.parse(dato).atStartOfDay() }
             }
