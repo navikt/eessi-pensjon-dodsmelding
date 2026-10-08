@@ -47,6 +47,7 @@ class MeldingFraPdlListener(
                 leesahKafkaListenerMetric.measure {
                     val personhendelse = record.value()
                     MDC.put("x_request_id", UUID.randomUUID().toString())
+                    logger.debug("Behandler personhendelse: ${personhendelse.opplysningstype}")
                     try {
                         when (personhendelse.opplysningstype) {
                             "DOEDSFALL_V1" -> behandleDoedsfall(personhendelse, consumerRecords, recordCount)
