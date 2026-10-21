@@ -130,6 +130,8 @@ class DodsmeldingBehandler(
 
         val landFraKontaktadresse = hentLandFraKontaktadresse(person)
         logger.info("Vurderer land fra kontaktadresse: $landFraKontaktadresse")
+        secureLogger.info("Land fra adresser med kilder: {}",
+            person.pdlPerson.utenlandskIdentifikasjonsnummer.joinToString(",") { it.utstederland })
         if (landFraKontaktadresse !in gyldigeUtstederland) {
             secureLogger.info("Land fra adresser med kilder: {}", hentLandFraAdresser(person, personVanlig))
             logger.warn("Manglende, eller ugyldig utstederland: ($landFraKontaktadresse) ")
