@@ -55,17 +55,19 @@ Applikasjonen er skrevet i Kotlin og Spring Boot.
 
 ## Land fra adresser
 
-`PersonHendelseBehandler.hentLandFraAdresser` samler eksplisitte landkoder fra kontakt-,
+`DodsmeldingBehandler.hentLandFraAdresser` samler eksplisitte landkoder fra kontakt-,
 bosteds- og oppholdsadresser og geografisk tilknytning i begge PDL-oppslagene.
 Begge utenlandske kontaktadresseformatene tas med, også fra de valgte historiske adressene.
-Resultatet kobler hver landkode til kildefeltene og logges i `secureLog`.
+Resultatet inneholder hver landkode én gang, koblet til alle kildefeltene, og logges i `secureLog`.
 Tomme verdier utelates, og landkoder trimmes og gjøres om til store bokstaver.
 To- og trebokstavskoder beholdes som separate verdier. Norske adresser uten landkode gir
 ikke en utledet `NOR`-verdi.
 
 Feltene `InklHistoriske` inneholder bare den sist registrerte adressen av hver type,
-ikke hele adressehistorikken. Innsamlingen endrer ikke vilkårene for H070:
-Land fra `kontaktadresseInklHistoriske` vurderes fortsatt av den eksisterende kontrollen.
+ikke hele adressehistorikken. Landkontrollen for H070 godtar treff på minst ett gyldig
+utstederland i den samlede mengden, ikke bare i `kontaktadresseInklHistoriske`.
+De øvrige kontrollene gjelder fortsatt. Mottaker velges fortsatt fra leveattestregisteret
+eller EUX-motpartene, ikke fra adressene.
 Statsborgerskap, fødeland, dødsboadresse og andre landkilder inngår ikke i innsamlingen.
 
 ## Etterlevelse: monitorering av kritisk dataflyt

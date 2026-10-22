@@ -199,19 +199,28 @@ class DodsmeldingBehandlerTest {
     }
 
     @ParameterizedTest
-    @CsvSource("DEU, FIN, false", "FIN, DEU, true", "'', FIN, false")
-    fun `behandle beholder kontaktadressekontrollen uavhengig av innsamlede land`(
+    @CsvSource(
+        "DEU, FIN, DEU, true",
+        "FIN, DEU, DEU, true",
+        "'', FIN, DEU, true",
+        "DEU, DEU, FIN, true",
+        "' fin ', DEU, DEU, true",
+        "DEU, DEU, DEU, false",
+        "'', '', '', false"
+    )
+    fun `behandle godtar minst ett gyldig land fra begge kontaktadresseformater og PDL-oppslag`(
         historiskLand: String,
         gjeldendeLand: String,
+        frittFormatLand: String,
         skalOpprette: Boolean
     ) {
         val grunnperson = personUtenAdresser().copy(
             bostedsadresse = Bostedsadresse(vegadresse = Vegadresse(), metadata = metadataMock()),
-            kontaktadresse = kontaktadresseMedLand(gjeldendeLand, "FIN")
+            kontaktadresse = kontaktadresseMedLand(gjeldendeLand, frittFormatLand)
         )
         val person = PdlPersonUtvidet(
             pdlPerson = grunnperson,
-            kontaktadresseInklHistoriske = kontaktadresseMedLand(historiskLand, "FIN")
+            kontaktadresseInklHistoriske = kontaktadresseMedLand(historiskLand, frittFormatLand)
         )
         every { personService.hentPersonUtvidet(any()) } returns person
         every { personService.hentPerson(any()) } returns grunnperson
@@ -221,6 +230,44 @@ class DodsmeldingBehandlerTest {
 
         verify(exactly = if (skalOpprette) 1 else 0) { opprettH070.preutFyltH070(any(), any(), any()) }
         verify(exactly = if (skalOpprette) 1 else 0) { lagringsService.lagreH070(any(), any()) }
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "oppholdsadresse, FIN",
+        "bostedsadresseInklHistoriske, SWE",
+        "oppholdsadresseInklHistoriske, POL",
+        "geografiskTilknytning, FI",
+        "personVanlig.oppholdsadresse, SE",
+        "personVanlig.geografiskTilknytning, FIN"
+    )
+    fun `behandle godtar gyldig land uten utenlandsk kontaktadresse`(kilde: String, land: String) {
+        val grunnperson = personUtenAdresser().copy(
+            bostedsadresse = Bostedsadresse(vegadresse = Vegadresse(), metadata = metadataMock())
+        )
+        val person = PdlPersonUtvidet(
+            pdlPerson = grunnperson.copy(
+                oppholdsadresse = if (kilde == "oppholdsadresse") bostedsadresseMedLand(land) else null,
+                geografiskTilknytning = if (kilde == "geografiskTilknytning") {
+                    GeografiskTilknytning(gtType = GtType.UTLAND, gtLand = land)
+                } else null
+            ),
+            bostedsadresseInklHistoriske = if (kilde == "bostedsadresseInklHistoriske") bostedsadresseMedLand(land) else null,
+            oppholdsadresseInklHistoriske = if (kilde == "oppholdsadresseInklHistoriske") bostedsadresseMedLand(land) else null
+        )
+        val personVanlig = grunnperson.copy(
+            oppholdsadresse = if (kilde == "personVanlig.oppholdsadresse") bostedsadresseMedLand(land) else null,
+            geografiskTilknytning = if (kilde == "personVanlig.geografiskTilknytning") {
+                GeografiskTilknytning(gtType = GtType.UTLAND, gtLand = land)
+            } else null
+        )
+        every { personService.hentPersonUtvidet(any()) } returns person
+        every { personService.hentPerson(any()) } returns personVanlig
+        every { lagringsService.finnesDoedsmeldingAlleredeFor(any()) } returns false
+
+        dodsmeldingBehandler.behandle(personhendelseMock("12345678901"))
+
+        verify(exactly = 1) { lagringsService.lagreH070(any(), any()) }
     }
 
     @Test
@@ -448,7 +495,7 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
-    fun `behandle oppretter ikke H070 naar utenlandsk kontaktadresse ikke er gyldig utstederland`() {
+    fun `behandle oppretter ikke H070 naar ingen adresse har gyldig utstederland`() {
         val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
@@ -481,6 +528,9 @@ class DodsmeldingBehandlerTest {
         }
 
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
+        every { personService.hentPerson(ident) } returns personUtenAdresser().copy(
+            bostedsadresse = Bostedsadresse(vegadresse = Vegadresse(), metadata = metadataMock())
+        )
 
         dodsmeldingBehandler.behandle(personhendelse)
 

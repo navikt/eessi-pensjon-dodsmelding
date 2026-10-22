@@ -135,13 +135,10 @@ class DodsmeldingBehandler(
             return
         }
 
-        val landFraKontaktadresse = hentLandFraKontaktadresse(person)
-        logger.info("Vurderer land fra kontaktadresse: $landFraKontaktadresse")
-        secureLogger.info("Land fra adresser med kilder: {}", person.pdlPerson.utenlandskIdentifikasjonsnummer.joinToString(",") { it.utstederland })
-
-        if (landFraKontaktadresse !in gyldigeUtstederland) {
-            val landFraAdresser = hentLandFraAdresser(person, personVanlig)
-            secureLogger.info("Manglende, eller ugyldig utstederland + and fra adresser med kilder: $landFraAdresser, $landFraKontaktadresse")
+        val landFraAdresser = hentLandFraAdresser(person, personVanlig)
+        secureLogger.info("Vurderer land fra adresser med kilder: {}", landFraAdresser)
+        if (landFraAdresser.keys.none { it in gyldigeUtstederland }) {
+            logger.warn("Ingen adresser eller geografisk tilknytning har et gyldig utstederland")
             return
         }
 
@@ -467,7 +464,8 @@ class DodsmeldingBehandler(
     /**
      * Samler eksplisitte landkoder fra adressene som PersonService har valgt.
      * Feltene InklHistoriske inneholder én valgt adresse hver, ikke hele adressehistorikken.
-     * Resultatet brukes ikke til å avgjøre om H070 skal opprettes.
+     * Hver landkode forekommer én gang, med alle kildefeltene som inneholder den.
+     * Minst én landkode må være et gyldig utstederland for at H070 skal opprettes.
      */
     internal fun hentLandFraAdresser(person: PdlPersonUtvidet, personVanlig: PdlPerson?): Map<String, Set<String>> {
         val landMedKilder = listOf(
@@ -490,29 +488,6 @@ class DodsmeldingBehandler(
             .mapNotNull { (land, kilde) -> land?.trim()?.uppercase()?.takeIf { it.isNotBlank() }?.let { it to kilde } }
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, kilder) -> kilder.toSet() }
-    }
-
-    private fun hentLandFraKontaktadresse(person: PdlPersonUtvidet): String? {
-        val kontaktadresse = person.kontaktadresseInklHistoriske
-        val utenlandskAdresse = kontaktadresse?.utenlandskAdresse
-        val utenlandskAdresseIFrittFormat = kontaktadresse?.utenlandskAdresseIFrittFormat
-
-        return when {
-            utenlandskAdresse != null -> {
-                logJsonValue("kontaktadresseInklHistoriske for H070 (utenlandskAdresse)") { utenlandskAdresse }
-                utenlandskAdresse.landkode
-            }
-
-            utenlandskAdresseIFrittFormat != null -> {
-                logJsonValue("kontaktadresseInklHistoriske for H070 (utenlandskAdresseIFrittFormat)") { kontaktadresse }
-                utenlandskAdresseIFrittFormat.landkode
-            }
-
-            else -> {
-                logJsonValue("kontaktadresseInklHistoriske for H070 (ingen utenlandsk adresse)") { kontaktadresse }
-                null
-            }
-        }
     }
 
     private fun logJsonValue(label: String, value: (() -> Any?)?) {
