@@ -33,7 +33,7 @@ class LagringsService (
     fun lagreFnrForBruker(fnr: String): Boolean {
         val hashafnr = hashedValue(fnr)
         try {
-            if(finnesDoedsmeldingAlleredeForBruker(fnr)) return false.also { logger.error("Bruker finnes i bucket. Ingen lagring") }
+            if(finnesDoedsmeldingAlleredeFor(fnr)) return false.also { logger.error("Bruker finnes i bucket. Ingen lagring") }
             secureLogger.info("hash : $hashafnr")
             lagre("$HASH_PRESET/$hashafnr", h070_opprettetBucket)
             return true
@@ -97,7 +97,7 @@ class LagringsService (
         throw RuntimeException("Henter landkode fra prefix $land")
     }
 
-    fun finnesDoedsmeldingAlleredeForBruker(fnr: String): Boolean {
+    fun finnesDoedsmeldingAlleredeFor(fnr: String): Boolean {
         logger.debug("sjekker om fnr allerede ligger inne med dodsmelding i bucket")
         val hasha = hashedValue(fnr)
         val fnrFratidligereSendteH070 = hentListeFraS3("$HASH_PRESET/$hasha", h070_opprettetBucket)

@@ -239,7 +239,7 @@ class LagringsServiceTest {
         )
         every { gcpStorage.list(any<String>(), *anyVararg()) } returns page
 
-        val resultat = lagringsService.finnesDoedsmeldingAlleredeForBruker(fnr)
+        val resultat = lagringsService.finnesDoedsmeldingAlleredeFor(fnr)
 
         assertTrue(resultat, "Skal finne treff selv om det korrekte elementet ikke ligger forst i lista")
     }
@@ -263,7 +263,7 @@ class LagringsServiceTest {
         )
         every { gcpStorage.list(any<String>(), *anyVararg()) } returns page
 
-        val resultat = lagringsService.finnesDoedsmeldingAlleredeForBruker(fnr)
+        val resultat = lagringsService.finnesDoedsmeldingAlleredeFor(fnr)
 
         assertTrue(resultat, "Skal finne treff selv om elementet ligger paa en senere side enn den forste")
     }

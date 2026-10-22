@@ -53,15 +53,32 @@ Applikasjonen er skrevet i Kotlin og Spring Boot.
 - **OpprettH070**: Oppretter og formatterer H070-meldinger
 - **EuxService**: Sender H070 til EESSI (EU-utveksling)
 
+## Land fra adresser
+
+`PersonHendelseBehandler.hentLandFraAdresser` samler eksplisitte landkoder fra kontakt-,
+bosteds- og oppholdsadresser og geografisk tilknytning i begge PDL-oppslagene.
+Begge utenlandske kontaktadresseformatene tas med, også fra de valgte historiske adressene.
+Resultatet kobler hver landkode til kildefeltene og logges i `secureLog`.
+Tomme verdier utelates, og landkoder trimmes og gjøres om til store bokstaver.
+To- og trebokstavskoder beholdes som separate verdier. Norske adresser uten landkode gir
+ikke en utledet `NOR`-verdi.
+
+Feltene `InklHistoriske` inneholder bare den sist registrerte adressen av hver type,
+ikke hele adressehistorikken. Innsamlingen endrer ikke vilkårene for H070:
+Land fra `kontaktadresseInklHistoriske` vurderes fortsatt av den eksisterende kontrollen.
+Statsborgerskap, fødeland, dødsboadresse og andre landkilder inngår ikke i innsamlingen.
+
 ## Etterlevelse: monitorering av kritisk dataflyt
 
 - Overordnet rutine og krav: `docs/monitorering-kritisk-dataflyt.md`
 - Dataflytregister og kritikalitet: `docs/dataflyt-register-kritikalitet.md`
 
-## GCP-tilgang og Kafka-batcher
+## Feil ved oppstart og Kafka-konsumering
 
-Ved HTTP 401 eller 403 fra GCS stopper Kafka-containeren uten nye behandlingsforsøk
-eller feillogging for hver melding i batchen. Batchen blir ikke kvittert ut.
-Rett GCP-tilgangen (for eksempel IAM-bindingen for Workload Identity), og restart
-applikasjonen. Kafka leser meldingene på nytt fra sist lagrede offset.
-Andre feil beholder tre nye behandlingsforsøk med fem sekunders mellomrom.
+Ved oppstart kontrollerer applikasjonen at den kan liste innholdet i begge GCS-bucketene.
+Hvis en kontroll feiler, feiler oppstarten og Spring lukker applikasjonen.
+
+Alle Kafka-feil avslutter applikasjonen med exit-kode 1, også feil ved deserialisering,
+autentisering og behandling av en batch. Applikasjonen gjør ingen nye behandlingsforsøk
+og kvitterer ikke ut den feilede batchen. Etter restart leser Kafka fra sist lagrede offset.
+Nais kan restarte podden automatisk, så vedvarende feil må rettes for å unngå en restart-loop.
