@@ -75,7 +75,7 @@ class DodsmeldingBehandlerTest {
 
         // ting som ikke er så viktig akkurat nå
         every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns Pair("bla1", "FI")
-        every { lagringsService.finnesDoedsmeldingAlleredeForBruker(any()) } returns mockk(relaxed = true )
+        every { lagringsService.finnesDoedsmeldingAlleredeFor(any()) } returns mockk(relaxed = true )
         every { lagringsService.lagreFnrForBruker(any()) } returns mockk(relaxed = true )
         every { euxService.opprettH070(any(), any()) } returns mockk(relaxed = true)
         every { euxService.sendSed(any(), any()) } returns mockk(relaxed = true)
@@ -215,7 +215,7 @@ class DodsmeldingBehandlerTest {
         )
         every { personService.hentPersonUtvidet(any()) } returns person
         every { personService.hentPerson(any()) } returns grunnperson
-        every { lagringsService.finnesDoedsmeldingAlleredeForBruker(any()) } returns false
+        every { lagringsService.finnesDoedsmeldingAlleredeFor(any()) } returns false
 
         dodsmeldingBehandler.behandle(personhendelseMock("12345678901"))
 
@@ -405,12 +405,12 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
-    fun `behandle sjekker Joark for eksisterende H070 ved treff i leveattestregister uten utenlandsk identifikasjonsnummer`() {
+    fun `behandle stopper naar PDL ikke inneholder gyldig norsk ident`() {
         val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")
         every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
             every { utenlandskIdentifikasjonsnummer } returns emptyList()
-            every { identer } returns emptyList()
+            every { identer } returns listOf(IdentInformasjon("invalid", IdentGruppe.FOLKEREGISTERIDENT))
             every { bostedsadresse } returns adresseMock(mockk(relaxed = true))
             every { kontaktadresseInklHistoriske } returns mockk(relaxed = true) {
                 every { utenlandskAdresse } returns mockk(relaxed = true) {
@@ -428,7 +428,7 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
-        verify(exactly = 1) { safClient.hentDokumentMetadata(any(), any()) }
+        verify(exactly = 0) { safClient.hentDokumentMetadata(any(), any()) }
     }
 
     @Test
@@ -438,7 +438,7 @@ class DodsmeldingBehandlerTest {
         every { personService.hentPersonUtvidet(ident) } returns null
         every { personService.hentPerson(ident) } returns null
         every { safClient.hentDokumentMetadata(any(), any()) } returns mockk(relaxed = true )
-        every { lagringsService.finnesDoedsmeldingAlleredeForBruker(any()) } returns mockk(relaxed = true )
+        every { lagringsService.finnesDoedsmeldingAlleredeFor(any()) } returns mockk(relaxed = true )
 
 
         dodsmeldingBehandler.behandle(personhendelse)
@@ -878,6 +878,7 @@ class DodsmeldingBehandlerTest {
     @Test
     fun `Nar det kommer inn er dodsmelding pa pdl koen saa skal det sjekkes om den finnes i buvket eller joark Dersom ja saa sendes det ut en H070 til utlandet`() {
         val norskIdent = "12345678901"
+        val kanoniskNorskIdent = "98765432100"
         val personhendelse = personhendelseMock(norskIdent)
         val ident = Ident.bestemIdent(norskIdent)
 
@@ -889,7 +890,7 @@ class DodsmeldingBehandlerTest {
                 identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = metadataMock())
             )
             every { identer } returns listOf(
-                IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
+                IdentInformasjon(kanoniskNorskIdent, IdentGruppe.FOLKEREGISTERIDENT)
             )
             every { kontaktadresseInklHistoriske } returns mockk(relaxed = true) {
                 every { utenlandskAdresse } returns mockk(relaxed = true) {
@@ -910,13 +911,24 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
-        verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any(), any()) }
+        verify(exactly = 1) { lagringsService.finnesDoedsmeldingAlleredeFor(kanoniskNorskIdent) }
+        verify(exactly = 1) { safClient.hentDokumentMetadata(kanoniskNorskIdent, FNR) }
+        verify(exactly = 1) { lagringsService.lagreFnrForBruker(kanoniskNorskIdent) }
+        verify(exactly = 1) { pesysKlient.hentPensjonSaklist(kanoniskNorskIdent) }
+        verify(exactly = 1) {
+            opprettH070.preutFyltH070(
+                personhendelse,
+                any(),
+                match { pin -> pin.any { it.land == "NOR" && it.identifikator == kanoniskNorskIdent } }
+            )
+        }
 //        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
 
     @Test
     fun `Nar det kommer inn er dodsmelding pa pdl koen saa skal det sjekkes om den finnes joark Dersom ja saa sendes det ut en H070 til utlandet`() {
         val norskIdent = "12345678901"
+        val kanoniskNorskIdent = "98765432100"
         val bucid = "1455350"
         val personhendelse = personhendelseMock(norskIdent)
         val ident = Ident.bestemIdent(norskIdent)
@@ -927,7 +939,7 @@ class DodsmeldingBehandlerTest {
                 identifikasjonsnummer = "10105636985", utstederland = "FIN", opphoert = false, metadata = metadataMock())
             )
             every { identer } returns listOf(
-                IdentInformasjon(norskIdent, IdentGruppe.FOLKEREGISTERIDENT)
+                IdentInformasjon(kanoniskNorskIdent, IdentGruppe.FOLKEREGISTERIDENT)
             )
             every { kontaktadresseInklHistoriske } returns mockk(relaxed = true) {
                 every { utenlandskAdresse } returns mockk(relaxed = true) {
@@ -983,8 +995,18 @@ class DodsmeldingBehandlerTest {
         dodsmeldingBehandler.behandle(personhendelse)
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
+        verify(exactly = 1) { safClient.hentDokumentMetadata(kanoniskNorskIdent, FNR) }
         verify(exactly = 1) { euxService.hentAvsenderLand(bucid) }
-        verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any(), any()) }
+        verify(exactly = 1) { lagringsService.finnesDoedsmeldingAlleredeFor(kanoniskNorskIdent) }
+        verify(exactly = 1) { lagringsService.lagreFnrForBruker(kanoniskNorskIdent) }
+        verify(exactly = 1) { pesysKlient.hentPensjonSaklist(kanoniskNorskIdent) }
+        verify(exactly = 1) {
+            opprettH070.preutFyltH070(
+                personhendelse,
+                any(),
+                match { pin -> pin.any { it.land == "NOR" && it.identifikator == kanoniskNorskIdent } }
+            )
+        }
         //TODO: kan kommenteres inn etter prodsetting av sende ut H070 sed
 //        verify(exactly = 1) { euxService.sendSed(any(), any()) }
     }
