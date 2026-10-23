@@ -452,6 +452,20 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
+    fun `behandle stopper uten oppslag naar personhendelse mangler doedsfall`() {
+        val personhendelse = mockk<Personhendelse> {
+            every { personidenter } returns listOf("12345678901")
+            every { doedsfall } returns null
+        }
+
+        dodsmeldingBehandler.behandle(personhendelse)
+
+        verify(exactly = 0) { personService.hentPersonUtvidet(any()) }
+        verify(exactly = 0) { lagringsService.lagreFnrForBruker(any()) }
+        verify(exactly = 0) { opprettH070.preutFyltH070(any(), any(), any()) }
+    }
+
+    @Test
     fun `behandle stopper naar PDL ikke inneholder gyldig norsk ident`() {
         val personhendelse = personhendelseMock("12345678901")
         val ident = Ident.bestemIdent("12345678901")

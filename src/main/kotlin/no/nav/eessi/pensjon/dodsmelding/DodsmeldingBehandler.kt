@@ -56,6 +56,13 @@ class DodsmeldingBehandler(
      * 5. Ved treff i ett av sporene lagres preutfylt H070.
      */
     fun behandle(personhendelse: Personhendelse) {
+        // Dødsdato fra hendelsen brukes både i adressevurderingen og i H070, så uten den kan vi ikke fortsette
+        val doedsdato = personhendelse.doedsfall?.doedsdato
+        if (doedsdato == null) {
+            logger.warn("Personhendelse mangler dødsdato; avbryter opprettelse av H070")
+            return
+        }
+
         val norskIdent = hentNorskIndent(personhendelse)
 
         if (norskIdent == null) {
@@ -114,7 +121,7 @@ class DodsmeldingBehandler(
         secureLogger.info("Person (historisk): ${person.toJson()}")
         secureLogger.info("Person (ordinær): ${personVanlig?.toJson()}")
 
-        val norskAdresse = harAktivNorskAdresse(person, personVanlig, personhendelse.doedsfall.doedsdato)
+        val norskAdresse = harAktivNorskAdresse(person, personVanlig, doedsdato)
         if (norskAdresse.not()) {
             logger.warn("Bruker har ingen gyldig norsk adresse; avbryter opprettelse av H070")
             return
