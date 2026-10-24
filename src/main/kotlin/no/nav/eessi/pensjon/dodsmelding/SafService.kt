@@ -7,6 +7,11 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
+data class JoarkRinasakIder(
+    val rinaSakIdH070: String?,
+    val rinaSakIdP6000: String?
+)
+
 @Component
 class SafService (
     private val safClient: SafClient,
@@ -14,13 +19,16 @@ class SafService (
     private val logger: Logger = LoggerFactory.getLogger(SafService::class.java)
 
 
-    fun brukerRinasakIdFraP6000(valgtPersonident: String): String? =
-        hentJournalposter(valgtPersonident)
-            .firstNotNullOfOrNull(::bucIdForP6000Journalpost)
-
-    fun brukerRinasakIdFraH070(valgtPersonident: String): String? =
-        hentJournalposter(valgtPersonident)
-            .firstNotNullOfOrNull(::bucIdForH070Journalpost)
+    /**
+     * Henter journalpostene én gang og finner både eventuell eksisterende H070 og P6000.
+     */
+    fun hentRinasakIder(valgtPersonident: String): JoarkRinasakIder {
+        val journalposter = hentJournalposter(valgtPersonident)
+        return JoarkRinasakIder(
+            rinaSakIdH070 = journalposter.firstNotNullOfOrNull(::bucIdForH070Journalpost),
+            rinaSakIdP6000 = journalposter.firstNotNullOfOrNull(::bucIdForP6000Journalpost)
+        )
+    }
 
     private fun hentJournalposter(valgtPersonident: String) =
         safClient

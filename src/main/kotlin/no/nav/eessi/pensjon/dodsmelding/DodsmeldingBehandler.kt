@@ -50,9 +50,9 @@ class DodsmeldingBehandler(
      *
      * Flyt:
      * 1. Mottar dødsmelding.
-     * 2. Sjekker ident mot leveattestregisteret
-     * 3. Hvis treff: sjekker Joark etter H070 med relevant avsenderland. Om det finnes en H070, logger vi info og avslutter. Hvis ikke, oppretter vi H070.
-     * 4. Hvis ikke treff: sjekker Joark etter P6000 med relevant avsenderland.
+     * 2. Sjekker ident mot leveattestregisteret.
+     * 3. Henter journalposter fra Joark én gang. Uten treff i registeret må det finnes en P6000.
+     * 4. Finnes det allerede en H070 i Joark, avslutter vi uansett spor.
      * 5. Ved treff i ett av sporene lagres preutfylt H070.
      */
     fun behandle(personhendelse: Personhendelse) {
@@ -93,25 +93,22 @@ class DodsmeldingBehandler(
         val personVanlig = personService.hentPerson(identFraPdl)
         val (identFraRegister, land) = lagringsService.finnesDodBrukerILeveAttReg(person.identer) ?: (null to null)
 
-        // Hvis vi finner ident i leveattestregisteret, sjekker vi om det allerede finnes en H070 i Joark for denne brukeren.
-        // Hvis det finnes en H070, logger vi informasjon og avslutter prosessen.
-        // Hvir ikke skal det lages en H070.
-        if(identFraRegister != null) {
-            val rinaSakIdH070 = safService.brukerRinasakIdFraH070(norskPersonIdent)
-            if(rinaSakIdH070 != null) {
-                logger.info("Bruker finnes i leveattestregisteret, men har allerede en H070 opprettet i Joark med rinaSakId: $rinaSakIdH070")
-                return
-            }
-            logger.info("Bruker finnes i leveattestregisteret med identFraRegister, land: $land. Ingen H070 funnet i Joark, fortsetter")
-        }
-
-
-        val rinaSakId = if (identFraRegister == null) safService.brukerRinasakIdFraP6000(norskPersonIdent) else null
+        val joarkRinasakIder = safService.hentRinasakIder(norskPersonIdent)
+        val rinaSakId = if (identFraRegister == null) joarkRinasakIder.rinaSakIdP6000 else null
 
         // Hvis vi ikke finner ident i leveattestregisteret og heller ikke rinaSakId i Joark, avslutter vi prosessen.
         if(identFraRegister == null && rinaSakId == null) {
             logger.info("Fant ingen ident i leveattestregisteret eller rinaSakId i Joark for personhendelse: avslutter")
             return
+        }
+
+        // Gjelder begge sporene: finnes det allerede en H070 i Joark, skal vi ikke lage en ny.
+        joarkRinasakIder.rinaSakIdH070?.let { rinaSakIdH070 ->
+            logger.info("Bruker har allerede en H070 i Joark med rinaSakId: $rinaSakIdH070 (leveattestregister: ${identFraRegister != null}); avslutter")
+            return
+        }
+        if (identFraRegister != null) {
+            logger.info("Bruker finnes i leveattestregisteret, land: $land. Ingen H070 funnet i Joark, fortsetter")
         }
 
         logPerson(person, identFraRegister, rinaSakId)

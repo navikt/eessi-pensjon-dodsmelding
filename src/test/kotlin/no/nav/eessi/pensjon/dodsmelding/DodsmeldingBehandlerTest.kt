@@ -1076,6 +1076,47 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
+    fun `behandle oppretter ikke H070 i P6000-sporet naar Joark allerede har en H070`() {
+        val norskIdent = "12345678901"
+        val kanoniskNorskIdent = "98765432100"
+        val personhendelse = personhendelseMock(norskIdent)
+        val ident = Ident.bestemIdent(norskIdent)
+
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns null
+        every { personService.hentPersonUtvidet(ident) } returns mockk(relaxed = true) {
+            every { identer } returns listOf(IdentInformasjon(kanoniskNorskIdent, IdentGruppe.FOLKEREGISTERIDENT))
+            every { bostedsadresseInklHistoriske } returns aktivNorskAdresseMock()
+        }
+
+        fun journalpost(bucId: String, tittel: String) = mapJsonToAny<Journalpost>(
+            """
+            {
+              "tilleggsopplysninger": [ { "nokkel": "eessi_pensjon_bucid", "verdi": "$bucId" } ],
+              "journalpostId": "1",
+              "datoOpprettet": "2026-03-25T11:15:48",
+              "tittel": "$tittel",
+              "journalfoerendeEnhet": "4476",
+              "dokumenter": [ { "dokumentInfoId": "1", "tittel": "$tittel", "dokumentvarianter": [] } ]
+            }
+            """.trimIndent()
+        )
+
+        every { safClient.hentDokumentMetadata(any(), any()) } returns HentMetadataResponse(data = Data(
+            DokumentoversiktBruker(listOf(
+                journalpost("1455350", "P6000 - Melding om vedtak"),
+                journalpost("2000000", "H070 - Melding om dødsfall")
+            ))
+        ))
+
+        dodsmeldingBehandler.behandle(personhendelse)
+
+        verify(exactly = 1) { safClient.hentDokumentMetadata(kanoniskNorskIdent, FNR) }
+        verify(exactly = 0) { euxService.hentAvsenderLand(any()) }
+        verify(exactly = 0) { lagringsService.lagreFnrForBruker(any()) }
+        verify(exactly = 0) { opprettH070.preutFyltH070(any(), any(), any()) }
+    }
+
+    @Test
     @Disabled
     fun `brukerRinasakIdFraJoark henter bucid fra tilleggsopplysninger`() {
         val norskIdent = "12345678901"
