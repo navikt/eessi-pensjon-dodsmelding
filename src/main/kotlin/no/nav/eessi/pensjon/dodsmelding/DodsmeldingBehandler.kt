@@ -140,7 +140,9 @@ class DodsmeldingBehandler(
         }
 
         val landFraAdresser = hentLandFraAdresser(person, personVanlig)
-        secureLogger.info("Vurderer land fra adresser med kilder: {}", landFraAdresser)
+        if (landFraAdresser.isNotEmpty()) {
+            secureLogger.info("Vurderer land fra adresser med kilder: {}", landFraAdresser)
+        }
         if (landFraAdresser.keys.none { it in gyldigeUtstederland }) {
             logger.warn("Ingen adresser eller geografisk tilknytning har et gyldig utstederland")
             return
