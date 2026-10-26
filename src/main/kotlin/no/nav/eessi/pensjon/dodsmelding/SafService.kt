@@ -27,7 +27,11 @@ class SafService (
         return JoarkRinasakIder(
             rinaSakIdH070 = journalposter.firstNotNullOfOrNull(::bucIdForH070Journalpost),
             rinaSakIdP6000 = journalposter.firstNotNullOfOrNull(::bucIdForP6000Journalpost)
-        )
+        ).also {
+            if (it.rinaSakIdH070 != null || it.rinaSakIdP6000 != null) {
+                logger.info("Hentet rinaSakIder: $it")
+            }
+        }
     }
 
     private fun hentJournalposter(valgtPersonident: String) =
