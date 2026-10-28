@@ -346,9 +346,15 @@ class DodsmeldingBehandler(
      */
     fun harAktivNorskAdresse(person: PdlPersonUtvidet, pdlPersonEnkel: PdlPerson?, doedsdato: LocalDate): Boolean {
         val bostedsadresse = if (pdlPersonEnkel?.bostedsadresse != null) {
-            pdlPersonEnkel.bostedsadresse.also { logger.info("Har bostedsadresse for person: $it") }
+            pdlPersonEnkel.bostedsadresse.also {
+                logger.info("Bruker bostedsadresse fra ordinært oppslag")
+                secureLogger.info("Har bostedsadresse for person: $it")
+            }
         } else {
-            person.bostedsadresseInklHistoriske.also { logger.info("Har bostedsadresse for person (historisk): $it") }
+            person.bostedsadresseInklHistoriske.also {
+                logger.info("Bruker bostedsadresse fra historisk oppslag")
+                secureLogger.info("Har bostedsadresse for person (historisk): $it")
+            }
         } ?: return false.also { logger.info("Bruker har ingen bostedsadresse i PDL") }
 
         if (bostedsadresse.vegadresse == null) return false
@@ -370,10 +376,16 @@ class DodsmeldingBehandler(
     fun harAktivUtenlandskAdresse(person: PdlPersonUtvidet, pdlPersonEnkel: PdlPerson, doedsdato: LocalDate, identFraRegister: String?): Boolean {
         val kontaktadresse = if (pdlPersonEnkel.kontaktadresse != null) {
             //flaggManglendeUtenlandskAdresseVedRegisterMatch(identFraRegister, false)
-            pdlPersonEnkel.kontaktadresse.also { logger.info("Har kontaktadresse for person: $it") }
+            pdlPersonEnkel.kontaktadresse.also {
+                logger.info("Bruker kontaktadresse fra ordinært oppslag")
+                secureLogger.info("Har kontaktadresse for person: $it")
+            }
         } else {
             //flaggManglendeUtenlandskAdresseVedRegisterMatch(identFraRegister, false)
-            person.kontaktadresseInklHistoriske.also { logger.info("Har kontaktadresse for person (historisk): $it") }
+            person.kontaktadresseInklHistoriske.also {
+                logger.info("Bruker kontaktadresse fra historisk oppslag")
+                secureLogger.info("Har kontaktadresse for person (historisk): $it")
+            }
         } ?: return false.also { logger.info("Bruker har ingen kontaktadresse i PDL") }
 
 //        val kontaktadresse = person.kontaktadresseInklHistoriske ?: run {
