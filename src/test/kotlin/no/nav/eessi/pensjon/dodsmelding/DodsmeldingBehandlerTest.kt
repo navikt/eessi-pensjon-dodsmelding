@@ -276,6 +276,7 @@ class DodsmeldingBehandlerTest {
         val bostedsadresse = mockk<Bostedsadresse>(relaxed = true) {
             every { vegadresse } returns mockk(relaxed = true)
             every { gyldigTilOgMed } returns doedsdato.minusDays(13).atStartOfDay()
+            every { gyldigFraOgMed } returns null
         }
         val person = mockk<PdlPersonUtvidet>(relaxed = true) {
             every { bostedsadresseInklHistoriske } returns bostedsadresse
