@@ -341,37 +341,49 @@ class DodsmeldingBehandler(
     }
 
     /**
-     * Sjekker om bruker har en aktiv norsk adresse i PDL.
-     * En norsk adresse anses som aktiv dersom gyldigTilOgMed er null eller etter doedsdato minus 2 uker.
+     * Sjekker om bruker hadde en aktiv norsk bostedsadresse (vegadresse) på dødsdato.
+     *
+     * Både adressen fra ordinært oppslag og adressen fra historisk oppslag vurderes, og det holder at én av dem er aktiv.
+     * En adresse er aktiv dersom gyldigFraOgMed er null eller senest på dødsdato,
+     * og gyldigTilOgMed er null eller etter doedsdato minus 2 uker.
      */
     fun harAktivNorskAdresse(person: PdlPersonUtvidet, pdlPersonEnkel: PdlPerson?, doedsdato: LocalDate): Boolean {
-        val bostedsadresse = if (pdlPersonEnkel?.bostedsadresse != null) {
-            pdlPersonEnkel.bostedsadresse.also {
-                logger.info("Bruker bostedsadresse fra ordinært oppslag")
-                secureLogger.info("Har bostedsadresse for person: $it")
-            }
-        } else {
-            person.bostedsadresseInklHistoriske.also {
-                logger.info("Bruker bostedsadresse fra historisk oppslag")
-                secureLogger.info("Har bostedsadresse for person (historisk): $it")
-            }
-        } ?: return false.also { logger.info("Bruker har ingen bostedsadresse i PDL") }
+        val kandidater = listOf(
+            "ordinært" to pdlPersonEnkel?.bostedsadresse,
+            "historisk" to person.bostedsadresseInklHistoriske
+        ).mapNotNull { (kilde, adresse) -> adresse?.let { kilde to it } }
 
-        if (bostedsadresse.vegadresse == null) return false
+        if (kandidater.isEmpty()) {
+            logger.info("Bruker har ingen bostedsadresse i PDL")
+            return false
+        }
 
-        val gyldigTilOgMed = bostedsadresse.gyldigTilOgMed
-        val harAktivNorskAdresse = erGyldigPaaDoedsdato(gyldigTilOgMed, doedsdato)
+        return kandidater.any { (kilde, bostedsadresse) ->
+            secureLogger.info("Vurderer bostedsadresse fra $kilde oppslag: $bostedsadresse")
 
-        logger.info(
-            "Har aktiv norsk adresse: Adressevurdering: doedsdato={}, gyldigFraOgMed={}, gyldigTilOgMed={}, harAktivNorskAdresse={}",
-            doedsdato,
-            bostedsadresse.gyldigFraOgMed,
-            gyldigTilOgMed,
-            harAktivNorskAdresse
-        )
+            val harVegadresse = bostedsadresse.vegadresse != null
+            val startetFoerDoedsdato = erStartetPaaDoedsdato(bostedsadresse.gyldigFraOgMed, doedsdato)
+            val gyldigPaaDoedsdato = erGyldigPaaDoedsdato(bostedsadresse.gyldigTilOgMed, doedsdato)
+            val aktiv = harVegadresse && startetFoerDoedsdato && gyldigPaaDoedsdato
 
-        return harAktivNorskAdresse
+            logger.info(
+                "Har aktiv norsk adresse: kilde={}, doedsdato={}, gyldigFraOgMed={}, gyldigTilOgMed={}, harVegadresse={}, aktiv={}",
+                kilde,
+                doedsdato,
+                bostedsadresse.gyldigFraOgMed,
+                bostedsadresse.gyldigTilOgMed,
+                harVegadresse,
+                aktiv
+            )
+            aktiv
+        }
     }
+
+    /**
+     * En adresse som først gjelder fra etter dødsdato kan ikke ha vært bostedet på dødsdato.
+     */
+    private fun erStartetPaaDoedsdato(gyldigFraOgMed: LocalDateTime?, doedsdato: LocalDate): Boolean =
+        gyldigFraOgMed == null || gyldigFraOgMed.isBefore(doedsdato.plusDays(1).atStartOfDay())
 
     fun harAktivUtenlandskAdresse(person: PdlPersonUtvidet, pdlPersonEnkel: PdlPerson, doedsdato: LocalDate, identFraRegister: String?): Boolean {
         val kontaktadresse = if (pdlPersonEnkel.kontaktadresse != null) {

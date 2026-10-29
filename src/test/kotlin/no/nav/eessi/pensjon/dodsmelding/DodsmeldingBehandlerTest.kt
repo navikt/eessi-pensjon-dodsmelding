@@ -303,6 +303,40 @@ class DodsmeldingBehandlerTest {
     }
 
     @Test
+    fun `harAktivNorskAdresse er false naar ordinaer adresse forst gjelder etter doedsdato`() {
+        val doedsdato = LocalDate.of(2026, 9, 1)
+        val personVanlig = mockk<PdlPerson>(relaxed = true) {
+            every { bostedsadresse } returns mockk<Bostedsadresse>(relaxed = true) {
+                every { vegadresse } returns mockk(relaxed = true)
+                every { gyldigFraOgMed } returns doedsdato.plusDays(1).atStartOfDay()
+                every { gyldigTilOgMed } returns null
+            }
+        }
+        val person = mockk<PdlPersonUtvidet>(relaxed = true) {
+            every { bostedsadresseInklHistoriske } returns null
+        }
+
+        assertFalse(dodsmeldingBehandler.harAktivNorskAdresse(person, personVanlig, doedsdato))
+    }
+
+    @Test
+    fun `harAktivNorskAdresse godtar historisk norsk adresse naar ordinaer adresse er utenlandsk`() {
+        val doedsdato = LocalDate.of(2026, 9, 1)
+        val personVanlig = mockk<PdlPerson>(relaxed = true) {
+            every { bostedsadresse } returns adresseMock(UtenlandskAdresse(landkode = "SWE"))
+        }
+        val person = mockk<PdlPersonUtvidet>(relaxed = true) {
+            every { bostedsadresseInklHistoriske } returns mockk<Bostedsadresse>(relaxed = true) {
+                every { vegadresse } returns mockk(relaxed = true)
+                every { gyldigFraOgMed } returns doedsdato.minusYears(10).atStartOfDay()
+                every { gyldigTilOgMed } returns doedsdato.minusDays(7).atStartOfDay()
+            }
+        }
+
+        assertTrue(dodsmeldingBehandler.harAktivNorskAdresse(person, personVanlig, doedsdato))
+    }
+
+    @Test
     fun `harAktivUtenlandskAdresse er false naar adresse er utgaatt og ingen utenlandsk adresse finnes`() {
         val doedsdato = LocalDate.of(2026, 9, 1)
         val person = mockk<PdlPersonUtvidet>(relaxed = true) {
