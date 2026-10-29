@@ -1,5 +1,7 @@
 package no.nav.eessi.pensjon.dodsmelding
 
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Metrics
 import no.nav.eessi.pensjon.eux.EuxService
 import no.nav.eessi.pensjon.eux.model.buc.SakType.*
 import no.nav.eessi.pensjon.eux.model.sed.PinItem
@@ -28,6 +30,33 @@ import java.util.concurrent.atomic.AtomicLong
 private const val H070_LAGRET_PREFIX_STANDARD = "H070_STANDARD"
 private const val H070_LAGRET_PREFIX_EDIFACT = "H070_EDIFACT"
 
+/** Hvorfor vurderingen av en dødsmelding endte der den gjorde. Brukes som tag i metrikken dodsmelding_h070_vurdering. */
+enum class Utfall {
+    MANGLER_DOEDSDATO,
+    MANGLER_IDENT_I_HENDELSE,
+    PERSON_IKKE_FUNNET,
+    MANGLER_NORSK_IDENT_I_PDL,
+    ALLEREDE_BEHANDLET,
+    INGEN_UTENLANDSKOBLING,
+    H070_FINNES_I_JOARK,
+    INGEN_AKTIV_NORSK_ADRESSE,
+    UTENLANDSK_ADRESSE_NYERE,
+    INGEN_GYLDIG_LAND_I_ADRESSER,
+    MANGLER_NORSK_PIN,
+    UGYLDIG_LAND_I_REGISTER,
+    MANGLER_RINASAKID,
+    EUX_FEIL,
+    MANGLER_MOTPARTER,
+    MANGLER_STOETTET_MOTTAKERLAND,
+    H070_OPPRETTET,
+    FEIL
+}
+
+/** Hvilken utenlandskobling vurderingen bygget på: leveattestregisteret, P6000 i Joark, ingen, eller ikke avklart ennå. */
+enum class Spor { LEVEATTEST, JOARK, INGEN, UKJENT }
+
+data class Vurdering(val utfall: Utfall, val spor: Spor, val land: String? = null)
+
 @Component
 class DodsmeldingBehandler(
     private val pesysKlient: PesysKlient,
@@ -36,7 +65,8 @@ class DodsmeldingBehandler(
     private val euxService: EuxService,
     private val safService: SafService,
     private val lagringsService: LagringsService,
-    @Value("\${ENV}") private val env: String
+    @Value("\${ENV}") private val env: String,
+    private val meterRegistry: MeterRegistry = Metrics.globalRegistry
 ) {
     private val logger: Logger = LoggerFactory.getLogger(DodsmeldingBehandler::class.java)
     private val secureLogger = LoggerFactory.getLogger("secureLog")
@@ -56,18 +86,28 @@ class DodsmeldingBehandler(
      * 5. Ved treff i ett av sporene lagres preutfylt H070.
      */
     fun behandle(personhendelse: Personhendelse) {
+        val vurdering = try {
+            vurder(personhendelse)
+        } catch (e: Exception) {
+            registrer(Vurdering(Utfall.FEIL, Spor.UKJENT))
+            throw e
+        }
+        registrer(vurdering)
+    }
+
+    private fun vurder(personhendelse: Personhendelse): Vurdering {
         // Dødsdato fra hendelsen brukes både i adressevurderingen og i H070, så uten den kan vi ikke fortsette
         val doedsdato = personhendelse.doedsfall?.doedsdato
         if (doedsdato == null) {
             logger.warn("Personhendelse mangler dødsdato; avbryter opprettelse av H070")
-            return
+            return Vurdering(Utfall.MANGLER_DOEDSDATO, Spor.UKJENT)
         }
 
         val norskIdent = hentNorskIndent(personhendelse)
 
         if (norskIdent == null) {
             logger.warn("Fant ingen gyldig ident i personidenter: ${personhendelse.personidenter}")
-            return
+            return Vurdering(Utfall.MANGLER_IDENT_I_HENDELSE, Spor.UKJENT)
         }
 
         logger.info("Henter informasjon for ident: ${norskIdent.take(4)}")
@@ -76,18 +116,18 @@ class DodsmeldingBehandler(
         val person = personService.hentPersonUtvidet(identFraPdl)
         if (person == null) {
             logger.warn("Fant ingen personident")
-            return
+            return Vurdering(Utfall.PERSON_IKKE_FUNNET, Spor.UKJENT)
         }
 
         val norskPersonIdent = hentNorskIdentFraPdl(person)
         if (norskPersonIdent == null) {
             logger.warn("Fant ingen gyldig norsk ident i PDL")
-            return
+            return Vurdering(Utfall.MANGLER_NORSK_IDENT_I_PDL, Spor.UKJENT)
         }
 
         if (lagringsService.finnesDoedsmeldingAlleredeFor(norskPersonIdent)) {
             logger.info("Bruker finnes allerede i bucket, avbryter opprettelse av H070")
-            return
+            return Vurdering(Utfall.ALLEREDE_BEHANDLET, Spor.UKJENT)
         }
 
         val personVanlig = personService.hentPerson(identFraPdl)
@@ -99,13 +139,15 @@ class DodsmeldingBehandler(
         // Hvis vi ikke finner ident i leveattestregisteret og heller ikke rinaSakId i Joark, avslutter vi prosessen.
         if(identFraRegister == null && rinaSakId == null) {
             logger.info("Fant ingen ident i leveattestregisteret eller rinaSakId i Joark for personhendelse: avslutter")
-            return
+            return Vurdering(Utfall.INGEN_UTENLANDSKOBLING, Spor.INGEN)
         }
+        val spor = if (identFraRegister != null) Spor.LEVEATTEST else Spor.JOARK
+        val sporLand = if (identFraRegister != null) land else null
 
         // Gjelder begge sporene: finnes det allerede en H070 i Joark, skal vi ikke lage en ny.
         joarkRinasakIder.rinaSakIdH070?.let { rinaSakIdH070 ->
             logger.info("Bruker har allerede en H070 i Joark med rinaSakId: $rinaSakIdH070 (leveattestregister: ${identFraRegister != null}); avslutter")
-            return
+            return Vurdering(Utfall.H070_FINNES_I_JOARK, spor, sporLand)
         }
         if (identFraRegister != null) {
             logger.info("Bruker finnes i leveattestregisteret, land: $land. Ingen H070 funnet i Joark, fortsetter")
@@ -121,7 +163,7 @@ class DodsmeldingBehandler(
         val norskAdresse = harAktivNorskAdresse(person, personVanlig, doedsdato)
         if (norskAdresse.not()) {
             logger.warn("Bruker har ingen gyldig norsk adresse; avbryter opprettelse av H070")
-            return
+            return Vurdering(Utfall.INGEN_AKTIV_NORSK_ADRESSE, spor, sporLand)
         }
         val gtLand = person.geografiskTilknytning?.gtLand
         logger.info("Person har geografisktilknytning: $gtLand")
@@ -136,7 +178,7 @@ class DodsmeldingBehandler(
                     logger.warn("Utenlandsk adresse er nyere enn norsk adresse, men geografisk tilknytning er ikke utland: $gtLand")
             }
             logger.warn("Bruker sin utenlandske adresse er nyere enn norsk adresse; avbryter opprettelse av H070")
-            return
+            return Vurdering(Utfall.UTENLANDSK_ADRESSE_NYERE, spor, sporLand)
         }
 
         val landFraAdresser = hentLandFraAdresser(person, personVanlig)
@@ -145,21 +187,20 @@ class DodsmeldingBehandler(
         }
         if (landFraAdresser.keys.none { it in gyldigeUtstederland }) {
             logger.warn("Ingen adresser eller geografisk tilknytning har et gyldig utstederland")
-            return
+            return Vurdering(Utfall.INGEN_GYLDIG_LAND_I_ADRESSER, spor, sporLand)
         }
 
         val pin = opprettPinListe(person, norskPersonIdent)
         if (pin.none { it.land == "NOR" }) {
             logger.warn("Fant ingen norsk ident; avbryter opprettelse av H070")
-            return
+            return Vurdering(Utfall.MANGLER_NORSK_PIN, spor, sporLand)
         }
 
         if (identFraRegister != null && land != null) {
-            behandleLeveattest(personhendelse, person, pin, norskPersonIdent, identFraRegister, land)
-            return
+            return behandleLeveattest(personhendelse, person, pin, norskPersonIdent, identFraRegister, land)
         }
 
-        behandleJoark(personhendelse, person, pin, norskPersonIdent, rinaSakId)
+        return behandleJoark(personhendelse, person, pin, norskPersonIdent, rinaSakId)
     }
 
     private fun behandleLeveattest(
@@ -169,11 +210,11 @@ class DodsmeldingBehandler(
         norskIdent: String,
         identILeveAttReg: String,
         landILeveAttReg: String
-    ) {
+    ): Vurdering {
         require(identILeveAttReg.isNotBlank()) { "Finner ikke fnr i leveattestregisteret" }
         if (landILeveAttReg !in gyldigeUtstederland) {
             logger.info("Bruker finnes i leveattestregisteret, men utstederland ($landILeveAttReg) er ikke gyldig")
-            return
+            return Vurdering(Utfall.UGYLDIG_LAND_I_REGISTER, Spor.LEVEATTEST, landILeveAttReg)
         }
 
         logger.info("Bruker finnes i leveattestregisteret, oppretter H070")
@@ -185,6 +226,7 @@ class DodsmeldingBehandler(
             .also { secureLogger.info("preutfylt h070 fra LeveAttestReg / edifact: $it, land: $landInstitusjon") }
         lagringsService.lagreH070(h070, H070_LAGRET_PREFIX_EDIFACT)
 //        opprettOgSendH070(h070, landInstitusjon).also { logger.info("Oppretter og sender ut H070 til $landILeveAttReg") }
+        return Vurdering(Utfall.H070_OPPRETTET, Spor.LEVEATTEST, landILeveAttReg)
     }
 
     private fun behandleJoark(
@@ -193,16 +235,21 @@ class DodsmeldingBehandler(
         pin: List<PinItem>,
         norskIdent: String,
         rinaSakId: String?
-    ) {
+    ): Vurdering {
         if (rinaSakId.isNullOrBlank()) {
             logger.info("Mangler rinaSakId fra Joark, avbryter")
-            return
+            return Vurdering(Utfall.MANGLER_RINASAKID, Spor.JOARK)
         }
 
+        // hentAvsenderLand gir null ved feil mot EUX og tom liste når saken ikke har motparter
         val motparter = euxService.hentAvsenderLand(rinaSakId).also { logger.info("AvsenderLand: {}", it) }
-        if (motparter.isNullOrEmpty()) {
+        if (motparter == null) {
+            logger.warn("Klarte ikke å hente motparter fra EUX, avbryter")
+            return Vurdering(Utfall.EUX_FEIL, Spor.JOARK)
+        }
+        if (motparter.isEmpty()) {
             logger.warn("Mangler land, avbryter")
-            return
+            return Vurdering(Utfall.MANGLER_MOTPARTER, Spor.JOARK)
         }
 
         val mottakerLand = motparter
@@ -211,7 +258,7 @@ class DodsmeldingBehandler(
 
         if (mottakerLand.isNullOrBlank()) {
             logger.warn("Mangler mottaker land, avbryter")
-            return
+            return Vurdering(Utfall.MANGLER_STOETTET_MOTTAKERLAND, Spor.JOARK)
         }
 
         lagringsService.lagreFnrForBruker(norskIdent)
@@ -228,6 +275,19 @@ class DodsmeldingBehandler(
 
         //TODO: Sjekk hvilken ytelse bruker har før vi går videre med å preutfylle en H070
         //TODO: Sjekk hvilken institusjon som skal legges til ut i fra hvilket land det er som skal motta H070 fra oss.
+        return Vurdering(Utfall.H070_OPPRETTET, Spor.JOARK, mottakerLand)
+    }
+
+    /**
+     * Teller utfallet av hver vurdering. Taggene har få mulige verdier og inneholder aldri personopplysninger.
+     */
+    private fun registrer(vurdering: Vurdering) {
+        meterRegistry.counter(
+            "dodsmelding_h070_vurdering",
+            "utfall", vurdering.utfall.name,
+            "spor", vurdering.spor.name,
+            "land", vurdering.land?.trim()?.uppercase()?.takeIf { it.isNotBlank() } ?: "UKJENT"
+        ).increment()
     }
 
     private fun logPerson(person: PdlPersonUtvidet, identFraRegister: String?, rinaSakId: String?) {
@@ -349,16 +409,17 @@ class DodsmeldingBehandler(
      */
     fun harAktivNorskAdresse(person: PdlPersonUtvidet, pdlPersonEnkel: PdlPerson?, doedsdato: LocalDate): Boolean {
         val kandidater = listOf(
-            "ordinært" to pdlPersonEnkel?.bostedsadresse,
+            "ordinaer" to pdlPersonEnkel?.bostedsadresse,
             "historisk" to person.bostedsadresseInklHistoriske
         ).mapNotNull { (kilde, adresse) -> adresse?.let { kilde to it } }
 
         if (kandidater.isEmpty()) {
             logger.info("Bruker har ingen bostedsadresse i PDL")
+            meterRegistry.counter("dodsmelding_norsk_adresse_vurdering", "kilde", "mangler").increment()
             return false
         }
 
-        return kandidater.any { (kilde, bostedsadresse) ->
+        val aktivKilde = kandidater.firstOrNull { (kilde, bostedsadresse) ->
             secureLogger.info("Vurderer bostedsadresse fra $kilde oppslag: $bostedsadresse")
 
             val harVegadresse = bostedsadresse.vegadresse != null
@@ -376,7 +437,10 @@ class DodsmeldingBehandler(
                 aktiv
             )
             aktiv
-        }
+        }?.first
+
+        meterRegistry.counter("dodsmelding_norsk_adresse_vurdering", "kilde", aktivKilde ?: "ingen").increment()
+        return aktivKilde != null
     }
 
     /**

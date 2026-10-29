@@ -1,5 +1,6 @@
 package no.nav.eessi.pensjon.dodsmelding
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.*
 import no.nav.eessi.pensjon.eux.EuxService
 import no.nav.eessi.pensjon.eux.model.Motparter
@@ -44,6 +45,12 @@ class DodsmeldingBehandlerTest {
     private val lagringsService = mockk<LagringsService>()
 
     private lateinit var dodsmeldingBehandler: DodsmeldingBehandler
+    private lateinit var meterRegistry: SimpleMeterRegistry
+
+    private fun vurderinger(utfall: Utfall, spor: Spor, land: String = "UKJENT"): Double =
+        meterRegistry.find("dodsmelding_h070_vurdering")
+            .tags("utfall", utfall.name, "spor", spor.name, "land", land)
+            .counter()?.count() ?: 0.0
 
     private fun adresseMock(utenlandskAdresse: UtenlandskAdresse? = null) = mockk<Bostedsadresse>(relaxed = true) {
         every { this@mockk.utenlandskAdresse } returns utenlandskAdresse
@@ -70,7 +77,8 @@ class DodsmeldingBehandlerTest {
     @BeforeEach
     fun setup() {
         clearAllMocks()
-        dodsmeldingBehandler = DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, safService, lagringsService, "q2")
+        meterRegistry = SimpleMeterRegistry()
+        dodsmeldingBehandler = DodsmeldingBehandler(pesysKlient, personService, opprettH070, euxService, safService, lagringsService, "q2", meterRegistry)
         every { pesysKlient.hentPensjonSaklist(any()) } returns emptyList()
 
         // ting som ikke er så viktig akkurat nå
@@ -971,7 +979,31 @@ class DodsmeldingBehandlerTest {
 
         verify(exactly = 1) { personService.hentPersonUtvidet(ident) }
         verify(exactly = 1) { opprettH070.preutFyltH070(personhendelse, any(), any()) }
+        assertEquals(1.0, vurderinger(Utfall.H070_OPPRETTET, Spor.LEVEATTEST, "FI"))
 //        verify(exactly = 1) { euxService.sendSed(any(), any()) }
+    }
+
+    @Test
+    fun `behandle teller utfall naar bruker mangler utenlandskobling`() {
+        val personhendelse = personhendelseMock("12345678901")
+        every { lagringsService.finnesDodBrukerILeveAttReg(any()) } returns null
+        every { personService.hentPersonUtvidet(any()) } returns mockk(relaxed = true) {
+            every { identer } returns listOf(IdentInformasjon("98765432100", IdentGruppe.FOLKEREGISTERIDENT))
+        }
+
+        dodsmeldingBehandler.behandle(personhendelse)
+
+        assertEquals(1.0, vurderinger(Utfall.INGEN_UTENLANDSKOBLING, Spor.INGEN))
+    }
+
+    @Test
+    fun `behandle teller feil og kaster unntaket videre`() {
+        val personhendelse = personhendelseMock("12345678901")
+        every { personService.hentPersonUtvidet(any()) } throws RuntimeException("PDL nede")
+
+        assertThrows(RuntimeException::class.java) { dodsmeldingBehandler.behandle(personhendelse) }
+
+        assertEquals(1.0, vurderinger(Utfall.FEIL, Spor.UKJENT))
     }
 
     @Test
