@@ -70,6 +70,20 @@ De øvrige kontrollene gjelder fortsatt. Mottaker velges fortsatt fra leveattest
 eller EUX-motpartene, ikke fra adressene.
 Statsborgerskap, fødeland, dødsboadresse og andre landkilder inngår ikke i innsamlingen.
 
+## Metrikker for H070-vurderingen
+
+- `dodsmelding_h070_vurdering`: én telling per dødsmelding som vurderes. Tagger:
+  - `utfall`: hvor vurderingen stoppet, for eksempel `INGEN_UTENLANDSKOBLING`, `H070_FINNES_I_JOARK`,
+    `INGEN_AKTIV_NORSK_ADRESSE`, `EUX_FEIL`, `H070_OPPRETTET` eller `FEIL` (unntak som stopper konsumenten).
+    Alle verdier står i `Utfall` i `DodsmeldingBehandler.kt`.
+  - `spor`: `LEVEATTEST`, `JOARK`, `INGEN` eller `UKJENT` (stoppet før registeret og Joark ble sjekket).
+  - `land`: landet fra registeret eller EUX-mottakeren når det er kjent, ellers `UKJENT`.
+- `dodsmelding_norsk_adresse_vurdering`: hvilken bostedsadresse som ga aktiv norsk adresse.
+  Taggen `kilde` er `ordinaer`, `historisk`, `ingen` (ingen var aktiv) eller `mangler` (ingen bostedsadresse).
+
+`H070_OPPRETTET` betyr at H070 er preutfylt og sendt til lagring. `LagringsService` svelger lagringsfeil,
+så tellingen bekrefter ikke at fila faktisk ble skrevet.
+
 ## Etterlevelse: monitorering av kritisk dataflyt
 
 - Overordnet rutine og krav: `docs/monitorering-kritisk-dataflyt.md`
