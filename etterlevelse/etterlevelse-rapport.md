@@ -232,7 +232,7 @@ Komponenten sender H070 med personopplysninger (navn, fnr, dødsdato, utenlandsk
 | 2 | Tydelig markering ved oppslag | Ikke relevant | Ingen brukerflate. |
 | 3 | Beskyttelse ved lagring på andres saker | Ikke relevant | Appen lagrer ikke data på andres saker. |
 | 4 | Sammenstilte oversikter | Ikke relevant | Ingen slike oversikter. |
-| 5 | Deler ikke adresse med eksterne parter | Nei (delvis) | H070-SED inneholder persondata (navn, fnr, dødsdato). Koden sjekker ikke adressebeskyttelse før sending (`OpprettH070.kt`, `DodsmeldingBehandler.kt`). Adressen sendes ikke eksplisitt i H070, men det bør verifiseres at ingen geolokaliserende opplysninger lekker. |
+| 5 | Deler ikke adresse med eksterne parter | Nei (delvis) | H070-SED inneholder persondata (navn, fnr, dødsdato). Koden sjekker ikke adressebeskyttelse før sending (`OpprettH070.kt`, `PersonHendelseBehandler.kt`). Adressen sendes ikke eksplisitt i H070, men det bør verifiseres at ingen geolokaliserende opplysninger lekker. |
 | 6 | Varsomhet ved deling av geolokaliserende opplysninger | Nei (delvis) | Ingen eksplisitt sjekk for kode 6/7 i koden. H070 inneholder kun navn, fnr, dødsdato og utenlandsk ID — trolig ikke geolokaliserende, men dette bør verifiseres og dokumenteres. |
 | 7 | Selvbetjeningsløsninger | Ikke relevant | Ingen selvbetjening. |
 | 8 | Begrense manuell håndtering | Ja | Hele prosessen er automatisert — ingen manuell behandling av adressebeskyttede brukeres opplysninger. |
