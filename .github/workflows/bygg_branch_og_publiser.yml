@@ -11,6 +11,7 @@ name: Bygg, publiser og deploy til Q2
 on:
   push:
     branches:
+      - '!feature/rina-cdm'
       - 'feature/*'
 jobs:
   bygg_deploy_dev_publiser_tag:

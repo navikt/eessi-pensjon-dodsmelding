@@ -10,7 +10,7 @@ DEFAULT_JVM_OPTS="${DEFAULT_JVM_OPTS} -XX:MaxRAMPercentage=80"
 #   kubectl exec -c <container> <pod> -- bash -c 'echo "System.out.println(Runtime.getRuntime().availableProcessors());"|jshell -s - 2>/dev/null' 2>/dev/null
 # If you have CPU limit =< 1000m set ActiveProcessorCount to 2
 
-DEFAULT_JVM_OPTS="${DEFAULT_JVM_OPTS} -XX:ActiveProcessorCount=4"
+DEFAULT_JVM_OPTS="${DEFAULT_JVM_OPTS} -XX:ActiveProcessorCount=2"
 
 # Beware that you're app might experience throttling if you have low CPU-limits
 
