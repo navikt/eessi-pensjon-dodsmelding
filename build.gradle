@@ -20,6 +20,29 @@ plugins {
 
 apply from: "buildSrc/ep-module.gradle"
 
+repositories {
+    maven {
+        url = uri("https://packages.confluent.io/maven/")
+        content {
+            includeGroupByRegex("io\\.confluent(\\..*)?")
+        }
+    }
+
+    exclusiveContent {
+        forRepository {
+            maven {
+                url = uri("https://github-package-registry-mirror.gc.nav.no/cached/maven-release")
+                metadataSources {
+                    artifact()
+                }
+            }
+        }
+        filter {
+            includeModule("no.nav.pensjon", "pensjon-pdl-avro-schema")
+        }
+    }
+}
+
 tasks.withType(Test) {
     jvmArgs '-Xmx2g' // test environment heap size
 }
